@@ -38,6 +38,8 @@ export default function LiveA4PreviewPanel({
     salary = { basic: 16000, travel: 3000, incentive: 3500, other: 1500 },
     responsibilities = [],
     termsAndConditions = [],
+    documentMode = 'generate',
+    manualPdf = null,
   } = offerData;
 
   const basic = Number(salary?.basic) || 0;
@@ -206,6 +208,24 @@ export default function LiveA4PreviewPanel({
               <span>{formattedDate}</span>
             </div>
           </div>
+
+          {/* Mode Notification Banner */}
+          {documentMode === 'upload' && (
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 rounded font-sans text-xs text-emerald-900 flex items-center justify-between">
+              <div>
+                <p className="font-bold flex items-center gap-1.5 text-emerald-800">
+                  <Check className="h-4 w-4 text-emerald-600" />
+                  Custom Manual Offer Letter Document Attached
+                </p>
+                <p className="text-[10px] text-emerald-700 font-mono mt-0.5">
+                  File: {manualPdf?.name || 'Custom_Signed_Offer_Letter.pdf'} {manualPdf?.size ? `(${(manualPdf.size / 1024).toFixed(1)} KB)` : ''}
+                </p>
+              </div>
+              <span className="text-[10px] font-bold bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded">
+                External Attachment
+              </span>
+            </div>
+          )}
 
           {/* Banner */}
           <div className="text-center py-1.5 bg-blue-50/70 border-y border-blue-100 font-sans my-3">

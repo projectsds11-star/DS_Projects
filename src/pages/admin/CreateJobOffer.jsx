@@ -30,6 +30,7 @@ import EmployeeSelectorCard from '../../components/offer-workspace/EmployeeSelec
 import JobPositionCards from '../../components/offer-workspace/JobPositionCards';
 import LocationCard from '../../components/offer-workspace/LocationCard';
 import AccountPreviewCard from '../../components/offer-workspace/AccountPreviewCard';
+import OfferDocumentSelectorCard from '../../components/offer-workspace/OfferDocumentSelectorCard';
 import EmploymentContractCard from '../../components/offer-workspace/EmploymentContractCard';
 import SalaryBuilderCard from '../../components/offer-workspace/SalaryBuilderCard';
 import OfferContentTabs from '../../components/offer-workspace/OfferContentTabs';
@@ -510,6 +511,15 @@ export default function CreateJobOffer() {
       {/* ── STEP 2: TERMS, COMPENSATION & CONTENT ───────────────── */}
       {currentStep === 2 && (
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Offer Letter Document Mode & Manual Upload Option */}
+          <OfferDocumentSelectorCard
+            documentMode={documentMode}
+            setDocumentMode={setDocumentMode}
+            manualPdf={manualPdf}
+            setManualPdf={setManualPdf}
+            selectedEmployee={selectedEmployee}
+          />
+
           {/* Employment & Contract */}
           <EmploymentContractCard
             register={register}
@@ -524,16 +534,18 @@ export default function CreateJobOffer() {
           />
 
           {/* Offer Content: Job Desc, Responsibilities & Terms */}
-          <OfferContentTabs
-            register={register}
-            watch={watch}
-            setValue={setValue}
-            respFields={respFields}
-            appendResp={appendResp}
-            removeResp={removeResp}
-          />
+          {documentMode === 'generate' && (
+            <OfferContentTabs
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              respFields={respFields}
+              appendResp={appendResp}
+              removeResp={removeResp}
+            />
+          )}
 
-          {/* Email Setup & Document Attachment */}
+          {/* Email Setup & Dispatch Configuration */}
           <EmailAndDocumentCard
             register={register}
             watch={watch}
@@ -592,6 +604,8 @@ export default function CreateJobOffer() {
               offerData={{
                 ...watchedValues,
                 offerNumber: `DS/OFF/2026/${watchedValues.employeeId?.replace(/[^0-9]/g, '') || '001'}`,
+                documentMode,
+                manualPdf,
               }}
             />
           </div>
