@@ -89,14 +89,6 @@ export const sendWelcomeEmail = async (req, res) => {
                   <td style="color: #1e3a8a; font-weight: bold; font-family: monospace;">${empId}</td>
                 </tr>
                 <tr>
-                  <td style="color: #64748b; font-weight: bold;">Designation:</td>
-                  <td style="color: #0f172a;">${role}</td>
-                </tr>
-                <tr>
-                  <td style="color: #64748b; font-weight: bold;">Assigned Deployment:</td>
-                  <td style="color: #0f172a;">${locMandal}, ${locDistrict} District</td>
-                </tr>
-                <tr>
                   <td style="color: #64748b; font-weight: bold;">Registered Email:</td>
                   <td style="color: #0f172a;">${email}</td>
                 </tr>
