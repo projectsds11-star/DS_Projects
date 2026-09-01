@@ -21,6 +21,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { liveDataService } from '../../services/liveDataService';
+import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 
 export default function Employees() {
   const navigate = useNavigate();
@@ -34,8 +35,38 @@ export default function Employees() {
     async function fetchEmployees() {
       setLoading(true);
       try {
-        const liveList = await liveDataService.getEmployees();
-        setEmployees(liveList || []);
+        let liveList = await liveDataService.getEmployees();
+        let offers = [];
+        
+        if (isSupabaseConfigured) {
+          try {
+            const { data } = await supabase.from('job_offers').select('*');
+            offers = data || [];
+          } catch (e) {
+            console.warn('Could not fetch offers for enrichment:', e);
+          }
+        }
+
+        const enriched = (liveList || []).map(emp => {
+          const empId = emp.employee_id || emp.employeeId || emp.id;
+          const matchingOffer = offers.find(o => 
+            (o.employee_id === empId || o.employeeId === empId) && 
+            (o.status === 'Offer Sent' || o.status === 'Offer Accepted' || o.status === 'Onboarding Completed')
+          );
+          
+          const hasCompletedOffer = !!matchingOffer;
+          
+          return {
+            ...emp,
+            hasOffer: hasCompletedOffer,
+            isCompletedOnboarding: hasCompletedOffer,
+            displayDesignation: hasCompletedOffer ? (matchingOffer?.position || emp.designation) : null,
+            displayDepartment: hasCompletedOffer ? (matchingOffer?.department || emp.department || 'Field Operations') : null,
+            displayStatus: hasCompletedOffer ? 'Active' : (emp.status === 'Inactive' ? 'Inactive' : 'Onboarding')
+          };
+        });
+
+        setEmployees(enriched);
       } catch (err) {
         console.error('Error fetching employees:', err);
       } finally {
@@ -53,22 +84,16 @@ export default function Employees() {
                           (emp.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (emp.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'All' || emp.status === statusFilter;
+    const matchesStatus = statusFilter === 'All' || emp.displayStatus === statusFilter;
     const matchesDistrict = districtFilter === 'All' || emp.district === districtFilter;
 
     return matchesSearch && matchesStatus && matchesDistrict;
   });
 
-  const isCompletedOnboarding = (emp) => {
-    const obStatus = emp.onboarding_status || emp.onboardingStatus;
-    return obStatus === 'Onboarding Completed' || obStatus === 'Completed';
-  };
-
   const getStatusBadge = (emp) => {
-    if (emp.status === 'Inactive') return <Badge variant="destructive" className="font-bold text-xs">Inactive</Badge>;
-    if (emp.status === 'Draft') return <Badge variant="secondary" className="font-bold text-xs">Draft</Badge>;
-    
-    if (isCompletedOnboarding(emp)) {
+    if (emp.displayStatus === 'Inactive') return <Badge variant="destructive" className="font-bold text-xs">Inactive</Badge>;
+    if (emp.displayStatus === 'Draft') return <Badge variant="secondary" className="font-bold text-xs">Draft</Badge>;
+    if (emp.isCompletedOnboarding) {
       return <Badge variant="success" className="font-bold text-xs">Active</Badge>;
     }
     return <Badge variant="warning" className="font-bold text-xs">Onboarding</Badge>;
@@ -160,7 +185,6 @@ export default function Employees() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredEmployees.map((emp) => {
-                  const completed = isCompletedOnboarding(emp);
                   return (
                     <tr key={emp.id || emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4">
@@ -181,10 +205,10 @@ export default function Employees() {
                       </td>
 
                       <td className="px-6 py-4">
-                        {completed && emp.designation ? (
+                        {emp.isCompletedOnboarding && emp.displayDesignation ? (
                           <div>
-                            <div className="font-bold text-slate-800">{emp.designation}</div>
-                            <div className="text-xs text-slate-500">{emp.department || 'Field Operations'}</div>
+                            <div className="font-bold text-slate-800">{emp.displayDesignation}</div>
+                            <div className="text-xs text-slate-500">{emp.displayDepartment || 'Field Operations'}</div>
                           </div>
                         ) : (
                           <div>
@@ -211,7 +235,7 @@ export default function Employees() {
 
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {completed ? (
+                          {emp.isCompletedOnboarding ? (
                             <button
                               onClick={() => navigate('/admin/work')}
                               className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
