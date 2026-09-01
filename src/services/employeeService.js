@@ -9,6 +9,55 @@ function formatId(n) {
 
 export const employeeService = {
   /**
+   * Fetch all employees from Supabase, mapped to camelCase for the UI.
+   */
+  async getEmployees() {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*')
+          .neq('status', 'Draft')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          return data.map(e => ({
+            employeeId: e.employee_id,
+            fullName: e.full_name,
+            email: e.email,
+            phone: e.phone,
+            designation: e.designation,
+            department: e.department,
+            district: e.district,
+            mandal: e.mandal,
+            qualification: e.qualification,
+            status: e.status,
+            onboardingStatus: e.onboarding_status,
+            joiningDate: e.joining_date,
+          }));
+        }
+      } catch (err) {
+        console.warn('getEmployees error:', err);
+      }
+    }
+    // fallback to liveDataService
+    const raw = await liveDataService.getEmployees();
+    return raw.map(e => ({
+      employeeId: e.employee_id,
+      fullName: e.full_name,
+      email: e.email,
+      phone: e.phone,
+      designation: e.designation,
+      department: e.department,
+      district: e.district,
+      mandal: e.mandal,
+      qualification: e.qualification,
+      status: e.status,
+      onboardingStatus: e.onboarding_status,
+    }));
+  },
+
+  /**
    * Returns the next available Employee ID from Supabase.
    */
   async getNextEmployeeId() {
