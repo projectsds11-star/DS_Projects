@@ -155,6 +155,7 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
   const {
     employeeId,
     fullName,
+    employeeName,
     email,
     position,
     district,
@@ -163,29 +164,40 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
     salary,
     username,
     password,
+    emailSubject,
+    emailBody,
   } = req.body;
 
-  if (!email || !fullName) {
-    return res.status(400).json({ message: 'Employee name and email are required.' });
+  const candidateName = fullName || employeeName || 'Candidate';
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Employee email is required.' });
   }
 
   const role = position || 'Mandal Co-ordinator';
   const locDistrict = district || 'Nellore';
   const locMandal = mandal || 'Kavali';
   const empId = employeeId || 'DS-001';
-  const portalUrl = process.env.VITE_APP_URL || 'http://localhost:5173/employee/login';
+  const portalUrl = process.env.VITE_APP_URL || 'https://ds-projects-eta.vercel.app/employee/login';
 
-  // System auto-generated credentials (non-editable by admin)
+  // System auto-generated credentials
   const systemUsername = username || empId;
   const systemPassword = password || `DS@${empId.replace(/[^a-zA-Z0-9]/g, '')}!2026`;
 
-  // Salary / CTC formatted
-  const basic = Number(salary?.basic || 16000).toLocaleString('en-IN');
-  const travel = Number(salary?.travel || 3000).toLocaleString('en-IN');
-  const incentive = Number(salary?.incentive || 3500).toLocaleString('en-IN');
-  const other = Number(salary?.other || 1500).toLocaleString('en-IN');
-  const monthlyTotal = Number(salary?.monthlyTotal || 24000).toLocaleString('en-IN');
-  const annualCtc = Number(salary?.annualCtc || 288000).toLocaleString('en-IN');
+  // Salary / CTC formatted accurately
+  const basicNum = Number(salary?.basic) || 25000;
+  const travelNum = Number(salary?.travel) || 5000;
+  const monthlyTotalNum = Number(salary?.monthlyTotal) || (basicNum + travelNum);
+  const annualCtcNum = Number(salary?.annualCtc) || (monthlyTotalNum * 12);
+
+  const basic = basicNum.toLocaleString('en-IN');
+  const travel = travelNum.toLocaleString('en-IN');
+  const monthlyTotal = monthlyTotalNum.toLocaleString('en-IN');
+  const annualCtc = annualCtcNum.toLocaleString('en-IN');
+
+  const customMessageHtml = emailBody
+    ? `<div style="background-color: #f1f5f9; border-left: 4px solid #2563eb; padding: 14px 16px; border-radius: 6px; margin: 18px 0; font-size: 13px; color: #1e293b; white-space: pre-line;">${emailBody}</div>`
+    : '';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -212,11 +224,13 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
           <!-- Body -->
           <tr>
             <td style="padding: 30px; font-size: 14px; color: #334155;">
-              <p style="margin-top: 0; font-size: 16px;">Dear <strong>${fullName}</strong>,</p>
+              <p style="margin-top: 0; font-size: 16px;">Dear <strong>${candidateName}</strong>,</p>
               
-              <p>On behalf of the Administration and Management of <strong>DS Projects Private Limited</strong>, we extend our warmest wishes and are pleased to notify you that your employee onboarding process has been <strong>successfully completed</strong>!</p>
+              <p>On behalf of the Administration and Management of <strong>DS Projects Private Limited</strong>, we extend our warmest congratulations and are pleased to notify you that your employee onboarding process has been <strong>successfully completed</strong>!</p>
               
-              <p>Your employment terms, deployment area, and compensation details (CTC) have been officially confirmed as follows:</p>
+              ${customMessageHtml}
+
+              <p>Your appointment details, deployment area, and official compensation schedule (CTC) have been confirmed as follows:</p>
 
               <!-- Deployment Info -->
               <table width="100%" cellspacing="0" cellpadding="8" style="background-color: #f8fafc; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0; font-size: 13px;">
@@ -332,7 +346,7 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
     const info = await transporter.sendMail({
       from: `"DS Projects Administration" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
       to: email,
-      subject: `📜 Employment Offer, CTC Details & Portal Credentials — DS Projects (${empId})`,
+      subject: emailSubject || `📜 Employment Offer, CTC Details & Portal Credentials — DS Projects (${empId})`,
       html: htmlContent,
     });
 

@@ -233,10 +233,14 @@ export const offerService = {
         }).eq('employee_id', payload.employeeId);
 
         // Dispatch Onboarding & Credentials Email (Email 2)
-        this.sendOnboardingEmail({
-          ...payload,
-          password: generatedPassword
-        }).catch(e => console.warn('Onboarding email dispatch warning:', e));
+        try {
+          await this.sendOnboardingEmail({
+            ...payload,
+            password: generatedPassword
+          });
+        } catch (e) {
+          console.warn('Onboarding email dispatch warning:', e);
+        }
 
         const createdData = data && data[0] ? data[0] : newOffer;
         _offers.unshift(createdData);
@@ -249,10 +253,14 @@ export const offerService = {
     _offers.unshift(newOffer);
     
     // Dispatch Onboarding & Credentials Email (Email 2)
-    this.sendOnboardingEmail({
-      ...payload,
-      password: generatedPassword
-    }).catch(e => console.warn('Onboarding email dispatch warning:', e));
+    try {
+      await this.sendOnboardingEmail({
+        ...payload,
+        password: generatedPassword
+      });
+    } catch (e) {
+      console.warn('Onboarding email dispatch warning:', e);
+    }
 
     return { success: true, data: newOffer };
   },
@@ -266,7 +274,8 @@ export const offerService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: payload.employeeId,
-          fullName: payload.employeeName,
+          fullName: payload.employeeName || payload.fullName,
+          employeeName: payload.employeeName || payload.fullName,
           email: payload.email,
           position: payload.position,
           district: payload.district,
@@ -275,11 +284,15 @@ export const offerService = {
           salary: payload.salary,
           username: payload.employeeId,
           password: payload.password,
+          emailSubject: payload.emailSubject,
+          emailBody: payload.emailBody,
         }),
       });
-      return await res.json();
+      const data = await res.json();
+      console.log('✅ Onboarding email dispatch response:', data);
+      return data;
     } catch (e) {
-      console.warn('Onboarding email API error:', e);
+      console.warn('❌ Onboarding email API error:', e);
       return { success: false, error: e.message };
     }
   },
