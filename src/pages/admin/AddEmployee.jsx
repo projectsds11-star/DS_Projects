@@ -377,7 +377,7 @@ export default function AddEmployee() {
                   {...register('yearOfPassing')} />
               </FormField>
 
-              <FormField label="Qualification Certificate" colSpan={2}>
+              <FormField label="Qualification Certificate" colSpan={2} helper="Optional — can be uploaded later.">
                 <DocumentUploader label=""
                   value={documents.qualCert}
                   onChange={v => setDocuments(d => ({ ...d, qualCert: v }))}
@@ -417,7 +417,7 @@ export default function AddEmployee() {
                 </FormField>
 
                 {/* Aadhaar Document */}
-                <FormField label="Aadhaar Document" colSpan={1}>
+                <FormField label="Aadhaar Document" colSpan={1} helper="Optional — upload later if unavailable.">
                   <DocumentUploader label=""
                     value={documents.aadhaarDoc}
                     onChange={v => setDocuments(d => ({ ...d, aadhaarDoc: v }))}
@@ -425,7 +425,7 @@ export default function AddEmployee() {
                 </FormField>
 
                 {/* PAN Document */}
-                <FormField label="PAN Document" colSpan={1}>
+                <FormField label="PAN Document" colSpan={1} helper="Optional — upload later if unavailable.">
                   <DocumentUploader label=""
                     value={documents.panDoc}
                     onChange={v => setDocuments(d => ({ ...d, panDoc: v }))}
@@ -500,11 +500,10 @@ export default function AddEmployee() {
               </FormField>
 
               {/* Passbook Upload */}
-              <FormField label="Bank Passbook" required colSpan={2}>
+              <FormField label="Bank Passbook" colSpan={2} helper="Optional — upload later if unavailable.">
                 <DocumentUploader label=""
                   value={documents.passbook}
                   onChange={v => setDocuments(d => ({ ...d, passbook: v }))}
-                  required
                 />
               </FormField>
             </FormGrid>
@@ -546,11 +545,14 @@ export default function AddEmployee() {
 
         {/* ── SECTION 08 – DOCUMENTS ──────────────────────── */}
         <div className="mt-5">
-          <FormSection number={8} title="Employee Documents" description="Upload all required documents for onboarding.">
+          <FormSection number={8} title="Employee Documents" description="All document uploads are optional. You can upload them later during onboarding.">
+            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+              <span className="text-xs text-amber-700 font-medium">ℹ️ All documents below are optional — the employee profile can be saved without uploads.</span>
+            </div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <DocumentUploader label="Resume / CV" value={documents.resume}
+              <DocumentUploader label="Resume / CV (Optional)" value={documents.resume}
                 onChange={v => setDocuments(d => ({ ...d, resume: v }))} />
-              <DocumentUploader label="Other Documents" value={documents.otherDoc}
+              <DocumentUploader label="Other Documents (Optional)" value={documents.otherDoc}
                 onChange={v => setDocuments(d => ({ ...d, otherDoc: v }))} />
             </div>
           </FormSection>
