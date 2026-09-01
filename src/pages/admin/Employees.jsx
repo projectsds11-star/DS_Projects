@@ -59,14 +59,19 @@ export default function Employees() {
     return matchesSearch && matchesStatus && matchesDistrict;
   });
 
-  const getStatusBadge = (status) => {
-    switch(status) {
-      case 'Active': return <Badge variant="success" className="font-bold text-xs">Active</Badge>;
-      case 'Onboarding': return <Badge variant="warning" className="font-bold text-xs">Onboarding</Badge>;
-      case 'Draft': return <Badge variant="secondary" className="font-bold text-xs">Draft</Badge>;
-      case 'Inactive': return <Badge variant="destructive" className="font-bold text-xs">Inactive</Badge>;
-      default: return <Badge variant="default" className="font-bold text-xs">{status || 'Active'}</Badge>;
+  const isCompletedOnboarding = (emp) => {
+    const obStatus = emp.onboarding_status || emp.onboardingStatus;
+    return obStatus === 'Onboarding Completed' || obStatus === 'Completed';
+  };
+
+  const getStatusBadge = (emp) => {
+    if (emp.status === 'Inactive') return <Badge variant="destructive" className="font-bold text-xs">Inactive</Badge>;
+    if (emp.status === 'Draft') return <Badge variant="secondary" className="font-bold text-xs">Draft</Badge>;
+    
+    if (isCompletedOnboarding(emp)) {
+      return <Badge variant="success" className="font-bold text-xs">Active</Badge>;
     }
+    return <Badge variant="warning" className="font-bold text-xs">Onboarding</Badge>;
   };
 
   return (
@@ -154,60 +159,79 @@ export default function Employees() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp.id || emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
-                          {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
+                {filteredEmployees.map((emp) => {
+                  const completed = isCompletedOnboarding(emp);
+                  return (
+                    <tr key={emp.id || emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                            {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900">{emp.full_name || emp.name}</div>
+                            <div className="font-mono text-xs text-blue-600 font-semibold">{emp.employee_id || emp.id}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-bold text-slate-900">{emp.full_name || emp.name}</div>
-                          <div className="font-mono text-xs text-blue-600 font-semibold">{emp.employee_id || emp.id}</div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="text-slate-800 font-medium">{emp.phone || '-'}</div>
+                        <div className="text-xs text-slate-400">{emp.email || '-'}</div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        {completed && emp.designation ? (
+                          <div>
+                            <div className="font-bold text-slate-800">{emp.designation}</div>
+                            <div className="text-xs text-slate-500">{emp.department || 'Field Operations'}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-700 text-xs font-semibold">
+                              <Clock size={12} className="text-amber-500 shrink-0" />
+                              Pending Onboarding
+                            </span>
+                            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Assigned via Job Offer</p>
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-slate-800 flex items-center gap-1">
+                          <MapPin size={13} className="text-rose-500" />
+                          {emp.district || '-'}
                         </div>
-                      </div>
-                    </td>
+                        <div className="text-xs text-slate-500 pl-4">{emp.mandal || '-'}</div>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="text-slate-800 font-medium">{emp.phone || '-'}</div>
-                      <div className="text-xs text-slate-400">{emp.email || '-'}</div>
-                    </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(emp)}
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800">{emp.designation || 'Mandal Co-ordinator'}</div>
-                      <div className="text-xs text-slate-500">{emp.department || 'Field Operations'}</div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-800 flex items-center gap-1">
-                        <MapPin size={13} className="text-rose-500" />
-                        {emp.district || '-'}
-                      </div>
-                      <div className="text-xs text-slate-500 pl-4">{emp.mandal || '-'}</div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      {getStatusBadge(emp.status)}
-                    </td>
-
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => navigate('/admin/onboarding/create')}
-                          className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors cursor-pointer"
-                        >
-                          Offer
-                        </button>
-                        <button
-                          onClick={() => navigate('/admin/work')}
-                          className="px-2.5 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {completed ? (
+                            <button
+                              onClick={() => navigate('/admin/work')}
+                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
+                            >
+                              Assign Task
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => navigate(`/admin/onboarding/create?candidateId=${emp.employee_id || emp.id}`)}
+                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Send size={12} />
+                              Issue Offer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (

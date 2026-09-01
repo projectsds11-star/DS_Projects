@@ -220,6 +220,7 @@ export const offerService = {
             status: 'Active',
             onboarding_status: 'Onboarding Completed',
             designation: payload.position,
+            department: payload.department || 'Field Operations',
             district: payload.district,
             mandal: payload.mandal
           }).eq('employee_id', payload.employeeId);
