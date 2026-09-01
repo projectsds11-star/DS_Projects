@@ -30,11 +30,7 @@ import EmployeeSelectorCard from '../../components/offer-workspace/EmployeeSelec
 import JobPositionCards from '../../components/offer-workspace/JobPositionCards';
 import LocationCard from '../../components/offer-workspace/LocationCard';
 import AccountPreviewCard from '../../components/offer-workspace/AccountPreviewCard';
-import OfferDocumentSelectorCard from '../../components/offer-workspace/OfferDocumentSelectorCard';
-import EmploymentContractCard from '../../components/offer-workspace/EmploymentContractCard';
-import SalaryBuilderCard from '../../components/offer-workspace/SalaryBuilderCard';
-import OfferContentTabs from '../../components/offer-workspace/OfferContentTabs';
-import EmailAndDocumentCard from '../../components/offer-workspace/EmailAndDocumentCard';
+import SimpleStep2OfferDetails from '../../components/offer-workspace/SimpleStep2OfferDetails';
 import LiveA4PreviewPanel from '../../components/offer-workspace/LiveA4PreviewPanel';
 
 // Modals
@@ -257,14 +253,14 @@ export default function CreateJobOffer() {
         setStepErrors(errs);
       }
     } else if (currentStep === 2) {
-      const valid = await trigger(['joiningDate', 'department', 'salary.basic', 'jobDescription', 'emailSubject', 'emailBody']);
+      const valid = await trigger(['joiningDate', 'salary.basic']);
       if (valid) {
         setCurrentStep(3);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         const errs = [];
         if (errors.joiningDate) errs.push('Please provide a valid joining date.');
-        if (errors.salary?.basic) errs.push('Please provide a valid basic salary.');
+        if (errors.salary?.basic) errs.push('Please provide a valid monthly salary.');
         setStepErrors(errs);
       }
     }
@@ -339,147 +335,114 @@ export default function CreateJobOffer() {
     <div className="space-y-6 pb-28 max-w-6xl mx-auto px-2 sm:px-4">
       {/* ── WORKSPACE TOP BAR ────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/admin/onboarding')}
-            className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-gray-900 transition"
-            title="Back to Onboarding"
+            className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-600"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-bold tracking-tight text-[var(--color-navy)]">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-bold text-[var(--color-navy)]">
                 Create Job Offer
               </h1>
-              <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200 uppercase tracking-wider">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
                 Draft Mode
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
-              Step {currentStep} of 3 · {WIZARD_STEPS[currentStep - 1].title}
+              Step {currentStep} of 3 · {WIZARD_STEPS.find(s => s.id === currentStep)?.title}
             </p>
           </div>
         </div>
 
-        {/* Top Actions & Autosave status */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium mr-1">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{autosaveStatus}</span>
-          </div>
-
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5 self-end md:self-auto">
+          <span className="text-[11px] text-gray-400 font-mono flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {autosaveStatus}
+          </span>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleSaveDraft}
             icon={Save}
-            className="text-xs h-9"
+            className="text-xs"
           >
             Save Draft
           </Button>
-
-          {currentStep === 3 ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={onTriggerSend}
-              icon={Send}
-              className="text-xs h-9 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs px-5"
-            >
-              Send Offer
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleNextStep}
-              className="text-xs h-9 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs px-4 flex items-center gap-1.5"
-            >
-              <span>Next Step</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleNextStep}
+            className="text-xs font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs"
+          >
+            {currentStep < 3 ? 'Next Step →' : 'Review & Send'}
+          </Button>
         </div>
       </div>
 
-      {/* ── 3-STEP PROGRESS STEPPER ─────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[var(--color-border)] p-3 sm:p-4 shadow-xs">
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          {WIZARD_STEPS.map((step) => {
-            const isActive = currentStep === step.id;
-            const isCompleted = currentStep > step.id;
+      {/* ── WIZARD PROGRESS STEPPER ──────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {WIZARD_STEPS.map((step) => {
+          const isActive = currentStep === step.id;
+          const isDone = currentStep > step.id;
 
-            return (
+          return (
+            <div
+              key={step.id}
+              onClick={() => {
+                if (step.id < currentStep) setCurrentStep(step.id);
+              }}
+              className={cn(
+                'p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center gap-3',
+                isActive && 'bg-blue-50/60 border-blue-600 shadow-xs ring-1 ring-blue-600',
+                isDone && 'bg-white border-green-500 cursor-pointer',
+                !isActive && !isDone && 'bg-white border-[var(--color-border)] opacity-60'
+              )}
+            >
               <div
-                key={step.id}
-                onClick={() => {
-                  if (step.id < currentStep) setCurrentStep(step.id);
-                }}
                 className={cn(
-                  'flex items-center gap-2 sm:gap-3.5 p-2.5 sm:p-3 rounded-xl transition-all',
-                  isActive && 'bg-blue-50/80 border border-blue-200 shadow-2xs',
-                  isCompleted && 'bg-gray-50/80 hover:bg-gray-100 cursor-pointer',
-                  !isActive && !isCompleted && 'opacity-60'
+                  'w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0',
+                  isActive && 'bg-[var(--color-primary)] text-white shadow-xs',
+                  isDone && 'bg-green-500 text-white',
+                  !isActive && !isDone && 'bg-gray-100 text-gray-500'
                 )}
               >
-                <div
-                  className={cn(
-                    'w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors',
-                    isActive && 'bg-[var(--color-primary)] text-white shadow-xs',
-                    isCompleted && 'bg-green-600 text-white',
-                    !isActive && !isCompleted && 'bg-gray-200 text-gray-600'
-                  )}
-                >
-                  {isCompleted ? <Check className="h-4 w-4" /> : step.id}
-                </div>
-                <div className="min-w-0">
-                  <p className={cn('text-xs font-bold truncate leading-tight', isActive ? 'text-[var(--color-navy)]' : 'text-gray-700')}>
-                    {step.title}
-                  </p>
-                  <p className="text-[10px] text-gray-400 truncate hidden sm:block mt-0.5">
-                    {step.desc}
-                  </p>
-                </div>
+                {isDone ? <Check className="h-4 w-4" /> : step.id}
               </div>
-            );
-          })}
-        </div>
+              <div className="min-w-0 hidden sm:block">
+                <p className="text-xs font-bold text-gray-900 truncate">{step.title}</p>
+                <p className="text-[10px] text-gray-500 truncate">{step.desc}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Error banner */}
-      {stepErrors.length > 0 && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs space-y-1 animate-in fade-in">
-          <p className="font-bold text-red-800 flex items-center gap-1.5">
-            <AlertCircle className="h-4 w-4" /> Please correct the following before continuing:
-          </p>
-          <ul className="list-disc pl-5 text-red-700 space-y-0.5">
-            {stepErrors.map((err, i) => (
-              <li key={i}>{err}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ── STEP 1: CANDIDATE, ROLE & JURISDICTION ──────────────── */}
+      {/* ── STEP 1: CANDIDATE & ROLE SELECTION ───────────────────── */}
       {currentStep === 1 && (
         <div className="space-y-6 animate-in fade-in duration-150">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Employee Selection */}
-            <EmployeeSelectorCard
-              employees={employees}
-              selectedEmployee={selectedEmployee}
-              onSelectEmployee={handleSelectEmployee}
-              error={errors.employeeId?.message}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Candidate Picker */}
+            <div className="lg:col-span-6">
+              <EmployeeSelectorCard
+                employees={employees}
+                selectedEmployee={selectedEmployee}
+                onSelectEmployee={handleSelectEmployee}
+                error={errors.employeeId?.message}
+              />
+            </div>
 
-            {/* Portal Account Credentials */}
-            <AccountPreviewCard
-              employeeName={watchedValues.employeeName}
-              employeeId={watchedValues.employeeId}
-            />
+            {/* Right Account Provisioning Preview */}
+            <div className="lg:col-span-6">
+              <AccountPreviewCard
+                watchedValues={watchedValues}
+              />
+            </div>
           </div>
 
           {/* Job Position Cards */}
@@ -489,14 +452,13 @@ export default function CreateJobOffer() {
             error={errors.position?.message}
           />
 
-          {/* Work Location (AP 28-District Master) */}
+          {/* Jurisdiction Location Card */}
           <LocationCard
             district={watchedValues.district}
             mandal={watchedValues.mandal}
             onDistrictChange={(d) => {
               setValue('district', d);
-              setValue('mandal', '');
-              refreshEmailBody(watchedValues.employeeName, watchedValues.position, d, '', watchedValues.joiningDate);
+              refreshEmailBody(watchedValues.employeeName, watchedValues.position, d, watchedValues.mandal, watchedValues.joiningDate);
             }}
             onMandalChange={(m) => {
               setValue('mandal', m);
@@ -508,54 +470,19 @@ export default function CreateJobOffer() {
         </div>
       )}
 
-      {/* ── STEP 2: TERMS, COMPENSATION & CONTENT ───────────────── */}
+      {/* ── STEP 2: SIMPLIFIED APPOINTMENT & OFFER DETAILS ───────── */}
       {currentStep === 2 && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          {/* Offer Letter Document Mode & Manual Upload Option */}
-          <OfferDocumentSelectorCard
-            documentMode={documentMode}
-            setDocumentMode={setDocumentMode}
-            manualPdf={manualPdf}
-            setManualPdf={setManualPdf}
-            selectedEmployee={selectedEmployee}
-          />
-
-          {/* Employment & Contract */}
-          <EmploymentContractCard
-            register={register}
-            errors={errors}
-          />
-
-          {/* Salary Structure Builder */}
-          <SalaryBuilderCard
-            register={register}
-            watch={watch}
-            errors={errors}
-          />
-
-          {/* Offer Content: Job Desc, Responsibilities & Terms */}
-          {documentMode === 'generate' && (
-            <OfferContentTabs
-              register={register}
-              watch={watch}
-              setValue={setValue}
-              respFields={respFields}
-              appendResp={appendResp}
-              removeResp={removeResp}
-            />
-          )}
-
-          {/* Email Setup & Dispatch Configuration */}
-          <EmailAndDocumentCard
-            register={register}
-            watch={watch}
-            manualPdf={manualPdf}
-            setManualPdf={setManualPdf}
-            documentMode={documentMode}
-            setDocumentMode={setDocumentMode}
-            selectedEmployee={selectedEmployee}
-          />
-        </div>
+        <SimpleStep2OfferDetails
+          register={register}
+          watch={watch}
+          setValue={setValue}
+          errors={errors}
+          documentMode={documentMode}
+          setDocumentMode={setDocumentMode}
+          manualPdf={manualPdf}
+          setManualPdf={setManualPdf}
+          selectedEmployee={selectedEmployee}
+        />
       )}
 
       {/* ── STEP 3: LIVE A4 PREVIEW & EXECUTIVE REVIEW ──────────── */}
