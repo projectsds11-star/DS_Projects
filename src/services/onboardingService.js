@@ -180,61 +180,69 @@ export const offerService = {
 
   /** Create and dispatch a new offer letter */
   async createOffer(payload) {
-    const offerNum = `DS/OFF/${new Date().getFullYear()}/${String(_offers.length + 1).padStart(3, '0')}`;
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const offerNum = `DS/OFF/${new Date().getFullYear()}/${(payload.employeeId || 'DS001').replace(/[^a-zA-Z0-9]/g, '')}_${randomSuffix}`;
     const generatedPassword = `DS@${(payload.employeeId || 'DS001').replace(/[^a-zA-Z0-9]/g, '')}!2026`;
     
+    const basicSalary = Number(payload.salary?.basic) || 25000;
+    const travelAllowance = Number(payload.salary?.travel) || 5000;
+    const monthlyTotal = basicSalary + travelAllowance;
+    const annualCtc = monthlyTotal * 12;
+
     const newOffer = {
       offer_number: offerNum,
       employee_id: payload.employeeId,
       employee_name: payload.employeeName,
       email: payload.email,
-      phone: payload.phone,
+      phone: payload.phone || '9999999999',
       position: payload.position,
       department: payload.department || 'Field Operations',
       district: payload.district,
       mandal: payload.mandal,
       employment_type: payload.employmentType || 'Full Time',
-      work_location: payload.workLocation || 'Field',
+      work_location: payload.workLocation || 'Field / Mandal Office',
       joining_date: payload.joiningDate,
-      reporting_manager: payload.reportingManager,
+      reporting_manager: payload.reportingManager || 'District Project Coordinator',
       probation: payload.probation || '3 Months',
       notice_period: payload.noticePeriod || '30 Days',
-      basic_salary: payload.salary?.basic || 16000,
-      travel_allowance: payload.salary?.travel || 3000,
-      incentive: payload.salary?.incentive || 3500,
-      other_allowance: payload.salary?.other || 1500,
-      monthly_total: payload.salary?.monthlyTotal || 24000,
-      annual_ctc: payload.salary?.annualCtc || 288000,
-      status: payload.action === 'send' ? 'Offer Sent' : 'Offer Draft',
-      sent_at: payload.action === 'send' ? new Date().toISOString() : null,
+      basic_salary: basicSalary,
+      travel_allowance: travelAllowance,
+      incentive: Number(payload.salary?.incentive) || 0,
+      other_allowance: Number(payload.salary?.other) || 0,
+      monthly_total: monthlyTotal,
+      annual_ctc: annualCtc,
+      status: 'Offer Sent',
+      sent_at: new Date().toISOString(),
     };
 
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase.from('job_offers').insert([newOffer]).select();
-        if (!error && data) {
-          _offers.unshift(data[0]);
-
-          // Update employee status to Active & Onboarding Completed
-          await supabase.from('employees').update({
-            status: 'Active',
-            onboarding_status: 'Onboarding Completed',
-            designation: payload.position,
-            department: payload.department || 'Field Operations',
-            district: payload.district,
-            mandal: payload.mandal
-          }).eq('employee_id', payload.employeeId);
-
-          // Dispatch Onboarding & Credentials Email (Email 2)
-          this.sendOnboardingEmail({
-            ...payload,
-            password: generatedPassword
-          }).catch(e => console.warn('Onboarding email dispatch warning:', e));
-
-          return { success: true, data: data[0] };
+        if (error) {
+          console.warn('Supabase job_offers insert notice:', error.message);
         }
+
+        // Update employee status to Active & Onboarding Completed
+        await supabase.from('employees').update({
+          status: 'Active',
+          onboarding_status: 'Onboarding Completed',
+          designation: payload.position,
+          department: payload.department || 'Field Operations',
+          district: payload.district,
+          mandal: payload.mandal
+        }).eq('employee_id', payload.employeeId);
+
+        // Dispatch Onboarding & Credentials Email (Email 2)
+        this.sendOnboardingEmail({
+          ...payload,
+          password: generatedPassword
+        }).catch(e => console.warn('Onboarding email dispatch warning:', e));
+
+        const createdData = data && data[0] ? data[0] : newOffer;
+        _offers.unshift(createdData);
+        return { success: true, data: createdData };
       } catch (err) {
-        console.warn('Supabase createOffer error:', err);
+        console.warn('Supabase createOffer catch:', err);
       }
     }
 

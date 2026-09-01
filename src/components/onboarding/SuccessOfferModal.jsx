@@ -17,15 +17,14 @@ export default function SuccessOfferModal({
 
   if (!isModalOpen) return null;
 
-  const {
-    employeeName = 'Rahul Kumar',
-    employeeId = 'DS-001',
-    email = 'rahul.kumar@dsprojects.in',
-    username = 'rahulkumar001@dsprojects',
-    position = 'Mandal Co-ordinator',
-    status = 'Offer Sent',
-    offerNumber = 'DS/OFF/2026/001',
-  } = offer;
+  const targetOffer = offer?.data || offer || {};
+  const employeeName = targetOffer.employee_name || targetOffer.employeeName || 'Candidate';
+  const employeeId = targetOffer.employee_id || targetOffer.employeeId || 'DS-001';
+  const email = targetOffer.email || 'employee@dsprojects.in';
+  const username = targetOffer.username || targetOffer.employee_id || targetOffer.employeeId || 'portal_user';
+  const position = targetOffer.position || 'Mandal Co-ordinator';
+  const status = targetOffer.status || 'Offer Sent';
+  const offerNumber = targetOffer.offer_number || targetOffer.offerNumber || 'DS/OFF/2026/001';
 
   const handleCopyUsername = () => {
     navigator.clipboard.writeText(username);
