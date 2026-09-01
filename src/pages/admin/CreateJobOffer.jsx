@@ -585,61 +585,73 @@ export default function CreateJobOffer() {
             </div>
           )}
 
-          {/* Editable Email Content Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          {/* Editable Email Content Card — Expansive & Free View */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-blue-600" />
-                  Onboarding Email Content (Editable)
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <span>Onboarding Email Content (Editable Dispatch Draft)</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Review and customize the email message that will be sent to the candidate.
+                <p className="text-xs text-slate-500 mt-1">
+                  Full preview of the appointment message dispatched to the candidate with their credentials.
                 </p>
               </div>
-              <span className="text-xs font-mono font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg self-start sm:self-auto">
-                To: {watchedValues.email || 'employee@email.com'}
-              </span>
+              <div className="flex items-center gap-2 bg-blue-50/80 border border-blue-200 px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
+                <span className="text-[11px] font-semibold text-blue-700">Recipient:</span>
+                <span className="text-xs font-mono font-bold text-blue-900">{watchedValues.email || 'employee@email.com'}</span>
+              </div>
             </div>
 
             {/* Email Subject Line */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Email Subject Line *
               </label>
               <input
                 type="text"
                 {...register('emailSubject')}
-                className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs"
+                className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs"
+                placeholder="Enter email subject..."
               />
             </div>
 
             {/* Email Message Body */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Email Message Body *
                 </label>
-                <span className="text-[11px] text-blue-600 font-medium">Editable text</span>
+                <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-md">
+                  ✍️ Freely Editable Message
+                </span>
               </div>
               <textarea
-                rows={6}
+                rows={13}
                 {...register('emailBody')}
-                className="flex w-full rounded-xl border border-slate-200 bg-white p-3.5 text-xs sm:text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs resize-y"
+                className="flex w-full rounded-2xl border border-slate-200 bg-slate-50/40 focus:bg-white p-5 text-sm text-slate-800 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-inner min-h-[340px] resize-y"
+                placeholder="Enter personalized onboarding welcome message..."
               />
+              <p className="text-[11px] text-slate-400 font-medium">
+                Tip: You can edit or add specific instructions, joining requirements, or greeting messages directly above.
+              </p>
             </div>
 
             {/* Attachment Checklist */}
-            <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dispatched with Email:</span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold">
-                <FileText size={12} />
-                {documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-                <ShieldCheck size={12} />
-                Employee Portal Login Credentials & Single-Use Activation
-              </span>
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Attached Package:</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold shadow-2xs">
+                  <FileText size={13} className="text-blue-600" />
+                  {documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                  <ShieldCheck size={13} className="text-emerald-600" />
+                  Portal Login Credentials & One-Time Token
+                </span>
+              </div>
             </div>
           </div>
         </div>
