@@ -2,10 +2,11 @@
 // Enterprise HRMS Module for DS PROJECTS
 
 export const JOB_POSITIONS = [
-  'Z-Assencer',
-  'Facilator',
+  'Project / ZED Compliance Executive',
   'Mandal Co-ordinator',
   'District Co-ordinator',
+  'Z-Assencer',
+  'Facilator',
   'Office Staff',
 ];
 
@@ -35,16 +36,54 @@ export const DEFAULT_TERMS_AND_CONDITIONS = [
   { id: 12, title: 'Notice Period', text: 'A notice period of {{notice_period}} or salary in lieu thereof is required from either party for separation post-probation.' },
   { id: 13, title: 'Termination', text: 'DS PROJECTS reserves the right to terminate employment without notice in cases of misconduct, data breach, or fraud.' },
   { id: 14, title: 'Document Verification', text: 'This offer is contingent upon successful verification of your Aadhaar, PAN, educational certificates, and background checks.' },
-  { id: 15, title: 'Jurisdiction', text: 'Any disputes arising out of this employment contract shall be subject to the exclusive jurisdiction of courts in Nellore, Andhra Pradesh.' },
+  { id: 15, title: 'Jurisdiction', text: 'Any disputes arising out of this employment contract shall be subject to the exclusive jurisdiction of courts in Ongole / Nellore, Andhra Pradesh.' },
 ];
 
 export const DEFAULT_TERMS = DEFAULT_TERMS_AND_CONDITIONS;
 
 export const MASTER_TEMPLATES = {
+  'Project / ZED Compliance Executive': {
+    jobPosition: 'Project / ZED Compliance Executive',
+    department: 'Quality & Assessment',
+    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
+    probation: '3 Months',
+    noticePeriod: '30 Days',
+    jobDescription: `Responsible for assisting the company in project activities, documentation, quality-related processes, operational improvement and implementation of applicable MSME Sustainable (ZED) practices.`,
+    responsibilities: [
+      'Maintaining quality and process documentation according to ZED framework standards.',
+      'Supporting standard operating procedures and process standardization.',
+      'Assisting in reduction of defects, rework, wastage and operational losses.',
+      'Supporting energy-efficiency and resource-conservation practices.',
+      'Maintaining documents and evidence required for applicable MSME/ZED assessments.',
+    ],
+    emailSubject: `Offer of Employment – MSME Sustainable (ZED) Compliance & Project Operations — DS PROJECTS`,
+    emailBody: `Dear {{employee_name}},
+
+Congratulations!
+
+We are pleased to offer you employment with DS PROJECTS, Ongole, subject to the terms and conditions mentioned in this letter.
+
+You are being appointed to support the company's project operations and its initiatives relating to quality improvement, process standardization, productivity enhancement, environmental responsibility and MSME Sustainable (ZED – Zero Defect Zero Effect) practices.
+
+Key Assignment Details:
+• Employee ID: {{employee_id}}
+• Designation: Project / ZED Compliance Executive
+• Work Location: {{district}}, Andhra Pradesh
+• Proposed Joining Date: {{joining_date}}
+• Monthly Gross Remuneration: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
+
+Please find attached your official Appointment Offer Letter.
+
+To activate your secure Employee Portal account, follow the link: {{activation_link}}
+
+Warm Regards,
+Human Resources Directorate
+DS PROJECTS`,
+  },
   'Mandal Co-ordinator': {
     jobPosition: 'Mandal Co-ordinator',
     department: 'Field Operations',
-    defaultSalary: { basic: 16000, travel: 3000, incentive: 3500, other: 1500 },
+    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
     probation: '3 Months',
     noticePeriod: '30 Days',
     jobDescription: `As a Mandal Co-ordinator for DS PROJECTS, you will be the key operational driver at the mandal level. You will oversee grassroots team deployment, liaise with local panchayat & mandal administration, coordinate daily surveys, verify data submissions, and ensure timely completion of project deliverables.`,
@@ -85,7 +124,7 @@ DS PROJECTS Pvt Ltd`,
   'Z-Assencer': {
     jobPosition: 'Z-Assencer',
     department: 'Quality & Assessment',
-    defaultSalary: { basic: 18000, travel: 4000, incentive: 4000, other: 2000 },
+    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
     probation: '3 Months',
     noticePeriod: '30 Days',
     jobDescription: `The Z-Assencer is responsible for independent zonal quality audit, cross-verification of beneficiary assessments, compliance scoring, and quality assurance across multiple mandals in {{district}} district.`,
@@ -110,7 +149,7 @@ DS PROJECTS HR Team`,
   'Facilator': {
     jobPosition: 'Facilator',
     department: 'Community Outreach',
-    defaultSalary: { basic: 12000, travel: 2500, incentive: 2500, other: 1000 },
+    defaultSalary: { basic: 20000, travel: 4000, incentive: 0, other: 0 },
     probation: '3 Months',
     noticePeriod: '15 Days',
     jobDescription: `As a Facilitator, you will be in direct contact with community members and households in {{mandal}} mandal, facilitating registrations, conducting surveys, distributing project materials, and assisting citizens with program access.`,
@@ -135,7 +174,7 @@ HR Team, DS PROJECTS`,
   'District Co-ordinator': {
     jobPosition: 'District Co-ordinator',
     department: 'Project Coordination',
-    defaultSalary: { basic: 26000, travel: 6000, incentive: 5000, other: 3000 },
+    defaultSalary: { basic: 30000, travel: 5000, incentive: 0, other: 0 },
     probation: '6 Months',
     noticePeriod: '60 Days',
     jobDescription: `The District Co-ordinator heads project implementation for the entire {{district}} district. You will manage all Mandal Co-ordinators, oversee field logistics, interface with district authorities, and ensure target achievement.`,

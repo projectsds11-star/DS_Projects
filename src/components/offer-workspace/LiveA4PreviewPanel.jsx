@@ -35,7 +35,7 @@ export default function LiveA4PreviewPanel({
     probation = '3 Months',
     noticePeriod = '30 Days',
     reportingManager = 'District Lead',
-    salary = { basic: 16000, travel: 3000, incentive: 3500, other: 1500 },
+    salary = { basic: 25000, travel: 5000, incentive: 0, other: 0 },
     responsibilities = [],
     termsAndConditions = [],
     documentMode = 'generate',
@@ -294,20 +294,22 @@ export default function LiveA4PreviewPanel({
                 </thead>
                 <tbody>
                   <tr className="border-b border-gray-200">
-                    <td className="p-1.5">Basic Salary</td>
+                    <td className="p-1.5">Basic / Fixed Salary</td>
                     <td className="p-1.5 text-right font-mono">{formatINR(basic)}</td>
                     <td className="p-1.5 text-right font-mono">{formatINR(basic * 12)}</td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-gray-50/50">
-                    <td className="p-1.5">Travel Allowance</td>
+                    <td className="p-1.5">Monthly Allowance</td>
                     <td className="p-1.5 text-right font-mono">{formatINR(travel)}</td>
                     <td className="p-1.5 text-right font-mono">{formatINR(travel * 12)}</td>
                   </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="p-1.5">Performance Incentive</td>
-                    <td className="p-1.5 text-right font-mono">{formatINR(incentive)}</td>
-                    <td className="p-1.5 text-right font-mono">{formatINR(incentive * 12)}</td>
-                  </tr>
+                  {incentive > 0 && (
+                    <tr className="border-b border-gray-200">
+                      <td className="p-1.5">Performance Incentive</td>
+                      <td className="p-1.5 text-right font-mono">{formatINR(incentive)}</td>
+                      <td className="p-1.5 text-right font-mono">{formatINR(incentive * 12)}</td>
+                    </tr>
+                  )}
                   {other > 0 && (
                     <tr className="border-b border-gray-200 bg-gray-50/50">
                       <td className="p-1.5">Other Allowances</td>
@@ -316,7 +318,7 @@ export default function LiveA4PreviewPanel({
                     </tr>
                   )}
                   <tr className="bg-blue-50 font-bold border-t-2 border-[var(--color-primary)]">
-                    <td className="p-1.5 text-[var(--color-navy)]">Monthly Gross Salary</td>
+                    <td className="p-1.5 text-[var(--color-navy)]">Total Monthly Gross Remuneration</td>
                     <td className="p-1.5 text-right font-mono text-[var(--color-primary)]">{formatINR(monthlyGross)}</td>
                     <td className="p-1.5 text-right font-mono text-gray-500">-</td>
                   </tr>

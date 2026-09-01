@@ -111,10 +111,10 @@ export default function CreateJobOffer() {
       reportingManager: 'District Project Coordinator',
       workLocation: 'Field / Mandal Office',
       salary: {
-        basic: 16000,
-        travel: 3000,
-        incentive: 3500,
-        other: 1500,
+        basic: 25000,
+        travel: 5000,
+        incentive: 0,
+        other: 0,
       },
       jobDescription: MASTER_TEMPLATES['Mandal Co-ordinator']?.jobDescription || '',
       responsibilities: MASTER_TEMPLATES['Mandal Co-ordinator']?.responsibilities || [],
@@ -517,11 +517,11 @@ export default function CreateJobOffer() {
 
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-semibold">Monthly Remuneration</span>
-                <p className="font-bold font-mono text-green-700">
-                  {formatINR(Number(watchedValues.salary?.basic) || 24000)} / Mo
+                <p className="font-bold font-mono text-emerald-600">
+                  {formatINR((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0))} / Mo
                 </p>
                 <p className="text-[10px] font-mono text-gray-500">
-                  {formatINR((Number(watchedValues.salary?.basic) || 24000) * 12)} CTC / yr
+                  {formatINR(((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0)) * 12)} CTC / yr
                 </p>
               </div>
             </div>
