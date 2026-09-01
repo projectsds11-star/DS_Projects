@@ -10,11 +10,12 @@ const SEND_STAGES = [
   { id: 4, label: 'Connecting to SMTP mail server & dispatching email', icon: Mail },
 ];
 
-export default function SendingStateModal({ open, onComplete }) {
+export default function SendingStateModal({ open, isOpen, onComplete }) {
+  const isModalOpen = open ?? isOpen;
   const [currentStage, setCurrentStage] = useState(1);
 
   useEffect(() => {
-    if (!open) {
+    if (!isModalOpen) {
       setCurrentStage(1);
       return;
     }
@@ -33,9 +34,9 @@ export default function SendingStateModal({ open, onComplete }) {
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, [open, onComplete]);
+  }, [isModalOpen, onComplete]);
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   return (
     <AnimatePresence>

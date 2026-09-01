@@ -275,17 +275,21 @@ export default function CreateJobOffer() {
   };
 
   // Final Send Confirmation
-  const onTriggerSend = () => {
-    handleSubmit(
-      () => {
-        setStepErrors([]);
+  const onTriggerSend = async () => {
+    setStepErrors([]);
+    const valid = await trigger(['employeeId', 'employeeName', 'email', 'position', 'district', 'mandal', 'joiningDate']);
+    if (valid) {
+      setShowConfirmModal(true);
+    } else {
+      console.warn('Validation error:', errors);
+      const errs = Object.values(errors).map(e => e.message || 'Validation error');
+      setStepErrors(errs);
+      if (errs.length > 0) {
+        alert('Please complete the following before sending:\n• ' + errs.join('\n• '));
+      } else {
         setShowConfirmModal(true);
-      },
-      (validationErrors) => {
-        const errs = Object.values(validationErrors).map(e => e.message || 'Validation error');
-        setStepErrors(errs);
       }
-    )();
+    }
   };
 
   // Execute Send Dispatch Flow (5 Stages)
@@ -729,6 +733,7 @@ export default function CreateJobOffer() {
       />
 
       <SendOfferConfirmModal
+        open={showConfirmModal}
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleExecuteSend}
@@ -737,13 +742,26 @@ export default function CreateJobOffer() {
       />
 
       <SendingStateModal
+        open={showSendingModal}
         isOpen={showSendingModal}
         stage={sendingStage}
       />
 
       <SuccessOfferModal
+        open={showSuccessModal}
         isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate('/admin/onboarding');
+        }}
+        onBackToOnboarding={() => {
+          setShowSuccessModal(false);
+          navigate('/admin/onboarding');
+        }}
+        onViewEmployee={() => {
+          setShowSuccessModal(false);
+          navigate('/admin/employees');
+        }}
         offer={completedOffer}
       />
     </div>

@@ -6,14 +6,16 @@ import StatusBadge from './StatusBadge';
 
 export default function SuccessOfferModal({
   open,
+  isOpen,
   offer = {},
   onViewOffer,
   onViewEmployee,
   onBackToOnboarding,
 }) {
   const [copied, setCopied] = React.useState(false);
+  const isModalOpen = open ?? isOpen;
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   const {
     employeeName = 'Rahul Kumar',

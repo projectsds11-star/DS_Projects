@@ -6,12 +6,14 @@ import { formatINR } from '../../services/templateService';
 
 export default function SendOfferConfirmModal({
   open,
+  isOpen,
   offerData = {},
   onConfirm,
   onClose,
   isSending = false,
 }) {
-  if (!open) return null;
+  const isModalOpen = open ?? isOpen;
+  if (!isModalOpen) return null;
 
   const {
     employeeName = '',
