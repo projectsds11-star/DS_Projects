@@ -4,6 +4,8 @@ import EmployeeLogin from '../pages/auth/EmployeeLogin';
 import AccountActivation from '../pages/auth/AccountActivation';
 import AdminLayout from '../layouts/AdminLayout';
 import EmployeeLayout from '../layouts/EmployeeLayout';
+import AdminProtectedRoute from '../components/auth/AdminProtectedRoute';
+import EmployeeProtectedRoute from '../components/auth/EmployeeProtectedRoute';
 
 // Admin Pages
 import AdminDashboard from '../pages/admin/Dashboard';
@@ -52,16 +54,20 @@ const router = createBrowserRouter([
     element: <AccountActivation />,
   },
 
-  // ── Admin Portal ──────────────────────────────────────────────
+  // ── Admin Portal (ALL routes protected) ──────────────────────
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <AdminProtectedRoute>
+        <AdminLayout />
+      </AdminProtectedRoute>
+    ),
     children: [
       { path: '', element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard', element: <AdminDashboard /> },
       { path: 'employees', element: <Employees /> },
       { path: 'employees/add', element: <AddEmployee /> },
-      
+
       // Onboarding routes
       { path: 'onboarding', element: <Onboarding /> },
       { path: 'onboarding/pending', element: <PendingOnboarding /> },
@@ -83,10 +89,14 @@ const router = createBrowserRouter([
     ],
   },
 
-  // ── Employee Portal ───────────────────────────────────────────
+  // ── Employee Portal (ALL routes protected) ───────────────────
   {
     path: '/employee',
-    element: <EmployeeLayout />,
+    element: (
+      <EmployeeProtectedRoute>
+        <EmployeeLayout />
+      </EmployeeProtectedRoute>
+    ),
     children: [
       { path: '', element: <Navigate to="/employee/dashboard" replace /> },
       { path: 'dashboard', element: <EmployeeDashboard /> },

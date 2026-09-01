@@ -69,7 +69,7 @@ export default function AddEmployee() {
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(employeeSchema),
-    defaultValues: { status: 'Draft' },
+    defaultValues: { status: 'Active' },
   });
 
   const watchedAccountNo = watch('accountNumber', '');

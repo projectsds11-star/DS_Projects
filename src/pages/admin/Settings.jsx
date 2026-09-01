@@ -9,7 +9,8 @@ import {
   MapPin, 
   Search, 
   CheckCircle2, 
-  ShieldCheck 
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -18,10 +19,10 @@ import { Label } from '../../components/ui/Label';
 import { AP_DISTRICTS_DATA, AP_STATE } from '../../data/andhraPradeshMasterData';
 
 const TABS = [
-  { id: 'company', label: 'Company Info', icon: Building },
-  { id: 'locations', label: 'Location Master (AP)', icon: MapPin },
-  { id: 'security', label: 'Security', icon: Lock },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'company', label: 'Company Profile', icon: Building },
+  { id: 'locations', label: 'AP Location Master', icon: MapPin },
+  { id: 'security', label: 'Security & Auth', icon: Lock },
+  { id: 'notifications', label: 'Alert Preferences', icon: Bell },
 ];
 
 export default function Settings() {
@@ -29,6 +30,12 @@ export default function Settings() {
   const [districtSearch, setDistrictSearch] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState(AP_DISTRICTS_DATA[20]); // Default: Nellore
   const [mandalSearch, setMandalSearch] = useState('');
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const filteredDistricts = AP_DISTRICTS_DATA.filter(d =>
     !districtSearch ||
@@ -43,237 +50,202 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 pb-20">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-[var(--color-navy)]">System Settings</h1>
-        <p className="text-xs text-gray-500 mt-0.5">Manage administrative configurations, location master data, and preferences.</p>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <p className="text-sm font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
+            <span>Executive Settings & Master Data</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500">Corporate identity, statewide 26 district location master, and perimeter security.</p>
+        </div>
+
+        <Button 
+          onClick={() => showToast('Configurations successfully saved!')} 
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+          icon={Save}
+        >
+          Save Changes
+        </Button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Settings Nav */}
-        <div className="w-full lg:w-60 shrink-0">
-          <nav className="flex flex-col space-y-1">
+        {/* Settings Navigation Tabs */}
+        <div className="w-full lg:w-64 shrink-0">
+          <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white p-3 space-y-1">
             {TABS.map(tab => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 text-left px-4 py-3 text-xs font-semibold rounded-xl transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-[var(--color-primary)] text-white shadow-xs'
-                      : 'text-gray-600 hover:bg-gray-100'
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span>{tab.label}</span>
                 </button>
               );
             })}
-          </nav>
+          </Card>
         </div>
 
-        {/* Settings Content */}
+        {/* Tab Panels */}
         <div className="flex-1">
           {activeTab === 'company' && (
-            <Card>
-              <CardHeader className="border-b border-[var(--color-border)] p-5">
-                <CardTitle className="text-sm">Company Information</CardTitle>
+            <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+              <CardHeader className="px-6 py-5 border-b border-slate-100">
+                <CardTitle className="text-base font-bold text-slate-900">Company Identity & Registration</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-6 text-xs">
-                <div className="grid gap-6 md:grid-cols-2">
+              <CardContent className="p-6 space-y-6 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Company Name</Label>
-                    <Input defaultValue="DS Projects Private Limited" className="h-10 text-xs" />
+                    <Label className="font-bold text-slate-700 text-xs">Company Name</Label>
+                    <Input defaultValue="DS Projects Private Limited" className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Official Portal URL</Label>
-                    <Input defaultValue="www.dsprojects.in" className="h-10 text-xs" />
+                    <Label className="font-bold text-slate-700 text-xs">Official Portal URL</Label>
+                    <Input defaultValue="www.dsprojects.in" className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Corporate Email</Label>
-                    <Input defaultValue="contact@dsprojects.in" className="h-10 text-xs" />
+                    <Label className="font-bold text-slate-700 text-xs">Corporate Email</Label>
+                    <Input defaultValue="contact@dsprojects.in" className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Contact Phone</Label>
-                    <Input defaultValue="+91 861 2345678" className="h-10 text-xs" />
+                    <Label className="font-bold text-slate-700 text-xs">Contact Phone</Label>
+                    <Input defaultValue="+91 861 2345678" className="rounded-xl border-slate-300" />
                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Registered Head Office Address</Label>
-                  <Input defaultValue="12-4, Nellore, Andhra Pradesh - 524001, India" className="h-10 text-xs" />
-                </div>
-
-                <div className="pt-2">
-                  <Button size="sm" icon={Save}>Save Company Details</Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* ── LOCATION MASTER TAB ───────────────────────────── */}
           {activeTab === 'locations' && (
-            <div className="space-y-4">
-              {/* Header Overview Card */}
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[var(--color-navy)]">
-                      Andhra Pradesh Location Master Database
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      Official 28-District Administrative Structure · 600+ Verified Mandals
-                    </p>
-                  </div>
+            <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+              <CardHeader className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    Andhra Pradesh Location Master (26 Districts)
+                  </CardTitle>
+                  <p className="text-xs text-slate-500 mt-0.5">Selected: <strong className="text-blue-600">{selectedDistrict?.name} District</strong> ({selectedDistrict?.mandals?.length} Mandals)</p>
                 </div>
-                <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200 self-start sm:self-auto">
-                  ✓ Active State Master
-                </span>
-              </div>
+              </CardHeader>
 
-              {/* 2-Column Browser: Districts & Mandals */}
-              <div className="grid md:grid-cols-12 gap-4">
-                {/* Districts Column */}
-                <div className="md:col-span-5 space-y-2">
+              <CardContent className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+                {/* District List */}
+                <div className="md:col-span-5 space-y-3">
                   <div className="relative">
-                    <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Search 28 districts..."
+                      placeholder="Filter district..."
                       value={districtSearch}
                       onChange={(e) => setDistrictSearch(e.target.value)}
-                      className="h-8 w-full pl-8 pr-3 text-xs rounded-lg border border-[var(--color-border)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
 
-                  <div className="bg-white rounded-xl border border-[var(--color-border)] divide-y divide-gray-100 max-h-[460px] overflow-y-auto shadow-xs">
-                    {filteredDistricts.map((d) => {
-                      const isSelected = selectedDistrict?.id === d.id;
-                      return (
-                        <div
-                          key={d.id}
-                          onClick={() => setSelectedDistrict(d)}
-                          className={`p-3 text-xs cursor-pointer transition-all flex items-center justify-between ${
-                            isSelected
-                              ? 'bg-blue-50/90 text-[var(--color-primary)] font-bold border-l-4 border-[var(--color-primary)]'
-                              : 'hover:bg-gray-50 text-gray-800'
-                          }`}
-                        >
-                          <div>
-                            <p className="leading-tight">{d.name}</p>
-                            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
-                              Code: {d.code} · HQ: {d.headquarters}
-                            </p>
-                          </div>
-                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-mono font-medium">
-                            {d.mandals.length}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+                    {filteredDistricts.map(d => (
+                      <button
+                        key={d.code}
+                        onClick={() => setSelectedDistrict(d)}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
+                          selectedDistrict?.code === d.code
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{d.name}</span>
+                        <span className="text-[10px] opacity-75 font-mono">{d.mandals?.length} mandals</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Mandals Column */}
-                <div className="md:col-span-7 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="relative flex-1">
-                      <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder={`Search mandals in ${selectedDistrict?.name || 'district'}...`}
-                        value={mandalSearch}
-                        onChange={(e) => setMandalSearch(e.target.value)}
-                        className="h-8 w-full pl-8 pr-3 text-xs rounded-lg border border-[var(--color-border)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
-                      {filteredMandals.length} Mandals
-                    </span>
+                {/* Mandal Chips */}
+                <div className="md:col-span-7 space-y-3">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Filter mandals in this district..."
+                      value={mandalSearch}
+                      onChange={(e) => setMandalSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
                   </div>
 
-                  <Card className="border border-[var(--color-border)] shadow-xs">
-                    <CardHeader className="p-4 border-b border-[var(--color-border)] bg-gray-50/60">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-xs font-bold text-[var(--color-navy)]">
-                            {selectedDistrict?.name} District Mandals
-                          </CardTitle>
-                          <p className="text-[11px] text-gray-400 font-mono">
-                            Headquarters: {selectedDistrict?.headquarters} · State: Andhra Pradesh
-                          </p>
-                        </div>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                          Code: {selectedDistrict?.code}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[380px] overflow-y-auto pr-1">
-                        {filteredMandals.map((mandalName, idx) => (
-                          <div
-                            key={mandalName}
-                            className="p-2 rounded-lg bg-gray-50 hover:bg-blue-50/50 border border-gray-100 text-xs transition-colors flex items-center justify-between"
-                          >
-                            <span className="text-gray-800 font-medium truncate">{mandalName}</span>
-                            <span className="text-[9px] font-mono text-gray-400 shrink-0 ml-1">
-                              #{idx + 1}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="max-h-72 overflow-y-auto flex flex-wrap gap-1.5 pr-1">
+                    {filteredMandals.map(m => (
+                      <span key={m} className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-medium border border-slate-200/60">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {activeTab === 'security' && (
-            <Card>
-              <CardHeader className="border-b border-[var(--color-border)] p-5">
-                <CardTitle className="text-sm">Authentication & Security Settings</CardTitle>
+            <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+              <CardHeader className="px-6 py-5 border-b border-slate-100">
+                <CardTitle className="text-base font-bold text-slate-900">Perimeter Security & MFA Gates</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4 text-xs">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Session Timeout (Minutes)</Label>
-                  <Input defaultValue="60" type="number" className="h-10 text-xs max-w-xs" />
+              <CardContent className="p-6 space-y-4 text-xs sm:text-sm">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900">Email OTP Multi-Factor Authentication</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Strict 6-digit real-time passcode gate on login</p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
+                    Enforced
+                  </span>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Admin 2FA Authentication Mode</Label>
-                  <Input defaultValue="Email OTP Authentication" readOnly className="h-10 text-xs max-w-xs bg-gray-50" />
-                </div>
-                <div className="pt-2">
-                  <Button size="sm" icon={Save}>Update Security</Button>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900">JWT Single-Session Tokenization</p>
+                    <p className="text-xs text-slate-500 mt-0.5">8-hour session lifetime with automatic revocation</p>
+                  </div>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                    Active
+                  </span>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {activeTab === 'notifications' && (
-            <Card>
-              <CardHeader className="border-b border-[var(--color-border)] p-5">
-                <CardTitle className="text-sm">Notification Channels</CardTitle>
+            <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+              <CardHeader className="px-6 py-5 border-b border-slate-100">
+                <CardTitle className="text-base font-bold text-slate-900">Alert Triggers & Push Matrix</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4 text-xs">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="font-bold text-gray-900">Email Offer Letter Alerts</p>
-                    <p className="text-gray-500 text-[11px]">Send notification on offer generation & acceptance</p>
+              <CardContent className="p-6 space-y-3 text-xs sm:text-sm">
+                {[
+                  { title: 'New Employee Registration Alert', desc: 'Notify admin when candidate completes registration' },
+                  { title: 'Field Work Report Submission', desc: 'Instant alert when a mandal lead submits daily report' },
+                  { title: 'Attendance Missed Punch Notification', desc: 'Alert supervisor when punch is regularized' },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">{item.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                    </div>
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded cursor-pointer" />
                   </div>
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded text-[var(--color-primary)]" />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="font-bold text-gray-900">Daily Work Submission Alerts</p>
-                    <p className="text-gray-500 text-[11px]">Notify reporting managers on work submission</p>
-                  </div>
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded text-[var(--color-primary)]" />
-                </div>
+                ))}
               </CardContent>
             </Card>
           )}

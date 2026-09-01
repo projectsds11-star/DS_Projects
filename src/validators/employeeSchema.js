@@ -6,7 +6,7 @@ const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
 export const employeeSchema = z.object({
   // Section 01 – Identification
-  status: z.enum(['Draft', 'Onboarding', 'Active', 'Inactive']).default('Draft'),
+  status: z.enum(['Draft', 'Onboarding', 'Active', 'Inactive']).default('Active'),
 
   // Section 02 – Personal Information
   fullName: z.string().min(2, 'Full name must be at least 2 characters.').max(100, 'Full name is too long.'),

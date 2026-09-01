@@ -109,56 +109,64 @@ export default function EmailHistory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-blue-50/20 transition-colors">
-                  <td className="px-4 py-3.5">
-                    <p className="font-bold text-gray-900">{log.recipientName}</p>
-                    <p className="text-[11px] font-mono text-[var(--color-primary)]">{log.employeeId}</p>
-                    <p className="text-[11px] text-gray-500">{log.recipientEmail}</p>
-                  </td>
+              {filteredLogs.length > 0 ? (
+                filteredLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-blue-50/20 transition-colors">
+                    <td className="px-4 py-3.5">
+                      <p className="font-bold text-gray-900">{log.recipientName}</p>
+                      <p className="text-[11px] font-mono text-[var(--color-primary)]">{log.employeeId}</p>
+                      <p className="text-[11px] text-gray-500">{log.recipientEmail}</p>
+                    </td>
 
-                  <td className="px-4 py-3.5 max-w-xs">
-                    <p className="font-semibold text-gray-900 truncate">{log.subject}</p>
-                    <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                      {log.type}
-                    </span>
-                  </td>
+                    <td className="px-4 py-3.5 max-w-xs">
+                      <p className="font-semibold text-gray-900 truncate">{log.subject}</p>
+                      <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {log.type}
+                      </span>
+                    </td>
 
-                  <td className="px-4 py-3.5 text-gray-600">
-                    <div className="flex flex-col gap-0.5 text-[11px]">
-                      {log.attachments?.map((att, i) => (
-                        <span key={i} className="truncate max-w-[160px] text-gray-700">📎 {att}</span>
-                      ))}
-                    </div>
-                  </td>
+                    <td className="px-4 py-3.5 text-gray-600">
+                      <div className="flex flex-col gap-0.5 text-[11px]">
+                        {log.attachments?.map((att, i) => (
+                          <span key={i} className="truncate max-w-[160px] text-gray-700">📎 {att}</span>
+                        ))}
+                      </div>
+                    </td>
 
-                  <td className="px-4 py-3.5 font-mono text-gray-500 text-[11px]">
-                    {log.sentAt}
-                  </td>
+                    <td className="px-4 py-3.5 font-mono text-gray-500 text-[11px]">
+                      {log.sentAt}
+                    </td>
 
-                  <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
-                      log.status === 'Delivered' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                      <CheckCircle2 className="h-3 w-3 text-teal-600" />
-                      {log.status}
-                    </span>
-                  </td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
+                        log.status === 'Delivered' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        <CheckCircle2 className="h-3 w-3 text-teal-600" />
+                        {log.status}
+                      </span>
+                    </td>
 
-                  <td className="px-4 py-3.5 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[11px]"
-                      icon={RotateCw}
-                      isLoading={resendingId === log.id}
-                      onClick={() => handleResend(log)}
-                    >
-                      Resend
-                    </Button>
+                    <td className="px-4 py-3.5 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        icon={RotateCw}
+                        isLoading={resendingId === log.id}
+                        onClick={() => handleResend(log)}
+                      >
+                        Resend
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="p-12 text-center text-slate-400">
+                    No email dispatches recorded yet.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

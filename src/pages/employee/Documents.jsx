@@ -1,93 +1,271 @@
-import React from 'react';
-import { FileText, Download, Eye, Upload, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  FileText, 
+  Download, 
+  Eye, 
+  Upload, 
+  Check, 
+  AlertCircle, 
+  Clock, 
+  Search, 
+  X, 
+  CheckCircle2, 
+  Inbox
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-
-const DOCUMENTS = [
-  { name: 'Offer Letter', date: 'Jan 15, 2025', status: 'Verified', type: 'PDF', size: '1.2 MB' },
-  { name: 'Appointment Letter', date: 'Jan 15, 2025', status: 'Verified', type: 'PDF', size: '0.9 MB' },
-  { name: 'Aadhaar Card', date: 'Jan 10, 2025', status: 'Verified', type: 'PDF', size: '2.1 MB' },
-  { name: 'PAN Card', date: 'Jan 10, 2025', status: 'Verified', type: 'PDF', size: '1.5 MB' },
-  { name: 'Bank Passbook', date: 'Jan 10, 2025', status: 'Verified', type: 'PDF', size: '3.4 MB' },
-  { name: 'Qualification Certificate', date: 'Jan 12, 2025', status: 'Pending', type: 'PDF', size: '4.2 MB' },
-  { name: 'Relieving Letter (Previous)', date: 'Jan 12, 2025', status: 'Not Uploaded', type: '-', size: '-' },
-];
-
-const FILE_TYPE_COLORS = {
-  PDF: 'bg-red-100 text-red-600',
-  IMG: 'bg-blue-100 text-blue-600',
-  DOC: 'bg-blue-100 text-blue-600',
-};
+import { liveDataService } from '../../services/liveDataService';
 
 export default function Documents() {
+  const [documents, setDocuments] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
+
+  useEffect(() => {
+    async function fetchDocuments() {
+      setLoading(true);
+      try {
+        const liveDocs = await liveDataService.getDocuments(currentEmpId);
+        setDocuments(liveDocs || []);
+      } catch (err) {
+        console.error('Error fetching documents:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDocuments();
+  }, [currentEmpId]);
+
+  const CATEGORIES = ['All', 'Official Letters', 'KYC & Identity', 'Academic'];
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const filteredDocs = documents.filter(doc => {
+    const matchesCat = activeCategory === 'All' || doc.category === activeCategory;
+    const matchesSearch = (doc.document_name || doc.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (doc.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      try {
+        const newDocPayload = {
+          employee_id: currentEmpId,
+          document_name: file.name.replace(/\.[^/.]+$/, ''),
+          category: 'KYC & Identity',
+          file_type: file.name.split('.').pop().toUpperCase(),
+          file_size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          verification_status: 'Pending',
+          verified_by: 'HR Admin'
+        };
+        await liveDataService.addDocument(newDocPayload);
+        const freshDocs = await liveDataService.getDocuments(currentEmpId);
+        setDocuments(freshDocs);
+        showToast(`Document "${file.name}" uploaded successfully for verification.`);
+      } catch (err) {
+        showToast('Failed to upload document.');
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === 'Verified') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+          <Check size={12} /> Verified
+        </span>
+      );
+    }
+    if (status === 'Pending') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+          <Clock size={12} /> Pending Verification
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-full">
+        <AlertCircle size={12} /> Action Required
+      </span>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <p className="text-sm font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* Header title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-navy)]">My Documents</h1>
-          <p className="text-[var(--color-text-secondary)]">Access and manage your uploaded documents.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Documents Hub & KYC Vault</h1>
+          <p className="text-sm text-slate-500">Access official letters, KYC certificates, and submit required documents.</p>
         </div>
       </div>
 
-      {/* Upload Area */}
-      <Card className="border-dashed border-2 border-gray-300">
-        <CardContent className="p-8 text-center">
-          <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Upload className="h-6 w-6 text-[var(--color-primary)]" />
+      {/* Drag & Drop Upload Zone */}
+      <Card className="border-2 border-dashed border-blue-200 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-white rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
+        <div className="max-w-md mx-auto space-y-3">
+          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30">
+            <Upload className="h-6 w-6" />
           </div>
-          <h3 className="font-semibold text-gray-800 mb-1">Upload a New Document</h3>
-          <p className="text-sm text-gray-500 mb-4">PDF, JPG, PNG supported. Max size 10MB.</p>
-          <label className="cursor-pointer">
-            <span className="inline-flex items-center gap-2 bg-[var(--color-primary)] text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-[var(--color-navy)] transition-colors">
-              <Upload className="h-4 w-4" />
-              Choose File to Upload
+
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Upload Official Document or Certificate</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Supports scanned PDF, JPG, or PNG files up to 10MB. Files are sent to HR for verification.
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <label className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 cursor-pointer transition-all">
+              <Upload size={14} />
+              <span>{isUploading ? 'Uploading file...' : 'Choose File to Upload'}</span>
+              <input 
+                type="file" 
+                className="hidden" 
+                onChange={handleFileUpload}
+                disabled={isUploading}
+              />
+            </label>
+          </div>
+        </div>
+      </Card>
+
+      {/* Search & Category Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="relative w-full sm:w-80">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search document name or type..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeCategory === cat
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Documents List Card */}
+      <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+        <CardHeader className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>Uploaded Documents</span>
+            <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">
+              {filteredDocs.length}
             </span>
-            <input type="file" className="hidden" />
-          </label>
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="p-0 divide-y divide-slate-100">
+          {filteredDocs.length > 0 ? (
+            filteredDocs.map((doc, idx) => (
+              <div key={doc.id || idx} className="p-5 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center font-bold text-xs shrink-0">
+                    {doc.file_type || doc.type || 'PDF'}
+                  </div>
+
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-bold text-sm text-slate-900 truncate">{doc.document_name || doc.name}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-500">
+                      <span className="font-semibold text-blue-600">{doc.category}</span>
+                      <span>•</span>
+                      <span>{doc.file_size || doc.size || '1.0 MB'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <div>{getStatusBadge(doc.verification_status || doc.status)}</div>
+                  <button
+                    onClick={() => setPreviewDoc(doc)}
+                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                    title="Preview Document"
+                  >
+                    <Eye size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-12 text-center space-y-2">
+              <Inbox className="h-10 w-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-bold text-slate-700">No documents uploaded yet</p>
+              <p className="text-xs text-slate-400">Upload your KYC or certification above.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="border-b border-[var(--color-border)]">
-          <CardTitle>My Documents ({DOCUMENTS.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 divide-y divide-[var(--color-border)]">
-          {DOCUMENTS.map((doc, idx) => (
-            <div key={idx} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${FILE_TYPE_COLORS[doc.type] || 'bg-gray-100 text-gray-400'}`}>
-                {doc.type === '-' ? <FileText className="h-4 w-4" /> : doc.type}
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="p-6 bg-[#0F172A] text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white mt-1">{previewDoc.document_name || previewDoc.name}</h3>
+                <p className="text-xs text-slate-300">Category: {previewDoc.category}</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">{doc.name}</p>
-                <p className="text-xs text-gray-400">{doc.date} {doc.size !== '-' ? `· ${doc.size}` : ''}</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                {doc.status === 'Verified' && <Badge variant="success"><Check className="h-3 w-3 mr-1" />Verified</Badge>}
-                {doc.status === 'Pending' && <Badge variant="warning">Pending</Badge>}
-                {doc.status === 'Not Uploaded' && (
-                  <label className="cursor-pointer">
-                    <span className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 px-3 py-1.5 rounded-md font-medium flex items-center gap-1 transition-colors">
-                      <Upload className="h-3 w-3" /> Upload
-                    </span>
-                    <input type="file" className="hidden" />
-                  </label>
-                )}
-                {doc.type !== '-' && (
-                  <>
-                    <button className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] transition-colors rounded-md hover:bg-gray-100" title="View">
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] transition-colors rounded-md hover:bg-gray-100" title="Download">
-                      <Download className="h-4 w-4" />
-                    </button>
-                  </>
-                )}
+              <button 
+                onClick={() => setPreviewDoc(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-8 bg-slate-50 text-center space-y-4 border-b border-slate-200">
+              <FileText size={48} className="text-blue-600 mx-auto" />
+              <div className="space-y-1">
+                <p className="font-bold text-sm text-slate-800">{previewDoc.document_name || previewDoc.name}</p>
+                <p className="text-xs text-slate-500">Status: {previewDoc.verification_status || previewDoc.status}</p>
               </div>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+
+            <div className="p-5 bg-white flex items-center justify-end">
+              <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -46,11 +46,22 @@ export default function SuccessModal({ open, employee, onViewEmployee, onCreateO
 
             <div>
               <h2 id="success-title" className="text-xl font-bold text-[var(--color-navy)]">
-                Employee Created!
+                Employee Registered!
               </h2>
               <p className="text-gray-500 text-sm mt-1">
-                The employee record has been successfully created.
+                The employee record has been successfully registered.
               </p>
+            </div>
+
+            {/* Email Dispatched Alert */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 text-left">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                ✉️
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-900">Welcome Email Dispatched</p>
+                <p className="text-[11px] text-emerald-700">Login instructions sent to {employee?.email}</p>
+              </div>
             </div>
 
             {/* Employee Info Card */}
@@ -66,7 +77,7 @@ export default function SuccessModal({ open, employee, onViewEmployee, onCreateO
               </div>
               <InfoLine label="Employee ID" value={employee?.employeeId} mono />
               <InfoLine label="Username" value={employee?.username} mono />
-              <InfoLine label="Status" value={employee?.status || 'Draft'} />
+              <InfoLine label="Status" value={employee?.status || 'Active'} />
             </div>
 
             {/* Actions */}

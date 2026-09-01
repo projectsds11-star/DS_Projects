@@ -1,137 +1,365 @@
-import React, { useState } from 'react';
-import { Clock, LogIn, LogOut, Download, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Clock, 
+  LogIn, 
+  LogOut, 
+  Download, 
+  Calendar as CalendarIcon, 
+  CheckCircle2, 
+  MapPin, 
+  Plus, 
+  X, 
+  Send,
+  Inbox
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-
-const HISTORY = [
-  { date: 'Mon, Aug 31', checkIn: '09:15 AM', checkOut: '--:--', hours: '4h 30m', status: 'Present' },
-  { date: 'Fri, Aug 28', checkIn: '09:05 AM', checkOut: '06:10 PM', hours: '9h 05m', status: 'Present' },
-  { date: 'Thu, Aug 27', checkIn: '10:45 AM', checkOut: '05:30 PM', hours: '6h 45m', status: 'Late' },
-  { date: 'Wed, Aug 26', checkIn: '--:--', checkOut: '--:--', hours: '-', status: 'Absent' },
-  { date: 'Tue, Aug 25', checkIn: '09:00 AM', checkOut: '06:00 PM', hours: '9h 00m', status: 'Present' },
-  { date: 'Mon, Aug 24', checkIn: '08:55 AM', checkOut: '05:55 PM', hours: '9h 00m', status: 'Present' },
-];
-
-const statusBadge = (s) => {
-  if (s === 'Present') return <Badge variant="success">Present</Badge>;
-  if (s === 'Late') return <Badge variant="warning">Late In</Badge>;
-  return <Badge variant="destructive">Absent</Badge>;
-};
+import { liveDataService } from '../../services/liveDataService';
 
 export default function EmployeeAttendance() {
-  const [isCheckedIn, setIsCheckedIn] = useState(true);
-  const [checkInTime] = useState('09:15 AM');
+  const [attendance, setAttendance] = useState([]);
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState('September 2026');
+  const [showRegularizeModal, setShowRegularizeModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const STATS = [
-    { label: 'Present Days', value: '22', sub: 'This month', color: 'text-green-600' },
-    { label: 'Absent Days', value: '1', sub: 'This month', color: 'text-red-500' },
-    { label: 'Late Arrivals', value: '2', sub: 'This month', color: 'text-amber-500' },
-    { label: 'Attendance %', value: '91.6%', sub: 'This month', color: 'text-[var(--color-primary)]' },
-  ];
+  // Regularize form state
+  const [regDate, setRegDate] = useState(new Date().toISOString().slice(0, 10));
+  const [regType, setRegType] = useState('Missed Check-in');
+  const [regReason, setRegReason] = useState('');
+
+  // Live timer
+  const [elapsedSec, setElapsedSec] = useState(0);
+
+  const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
+
+  useEffect(() => {
+    async function loadAttendance() {
+      setLoading(true);
+      try {
+        const liveAtt = await liveDataService.getAttendance(currentEmpId);
+        setAttendance(liveAtt || []);
+        const active = liveAtt?.find(a => a.isToday || a.check_out_time === '-- : --');
+        if (active) {
+          setIsCheckedIn(true);
+          setElapsedSec(3600);
+        }
+      } catch (err) {
+        console.error('Error loading attendance:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAttendance();
+  }, [currentEmpId]);
+
+  useEffect(() => {
+    let timer = null;
+    if (isCheckedIn) {
+      timer = setInterval(() => setElapsedSec(prev => prev + 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isCheckedIn]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const formatTimer = (totalSec) => {
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    return `${hrs.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+  };
+
+  const handleToggleCheckIn = async () => {
+    if (isCheckedIn) {
+      await liveDataService.punchCheckOut(currentEmpId);
+      setIsCheckedIn(false);
+      showToast('Checked out successfully. Working hours logged.');
+    } else {
+      await liveDataService.punchCheckIn(currentEmpId, 'Field Office (GPS Verified)');
+      setIsCheckedIn(true);
+      setElapsedSec(0);
+      showToast('Checked in successfully!');
+    }
+    const fresh = await liveDataService.getAttendance(currentEmpId);
+    setAttendance(fresh);
+  };
+
+  const handleRegularizeSubmit = async (e) => {
+    e.preventDefault();
+    await liveDataService.requestRegularization(currentEmpId, {
+      date: regDate,
+      category: regType,
+      reason: regReason
+    });
+    setShowRegularizeModal(false);
+    showToast(`Regularization request submitted to supervisor!`);
+    setRegReason('');
+  };
+
+  const statusBadge = (s) => {
+    if (s === 'Present') return <Badge variant="success" className="font-bold text-xs">Present</Badge>;
+    if (s === 'Late') return <Badge variant="warning" className="font-bold text-xs">Late Arrival</Badge>;
+    return <Badge variant="destructive" className="font-bold text-xs">Absent</Badge>;
+  };
+
+  const presentCount = attendance.filter(a => a.status === 'Present').length;
+  const lateCount = attendance.filter(a => a.status === 'Late').length;
+  const absentCount = attendance.filter(a => a.status === 'Absent').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <p className="text-sm font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-navy)]">My Attendance</h1>
-          <p className="text-[var(--color-text-secondary)]">Track your daily attendance and working hours.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Attendance & Working Timesheets</h1>
+          <p className="text-sm text-slate-500">Live shift punches and monthly working hours log.</p>
         </div>
-        <Button variant="outline" icon={Download}>Export Report</Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowRegularizeModal(true)}
+            className="font-semibold text-slate-700 cursor-pointer"
+            icon={Plus}
+          >
+            Request Regularization
+          </Button>
+        </div>
       </div>
 
-      {/* Check-in Card */}
-      <Card className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-navy)] text-white border-0">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="text-center sm:text-left">
-              <p className="text-blue-200 text-sm font-medium uppercase tracking-wider">Today's Status</p>
-              <p className="text-3xl font-bold mt-1">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              {isCheckedIn && (
-                <p className="text-blue-200 text-sm mt-2 flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block"></span>
-                  Checked in at {checkInTime} · Working: 4h 30m
-                </p>
-              )}
+      {/* Live Punch-In Hero Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E3A8A] text-white p-6 sm:p-8 lg:p-10 shadow-xl border border-slate-700/60">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 relative z-10">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-blue-200 text-xs font-semibold">
+              <span className={`w-2 h-2 rounded-full ${isCheckedIn ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`} />
+              <span>{isCheckedIn ? 'Live Active Shift' : 'Shift Off'}</span>
             </div>
-            <div className="shrink-0">
-              {isCheckedIn ? (
-                <button
-                  onClick={() => setIsCheckedIn(false)}
-                  className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg"
-                >
-                  <LogOut className="h-5 w-5" />
-                  Check Out
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsCheckedIn(true)}
-                  className="flex items-center gap-2 bg-white text-[var(--color-primary)] font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg hover:bg-blue-50"
-                >
-                  <LogIn className="h-5 w-5" />
-                  Check In for Today
-                </button>
-              )}
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </h2>
+
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-slate-300">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Clock size={14} className="text-blue-300" />
+                Shift: 09:00 AM - 06:00 PM
+              </span>
+              <span className="text-slate-500">•</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <MapPin size={14} className="text-emerald-400" />
+                GPS Location Log Active
+              </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        {STATS.map(stat => (
-          <Card key={stat.label}>
-            <CardContent className="p-5 text-center">
-              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-sm font-medium text-gray-700 mt-1">{stat.label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
+          {/* Stopwatch & Action */}
+          <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/15 shadow-inner flex flex-col sm:flex-row sm:items-center gap-6 shrink-0">
+            <div className="space-y-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                {isCheckedIn ? 'Elapsed Shift Duration' : 'Shift Clock'}
+              </span>
+              <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">
+                {isCheckedIn ? formatTimer(elapsedSec) : '00h 00m 00s'}
+              </p>
+            </div>
+
+            <div className="sm:border-l sm:border-white/15 sm:pl-6">
+              <button
+                onClick={handleToggleCheckIn}
+                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm tracking-wide transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2 ${
+                  isCheckedIn
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
+                }`}
+              >
+                {isCheckedIn ? (
+                  <>
+                    <LogOut size={18} />
+                    <span>Punch Out</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    <span>Punch In Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* History Table */}
-      <Card>
-        <CardHeader className="border-b border-[var(--color-border)]">
-          <div className="flex items-center justify-between">
-            <CardTitle>Attendance History</CardTitle>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <select className="text-sm border border-[var(--color-border)] rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
-                <option>August 2026</option>
-                <option>July 2026</option>
-                <option>June 2026</option>
-              </select>
-            </div>
+      {/* Monthly Stats KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white p-6">
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+            Present
+          </span>
+          <p className="text-3xl font-extrabold text-slate-900 mt-3">{presentCount} Days</p>
+        </Card>
+
+        <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white p-6">
+          <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+            Late Arrivals
+          </span>
+          <p className="text-3xl font-extrabold text-amber-600 mt-3">{lateCount} Days</p>
+        </Card>
+
+        <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white p-6">
+          <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-full">
+            Leaves / Absent
+          </span>
+          <p className="text-3xl font-extrabold text-rose-600 mt-3">{absentCount} Days</p>
+        </Card>
+      </div>
+
+      {/* Monthly Attendance Log Table */}
+      <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+        <CardHeader className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="text-base font-bold text-slate-900">
+              Shift Attendance Logs ({attendance.length})
+            </CardTitle>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <CalendarIcon size={16} className="text-slate-400" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              <option>September 2026</option>
+              <option>August 2026</option>
+            </select>
           </div>
         </CardHeader>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-[var(--color-border)]">
-              <tr>
-                <th className="px-6 py-3 text-left font-medium">Date</th>
-                <th className="px-6 py-3 text-left font-medium">Check In</th>
-                <th className="px-6 py-3 text-left font-medium">Check Out</th>
-                <th className="px-6 py-3 text-left font-medium">Working Hours</th>
-                <th className="px-6 py-3 text-left font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HISTORY.map(row => (
-                <tr key={row.date} className="border-b border-[var(--color-border)] hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-800">{row.date}</td>
-                  <td className={`px-6 py-4 ${row.status === 'Late' ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>{row.checkIn}</td>
-                  <td className="px-6 py-4 text-gray-600">{row.checkOut}</td>
-                  <td className="px-6 py-4 text-gray-600">{row.hours}</td>
-                  <td className="px-6 py-4">{statusBadge(row.status)}</td>
+          {attendance.length > 0 ? (
+            <table className="w-full text-xs sm:text-sm">
+              <thead className="text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200/80">
+                <tr>
+                  <th className="px-6 py-3.5 text-left">Date</th>
+                  <th className="px-6 py-3.5 text-left">Check In</th>
+                  <th className="px-6 py-3.5 text-left">Check Out</th>
+                  <th className="px-6 py-3.5 text-left">Location</th>
+                  <th className="px-6 py-3.5 text-left">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {attendance.map((row, idx) => (
+                  <tr key={row.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
+                      {row.punch_date || row.date}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-slate-700">
+                      {row.check_in_time || row.checkIn}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-slate-700">
+                      {row.check_out_time || row.checkOut}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {row.location_name || row.location || 'Field HQ'}
+                    </td>
+                    <td className="px-6 py-4">
+                      {statusBadge(row.status)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-12 text-center space-y-2">
+              <Inbox className="h-10 w-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-bold text-slate-700">No attendance logs found</p>
+              <p className="text-xs text-slate-400">Punched in times will record here live.</p>
+            </div>
+          )}
         </div>
       </Card>
+
+      {/* Missed Punch / Regularization Modal */}
+      {showRegularizeModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="p-6 bg-[#0F172A] text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Attendance Regularization</h3>
+                <p className="text-xs text-slate-300">Request missed punch correction</p>
+              </div>
+              <button 
+                onClick={() => setShowRegularizeModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegularizeSubmit} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Date to Regularize *</label>
+                <input
+                  type="date"
+                  required
+                  value={regDate}
+                  onChange={(e) => setRegDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Correction Category</label>
+                <select 
+                  value={regType}
+                  onChange={(e) => setRegType(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                >
+                  <option>Missed Check-In</option>
+                  <option>Missed Check-Out</option>
+                  <option>On Duty (Field Visit)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Reason & Justification *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={regReason}
+                  onChange={(e) => setRegReason(e.target.value)}
+                  placeholder="Explain why punch was missed..."
+                  className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowRegularizeModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
+                  Submit Request
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

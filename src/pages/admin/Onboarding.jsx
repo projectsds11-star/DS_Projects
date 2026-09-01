@@ -25,12 +25,12 @@ import { cn } from '../../utils/cn';
 export default function Onboarding() {
   const navigate = useNavigate();
   const [kpis, setKpis] = useState({
-    total: 6,
-    pending: 3,
+    total: 0,
+    pending: 0,
     drafted: 0,
-    sent: 1,
-    accepted: 1,
-    completed: 1,
+    sent: 0,
+    accepted: 0,
+    completed: 0,
     failed: 0,
   });
 

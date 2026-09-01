@@ -1,128 +1,221 @@
-import React, { useState } from 'react';
-import { Bell, CheckCheck, Trash2, Send, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Bell, 
+  CheckCheck, 
+  Trash2, 
+  Send, 
+  Users, 
+  CheckCircle2, 
+  Megaphone, 
+  Sparkles, 
+  AlertCircle,
+  Inbox
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-
-const NOTIFICATIONS = [
-  { id: 1, title: 'New Employee Registered', message: 'Arjun Mehta (DS-128) has been added to the system.', time: '2 min ago', type: 'info', read: false },
-  { id: 2, title: 'Work Submitted for Review', message: 'Rahul Kumar submitted "Farmer Survey – Kavali" and is awaiting your review.', time: '45 min ago', type: 'action', read: false },
-  { id: 3, title: 'Offer Letter Sent', message: 'Offer letter for Sunita Rao (Facilator, Guntur) was emailed successfully.', time: '2 hours ago', type: 'success', read: false },
-  { id: 4, title: 'Attendance Alert', message: '51 employees were absent today in Nellore district.', time: '5 hours ago', type: 'warning', read: true },
-  { id: 5, title: 'Onboarding Completed', message: 'Ramesh Babu (DS-130) has completed all 6 onboarding steps.', time: 'Yesterday', type: 'success', read: true },
-];
-
-const typeConfig = {
-  info: { color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  action: { color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-  success: { color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-  warning: { color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-};
+import { liveDataService } from '../../services/liveDataService';
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [activeTab, setActiveTab] = useState('inbox');
-  const [broadcastMsg, setBroadcastMsg] = useState('');
   const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [targetType, setTargetType] = useState('All');
+  const [toastMessage, setToastMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const markAllRead = () => setNotifications(n => n.map(x => ({ ...x, read: true })));
-  const markRead = (id) => setNotifications(n => n.map(x => x.id === id ? { ...x, read: true } : x));
-  const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [notifList, empList] = await Promise.all([
+          liveDataService.getNotifications(),
+          liveDataService.getEmployees()
+        ]);
+        if (notifList) setNotifications(notifList);
+        if (empList) setEmployees(empList);
+      } catch (err) {
+        console.error('Error loading notifications:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSendBroadcast = async (e) => {
+    e.preventDefault();
+    if (!broadcastTitle || !broadcastMsg) return;
+
+    // Send to all employees or target
+    const targetEmployees = targetType === 'All' ? employees : employees.filter(e => e.district === targetType);
+    
+    if (targetEmployees.length === 0) {
+      await liveDataService.createNotification({
+        employee_id: 'DS-127',
+        title: broadcastTitle,
+        message: broadcastMsg,
+        type: 'announcement',
+        is_read: false
+      });
+    } else {
+      for (const emp of targetEmployees) {
+        await liveDataService.createNotification({
+          employee_id: emp.employee_id,
+          title: broadcastTitle,
+          message: broadcastMsg,
+          type: 'announcement',
+          is_read: false
+        });
+      }
+    }
+
+    showToast('Broadcast notification dispatched to all field staff!');
+    setBroadcastTitle('');
+    setBroadcastMsg('');
+    setActiveTab('inbox');
+
+    const freshNotifs = await liveDataService.getNotifications();
+    setNotifications(freshNotifs);
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <p className="text-sm font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-navy)]">Notifications</h1>
-          <p className="text-[var(--color-text-secondary)]">Manage system alerts and send broadcasts.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
+            <span>Notifications & Broadcast Hub</span>
+            {unreadCount > 0 && (
+              <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+                {unreadCount} Unread
+              </span>
+            )}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500">Send operational bulletins and emergency alerts to field personnel.</p>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" icon={CheckCheck} onClick={markAllRead}>
-            Mark all as read ({unreadCount})
-          </Button>
-        )}
-      </div>
 
-      <div className="flex gap-4 border-b border-[var(--color-border)]">
-        {['inbox', 'send'].map(tab => (
+        <div className="flex items-center gap-2">
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-4 px-2 text-sm font-medium border-b-2 capitalize transition-colors ${activeTab === tab ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('inbox')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'inbox' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
           >
-            {tab === 'inbox' ? `Inbox ${unreadCount > 0 ? `(${unreadCount})` : ''}` : 'Send Broadcast'}
+            Notification Stream
           </button>
-        ))}
+          <button
+            onClick={() => setActiveTab('send')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'send' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+            }`}
+          >
+            <Megaphone size={14} />
+            <span>+ Send Broadcast</span>
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'inbox' && (
-        <Card>
-          <CardContent className="p-0 divide-y divide-[var(--color-border)]">
-            {notifications.map(n => {
-              const cfg = typeConfig[n.type];
-              return (
-                <div
-                  key={n.id}
-                  className={`flex gap-4 p-5 hover:bg-gray-50 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50/30' : ''}`}
-                  onClick={() => markRead(n.id)}
-                >
-                  <div className="mt-1 shrink-0">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${!n.read ? cfg.dot : 'bg-transparent'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <p className={`text-sm font-semibold ${n.read ? 'text-gray-700' : 'text-[var(--color-navy)]'}`}>{n.title}</p>
-                      <span className="text-xs text-gray-400 shrink-0">{n.time}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
+      {activeTab === 'send' && (
+        <Card className="border border-slate-200/80 shadow-md rounded-2xl bg-white overflow-hidden max-w-2xl mx-auto">
+          <CardHeader className="bg-[#0F172A] text-white p-6">
+            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-amber-400" />
+              <span>Broadcast Statewide Circular</span>
+            </CardTitle>
+            <p className="text-xs text-slate-300">Push real-time alert to employee mobile portal</p>
+          </CardHeader>
+
+          <form onSubmit={handleSendBroadcast} className="p-6 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Target Audience</label>
+              <select
+                value={targetType}
+                onChange={(e) => setTargetType(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              >
+                <option value="All">All Registered Staff (Statewide)</option>
+                <option value="Nellore">Nellore District Only</option>
+                <option value="Guntur">Guntur District Only</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Circular Title *</label>
+              <input
+                type="text"
+                required
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                placeholder="e.g. Mandatory Mandal Survey Deadline Update"
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Message Content *</label>
+              <textarea
+                required
+                rows={4}
+                value={broadcastMsg}
+                onChange={(e) => setBroadcastMsg(e.target.value)}
+                placeholder="Detailed announcement text..."
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={() => setActiveTab('inbox')}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
+                Dispatch Broadcast
+              </Button>
+            </div>
+          </form>
         </Card>
       )}
 
-      {activeTab === 'send' && (
-        <Card>
-          <CardHeader className="border-b border-[var(--color-border)]">
-            <CardTitle>Send Notification to Employees</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-5 max-w-2xl">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Send To</label>
-              <select className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
-                <option>All Employees</option>
-                <option>Nellore District</option>
-                <option>Guntur District</option>
-                <option>Mandal Co-ordinators only</option>
-                <option>Select individuals...</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Notification Title</label>
-              <input
-                type="text"
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                placeholder="e.g. New Policy Update"
-                value={broadcastTitle}
-                onChange={e => setBroadcastTitle(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Message</label>
-              <textarea
-                rows={5}
-                className="flex w-full rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                placeholder="Type your message here..."
-                value={broadcastMsg}
-                onChange={e => setBroadcastMsg(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button icon={Send} disabled={!broadcastTitle || !broadcastMsg}>Send Notification</Button>
-              <Button variant="outline">Schedule for Later</Button>
-            </div>
+      {activeTab === 'inbox' && (
+        <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+          <CardContent className="p-0 divide-y divide-slate-100">
+            {notifications.length > 0 ? (
+              notifications.map((n) => (
+                <div key={n.id} className="p-5 hover:bg-slate-50/80 transition-colors flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                    <Bell size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="font-bold text-sm text-slate-900">{n.title}</p>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{n.message}</p>
+                    <p className="text-[11px] text-slate-400 pt-1 font-mono">Assigned Staff: {n.employee_id || 'All'}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-12 text-center space-y-3">
+                <Inbox className="h-12 w-12 text-slate-300 mx-auto" />
+                <p className="font-bold text-sm text-slate-700">No notifications sent yet</p>
+                <p className="text-xs text-slate-400">Send an operational broadcast using the button above.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

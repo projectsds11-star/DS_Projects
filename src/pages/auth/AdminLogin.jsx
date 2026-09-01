@@ -1,384 +1,571 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ShieldCheck, 
-  Mail, 
-  KeyRound, 
-  ArrowRight, 
-  ArrowLeft, 
-  Loader2, 
-  CheckCircle2, 
-  AlertCircle, 
-  Lock, 
-  Sparkles, 
-  RotateCw 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  Sparkles,
+  RefreshCw,
+  Building2,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  Copy,
+  Check,
+  Fingerprint,
+  ShieldAlert,
 } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../utils/cn';
-import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 
-const AUTHORIZED_ADMIN_EMAIL = 'shaikjakeerbasha07@gmail.com';
+const ADMIN_EMAILS = [
+  'shaikjakeerbasha07@gmail.com',
+  'balajiprojects049@gmail.com',
+  'projectsds11@gmail.com',
+];
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Email Request, 2: 6-Digit OTP Verification
-  const [email, setEmail] = useState(AUTHORIZED_ADMIN_EMAIL);
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [timer, setTimer] = useState(60);
-  const [canResend, setCanResend] = useState(false);
-  const [devDemoCode, setDevDemoCode] = useState('');
+  const [step, setStep] = useState('email'); // 'email' | 'otp'
+  const [email, setEmail] = useState('');
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const inputRefs = useRef([]);
+  const otpInputsRef = useRef([]);
 
-  // Countdown timer for OTP resend
+  // Resend OTP countdown timer
   useEffect(() => {
-    let interval = null;
-    if (step === 2 && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
       }, 1000);
-    } else if (timer === 0) {
-      setCanResend(true);
-      clearInterval(interval);
     }
-    return () => clearInterval(interval);
-  }, [step, timer]);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
-  // Handle Send OTP Request
+  // Handle Step 1: Send OTP
   const handleSendOtp = async (e) => {
-    e?.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
+    if (e) e.preventDefault();
+    setError('');
+    setMessage('');
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Strict Admin Authorization Check
-    if (normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
-      setErrorMsg(`Access Denied: Only authorized administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.`);
+    const formattedEmail = email.toLowerCase().trim();
+    if (!formattedEmail) {
+      setError('Please enter your administrator email address.');
       return;
     }
 
-    setIsSubmitting(true);
+    if (!ADMIN_EMAILS.includes(formattedEmail)) {
+      setError('This email is not authorized for executive administrator access.');
+      return;
+    }
 
+    setIsLoading(true);
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email: AUTHORIZED_ADMIN_EMAIL,
-          options: {
-            shouldCreateUser: true,
-          },
-        });
-        if (error) throw error;
-        setSuccessMsg(`Official 6-digit verification code sent to ${AUTHORIZED_ADMIN_EMAIL}`);
-      } else {
-        // Simulated Secure OTP Dispatch for Development
-        const demoOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        setDevDemoCode(demoOtp);
-        setSuccessMsg(`Verification code sent to ${AUTHORIZED_ADMIN_EMAIL}`);
-      }
-
-      setStep(2);
-      setTimer(60);
-      setCanResend(false);
-      setOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => inputRefs.current[0]?.focus(), 100);
-    } catch (err) {
-      console.error('OTP Send error:', err);
-      setErrorMsg(err.message || 'Failed to dispatch verification code. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle 6-Box OTP Input changes
-  const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
-
-    const newDigits = [...otpDigits];
-    newDigits[index] = value.slice(-1);
-    setOtpDigits(newDigits);
-
-    // Auto-advance to next box
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  // Handle Backspace & Navigation
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle Paste 6 Digits
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length > 0) {
-      const newDigits = [...otpDigits];
-      pasted.split('').forEach((char, idx) => {
-        if (idx < 6) newDigits[idx] = char;
+      const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
+      const response = await fetch(`${apiUrl}/api/admin/request-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formattedEmail }),
       });
-      setOtpDigits(newDigits);
-      const nextFocus = Math.min(pasted.length, 5);
-      inputRefs.current[nextFocus]?.focus();
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send verification code.');
+      }
+
+      setStep('otp');
+      setResendCooldown(60);
+      setMessage(data.message || `A 6-digit passcode was dispatched to ${formattedEmail}`);
+      // Focus first OTP input on transition
+      setTimeout(() => {
+        if (otpInputsRef.current[0]) {
+          otpInputsRef.current[0].focus();
+        }
+      }, 200);
+    } catch (err) {
+      setError(err.message || 'Unable to connect to authentication server.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Handle Verify OTP
-  const handleVerifyOtp = async (e) => {
-    e?.preventDefault();
-    setErrorMsg('');
-    const enteredOtp = otpDigits.join('');
+  // Handle OTP digit changes
+  const handleOtpChange = (index, value) => {
+    const sanitized = value.replace(/[^0-9]/g, '');
+    if (!sanitized && value !== '') return;
 
-    if (enteredOtp.length !== 6) {
-      setErrorMsg('Please enter the full 6-digit verification code.');
+    const newOtp = [...otpValues];
+
+    if (sanitized.length > 1) {
+      // Handle multi-character paste into one slot
+      const pastedDigits = sanitized.slice(0, 6).split('');
+      pastedDigits.forEach((digit, i) => {
+        if (index + i < 6) newOtp[index + i] = digit;
+      });
+      setOtpValues(newOtp);
+      const nextIndex = Math.min(index + pastedDigits.length, 5);
+      if (otpInputsRef.current[nextIndex]) {
+        otpInputsRef.current[nextIndex].focus();
+      }
       return;
     }
 
-    setIsSubmitting(true);
+    newOtp[index] = sanitized;
+    setOtpValues(newOtp);
 
+    // Auto-focus next input
+    if (sanitized && index < 5 && otpInputsRef.current[index + 1]) {
+      otpInputsRef.current[index + 1].focus();
+    }
+  };
+
+  // Handle OTP keyboard navigation (backspace)
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      otpInputsRef.current[index - 1].focus();
+    }
+  };
+
+  // Handle OTP paste across all inputs
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').trim().replace(/[^0-9]/g, '');
+    if (!pasteData) return;
+
+    const digits = pasteData.slice(0, 6).split('');
+    const newOtp = [...otpValues];
+    digits.forEach((digit, idx) => {
+      newOtp[idx] = digit;
+    });
+    setOtpValues(newOtp);
+
+    const targetIndex = Math.min(digits.length, 5);
+    if (otpInputsRef.current[targetIndex]) {
+      otpInputsRef.current[targetIndex].focus();
+    }
+  };
+
+  // Handle Step 2: Verify OTP
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+
+    const fullOtp = otpValues.join('').trim();
+    if (fullOtp.length !== 6) {
+      setError('Please provide the full 6-digit authentication code.');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: AUTHORIZED_ADMIN_EMAIL,
-          token: enteredOtp,
-          type: 'email',
-        });
-        if (error) throw error;
-        localStorage.setItem('ds_admin_session', JSON.stringify({ email: AUTHORIZED_ADMIN_EMAIL, token: data.session?.access_token || 'active' }));
-      } else {
-        // Offline / Simulation Check
-        if (devDemoCode && enteredOtp !== devDemoCode && enteredOtp !== '123456') {
-          throw new Error('Invalid verification code. Please check and try again.');
-        }
-        localStorage.setItem('ds_admin_session', JSON.stringify({ email: AUTHORIZED_ADMIN_EMAIL, role: 'super_admin' }));
+      const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
+      const response = await fetch(`${apiUrl}/api/admin/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          otp: fullOtp,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid or expired verification code.');
       }
 
+      // Store security credentials
+      localStorage.setItem('ds_admin_token', data.token);
+      localStorage.setItem('ds_admin_session', JSON.stringify({ email: data.email }));
+
+      // Navigate to admin console
       navigate('/admin/dashboard');
     } catch (err) {
-      console.error('OTP Verification Error:', err);
-      setErrorMsg(err.message || 'Verification failed. Incorrect code.');
+      setError(err.message || 'Verification failed. Please check the code.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F7F8FC]">
-      {/* ── LEFT BRANDING SIDEBAR ─────────────────────────────────── */}
-      <div className="hidden lg:flex w-5/12 bg-[var(--color-navy)] text-white p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background ambient accents */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--color-primary)] opacity-20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[var(--color-lavender)] opacity-10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+    <div className="min-h-screen w-full flex bg-[#0B0F19] text-slate-100 font-sans relative overflow-hidden selection:bg-blue-500 selection:text-white">
+      {/* Background Ambient Glows & Grid */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(37,99,235,0.18),rgba(255,255,255,0))]" />
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
 
-        {/* Top Logo */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-black text-lg tracking-wider shadow-lg">
-              DS
-            </div>
-            <div>
-              <h2 className="text-xl font-black tracking-wider text-white">DS PROJECTS</h2>
-              <p className="text-[10px] uppercase font-bold text-blue-200 tracking-widest">
-                Executive HRMS Suite
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Decorative Grid Lines */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }}
+      />
 
-        {/* Center Presentation */}
-        <div className="relative z-10 space-y-4 max-w-md">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-200 text-xs font-semibold border border-blue-400/20">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Zero-Trust Admin Authentication
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
-            Central Administrative & Workforce Command Console
-          </h1>
-          <p className="text-xs text-blue-200/80 leading-relaxed">
-            Authorized administrator access to onboarding rosters, job offers, attendance auditing, and Andhra Pradesh district operations.
-          </p>
-        </div>
-
-        {/* Bottom Metadata */}
-        <div className="relative z-10 text-[11px] text-blue-300/60 flex items-center justify-between border-t border-white/10 pt-4">
-          <span>DS PROJECTS PRIVATE LIMITED</span>
-          <span>Security Protocol v4.2</span>
-        </div>
-      </div>
-
-      {/* ── RIGHT LOGIN CARD ─────────────────────────────────────── */}
-      <div className="w-full lg:w-7/12 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md bg-white p-8 sm:p-10 rounded-3xl shadow-xl border border-gray-100 space-y-6">
-          
-          {/* Header Title */}
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[var(--color-primary)] flex items-center justify-center mb-3 mx-auto sm:mx-0 shadow-2xs">
-              <KeyRound className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight text-[var(--color-navy)]">
-              Admin OTP Authentication
-            </h2>
-            <p className="text-xs text-gray-500">
-              {step === 1 
-                ? 'Sign in using the authorized administrator account.' 
-                : `Enter the 6-digit verification code sent to your inbox.`}
-            </p>
-          </div>
-
-          {/* Feedback Banners */}
-          {errorMsg && (
-            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl flex items-start gap-2.5 text-xs text-green-800 animate-in fade-in">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-green-600" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Demo code banner for quick dev testing if offline */}
-          {devDemoCode && (
-            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center justify-between">
-              <span>Dev Demo Code: <strong className="font-mono text-sm tracking-widest">{devDemoCode}</strong></span>
-              <button 
-                type="button" 
-                onClick={() => setOtpDigits(devDemoCode.split(''))}
-                className="text-[11px] font-bold text-[var(--color-primary)] hover:underline"
-              >
-                Auto-fill
-              </button>
-            </div>
-          )}
-
-          {/* ── STEP 1: EMAIL CONFIRMATION ──────────────────────────── */}
-          {step === 1 ? (
-            <form onSubmit={handleSendOtp} className="space-y-5">
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Administrator Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder={AUTHORIZED_ADMIN_EMAIL}
-                    className="flex h-11 w-full pl-10 pr-3.5 rounded-xl border border-[var(--color-border)] bg-white text-xs font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
-                  />
+      {/* Main Container */}
+      <div className="w-full flex flex-col lg:flex-row relative z-10">
+        
+        {/* Left Side: Enterprise Branding & Live Telemetry */}
+        <div className="hidden lg:flex lg:w-7/12 p-12 xl:p-16 flex-col justify-between border-r border-white/10 backdrop-blur-sm relative">
+          {/* Brand Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-lg shadow-blue-500/25">
+                <div className="w-full h-full bg-[#0B0F19] rounded-[10px] flex items-center justify-center font-black text-lg text-white tracking-tighter">
+                  DS
                 </div>
-                <p className="text-[11px] text-gray-400">
-                  Authorized: <strong className="text-gray-700 font-mono">{AUTHORIZED_ADMIN_EMAIL}</strong>
+              </div>
+              <div>
+                <h1 className="font-extrabold text-xl tracking-tight text-white flex items-center gap-2">
+                  DS PROJECTS
+                  <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
+                    PRO SUITE
+                  </span>
+                </h1>
+                <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase">
+                  Executive HRMS & Operations Infrastructure
                 </p>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                size="lg"
-                isLoading={isSubmitting}
-                className="w-full h-11 font-bold text-xs bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs flex items-center justify-center gap-2"
-              >
-                <span>Send 6-Digit OTP</span>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            {/* Live Node Status */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-white/10 text-xs text-slate-300 backdrop-blur-md">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-semibold text-[11px] text-slate-200">AP Central Nodes Online</span>
+            </div>
+          </div>
 
-              <div className="pt-2 text-center">
-                <Link to="/login" className="text-xs text-gray-500 hover:text-[var(--color-primary)] transition">
-                  Looking for Employee Portal Login? →
-                </Link>
+          {/* Hero Centerpiece */}
+          <div className="my-auto py-12 max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 mb-6">
+                <ShieldCheck className="w-4 h-4 text-blue-400" />
+                Zero-Trust Multi-Factor Identity Gate
               </div>
-            </form>
-          ) : (
-            /* ── STEP 2: 6-BOX OTP VERIFICATION ───────────────────────── */
-            <form onSubmit={handleVerifyOtp} className="space-y-6">
-              <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-[var(--color-navy)] font-medium truncate">
-                  <Mail className="h-3.5 w-3.5 text-[var(--color-primary)] shrink-0" />
-                  <span className="truncate">{email}</span>
+
+              <h2 className="text-4xl xl:text-5xl font-black text-white leading-[1.12] tracking-tight mb-6">
+                Central Administrative & <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-teal-300">
+                  Workforce Command Console
+                </span>
+              </h2>
+
+              <p className="text-slate-300 text-base leading-relaxed mb-10 max-w-xl font-normal">
+                Authorized access point for executive management, automated candidate onboarding, digital offer issuance, and district-wide workforce attendance intelligence.
+              </p>
+
+              {/* Feature Tiles Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/30 transition-colors backdrop-blur-sm group">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3 group-hover:scale-110 transition-transform">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-sm text-white mb-1">Onboarding Engine</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Automated document collection and background verification workflows.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-[11px] text-[var(--color-primary)] font-bold hover:underline shrink-0 ml-2"
-                >
-                  Change
-                </button>
-              </div>
 
-              {/* 6 Individual OTP Digit Boxes */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider text-center">
-                  Enter 6-Digit Security Code
-                </label>
-                <div className="flex justify-between gap-2 sm:gap-2.5" onPaste={handlePaste}>
-                  {otpDigits.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      className={cn(
-                        'w-11 h-13 sm:w-12 sm:h-14 rounded-xl border text-center font-mono font-bold text-lg transition',
-                        digit ? 'border-[var(--color-primary)] bg-blue-50/40 text-[var(--color-navy)] shadow-xs' : 'border-gray-300 bg-white text-gray-900',
-                        'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent'
-                      )}
-                    />
-                  ))}
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/30 transition-colors backdrop-blur-sm group">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-sm text-white mb-1">Statewide Deployment</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Unified telemetry across all 26 Andhra Pradesh district sectors.
+                  </p>
                 </div>
               </div>
+            </motion.div>
+          </div>
 
-              <Button
-                type="submit"
-                size="lg"
-                isLoading={isSubmitting}
-                className="w-full h-11 font-bold text-xs bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs flex items-center justify-center gap-2"
-              >
-                <span>Verify & Access Console</span>
-                <CheckCircle2 className="h-4 w-4" />
-              </Button>
+          {/* Footer Security Badges */}
+          <div className="flex items-center justify-between pt-6 border-t border-white/10 text-xs text-slate-400">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-blue-400" /> AES-256 Auth
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-700" />
+              <span>TLS 1.3 Strict Mode</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              DS Projects Private Limited © {new Date().getFullYear()}
+            </p>
+          </div>
+        </div>
 
-              {/* Resend OTP & Countdown */}
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="flex items-center gap-1 hover:text-gray-900 transition"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back
-                </button>
+        {/* Right Side: High-End Glassmorphic Login Form */}
+        <div className="w-full lg:w-5/12 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-14 relative min-h-screen lg:min-h-auto">
+          
+          {/* Mobile Top Header */}
+          <div className="lg:hidden w-full max-w-md flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-extrabold text-white">
+                DS
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-white">DS PROJECTS</h3>
+                <p className="text-[10px] text-blue-400 font-semibold tracking-wider uppercase">Executive Console</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Secure
+            </span>
+          </div>
 
-                {canResend ? (
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={isSubmitting}
-                    className="font-bold text-[var(--color-primary)] hover:underline flex items-center gap-1"
+          {/* Login Card */}
+          <div className="w-full max-w-md">
+            <motion.div
+              layout
+              className="bg-slate-900/60 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl shadow-black/80 relative overflow-hidden"
+            >
+              {/* Top Accent Gradient Border */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-teal-400" />
+
+              <AnimatePresence mode="wait">
+                {step === 'email' ? (
+                  /* ==================================================== */
+                  /* STEP 1: EMAIL ENTRY                                  */
+                  /* ==================================================== */
+                  <motion.div
+                    key="step-email"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <RotateCw className="h-3.5 w-3.5" /> Resend OTP
-                  </button>
+                    {/* Header */}
+                    <div className="mb-8 text-center sm:text-left">
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-4 shadow-inner">
+                        <KeyRound className="h-6 w-6" />
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+                        Executive Sign In
+                      </h2>
+                      <p className="text-sm text-slate-400">
+                        Enter your registered administrative email to receive a secure real-time OTP.
+                      </p>
+                    </div>
+
+                    {/* Email Form */}
+                    <form onSubmit={handleSendOtp} className="space-y-5">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                          Administrator Email Address
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+                            <Mail className="h-5 w-5" />
+                          </div>
+                          <input
+                            type="email"
+                            required
+                            autoFocus
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="admin@dsprojects.com"
+                            className="w-full h-13 pl-12 pr-4 bg-slate-950/70 border border-white/10 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500"
+                          />
+                        </div>
+                      </div>
+
+
+                      {/* Error Alert */}
+                      {error && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-start gap-2.5"
+                        >
+                          <AlertCircle className="w-4 h-4 min-w-4 mt-0.5 text-red-400" />
+                          <span>{error}</span>
+                        </motion.div>
+                      )}
+
+                      {/* Submit Action */}
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-13 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                            <span>GENERATING PASSCODE...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span>SEND ONE-TIME PASSCODE</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </form>
+
+                    {/* Portal Switcher */}
+                    <div className="mt-8 pt-6 border-t border-white/10 text-center">
+                      <p className="text-xs text-slate-400">
+                        Staff or Field Worker?{' '}
+                        <Link
+                          to="/employee/login"
+                          className="text-blue-400 hover:text-blue-300 font-semibold transition-colors inline-flex items-center gap-1 hover:underline"
+                        >
+                          Employee Sign In →
+                        </Link>
+                      </p>
+                    </div>
+                  </motion.div>
                 ) : (
-                  <span className="text-gray-400 font-mono text-[11px]">
-                    Resend in <strong className="text-gray-600">{timer}s</strong>
-                  </span>
+                  /* ==================================================== */
+                  /* STEP 2: OTP VERIFICATION                            */
+                  /* ==================================================== */
+                  <motion.div
+                    key="step-otp"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {/* Top Navigation */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep('email');
+                        setOtpValues(['', '', '', '', '', '']);
+                        setError('');
+                        setMessage('');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-6 group font-medium"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+                      Back to Email Input
+                    </button>
+
+                    {/* Header */}
+                    <div className="mb-6">
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-4 shadow-inner">
+                        <Fingerprint className="h-6 w-6" />
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+                        Enter Security Code
+                      </h2>
+                      <p className="text-sm text-slate-400">
+                        Sent to <span className="font-semibold text-slate-200">{email}</span>
+                      </p>
+                    </div>
+
+                    {/* Info Notice */}
+                    {message && (
+                      <div className="mb-6 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 min-w-4 mt-0.5 text-emerald-400" />
+                        <span>{message}</span>
+                      </div>
+                    )}
+
+                    {/* OTP Form */}
+                    <form onSubmit={handleVerifyOtp} className="space-y-6">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 text-center">
+                          6-Digit Verification Code
+                        </label>
+                        
+                        {/* 6 Individual Interactive OTP Input Boxes */}
+                        <div className="flex items-center justify-between gap-2 sm:gap-3" onPaste={handleOtpPaste}>
+                          {otpValues.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              ref={(el) => (otpInputsRef.current[idx] = el)}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handleOtpChange(idx, e.target.value)}
+                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                              className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl bg-slate-950/80 border transition-all focus:outline-none ${
+                                digit
+                                  ? 'border-blue-500 text-blue-300 bg-blue-500/10 ring-2 ring-blue-500/20'
+                                  : 'border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Error Alert */}
+                      {error && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-start gap-2.5"
+                        >
+                          <AlertCircle className="w-4 h-4 min-w-4 mt-0.5 text-red-400" />
+                          <span>{error}</span>
+                        </motion.div>
+                      )}
+
+                      {/* Verify Action */}
+                      <button
+                        type="submit"
+                        disabled={isLoading || otpValues.join('').length !== 6}
+                        className="w-full h-13 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                            <span>AUTHENTICATING IDENTITY...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>VERIFY & ENTER CONSOLE</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Resend OTP Timer & Button */}
+                      <div className="text-center pt-2">
+                        {resendCooldown > 0 ? (
+                          <p className="text-xs text-slate-400 font-medium">
+                            Resend code available in{' '}
+                            <span className="text-blue-400 font-bold">{resendCooldown}s</span>
+                          </p>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSendOtp()}
+                            className="text-xs text-blue-400 hover:text-blue-300 font-bold hover:underline inline-flex items-center gap-1.5 transition-colors"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Resend Verification Code
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  </motion.div>
                 )}
-              </div>
-            </form>
-          )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Bottom Security Notice */}
+            <div className="mt-6 flex items-center justify-center gap-2 text-center text-xs text-slate-500 font-medium">
+              <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
+              Protected Executive Perimeter • Single-Session Tokenization
+            </div>
+          </div>
         </div>
       </div>
     </div>
