@@ -20,7 +20,9 @@ import {
   MapPin,
   IndianRupee,
   ShieldCheck,
-  Check
+  Check,
+  Mail,
+  FileCheck
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../utils/cn';
@@ -485,7 +487,7 @@ export default function CreateJobOffer() {
         />
       )}
 
-      {/* ── STEP 3: LIVE A4 PREVIEW & EXECUTIVE REVIEW ──────────── */}
+      {/* ── STEP 3: LIVE PREVIEW, EDITABLE EMAIL & DISPATCH ─────── */}
       {currentStep === 3 && (
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Executive Overview Summary Banner */}
@@ -514,27 +516,131 @@ export default function CreateJobOffer() {
               </div>
 
               <div>
-                <span className="text-[10px] text-gray-500 uppercase font-semibold">Compensation</span>
+                <span className="text-[10px] text-gray-500 uppercase font-semibold">Monthly Remuneration</span>
                 <p className="font-bold font-mono text-green-700">
-                  {formatINR((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0))} / Mo
+                  {formatINR(Number(watchedValues.salary?.basic) || 24000)} / Mo
                 </p>
                 <p className="text-[10px] font-mono text-gray-500">
-                  {formatINR(((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0)) * 12)} CTC
+                  {formatINR((Number(watchedValues.salary?.basic) || 24000) * 12)} CTC / yr
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Full-width Centered A4 Document Preview */}
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-xs overflow-hidden h-[820px]">
-            <LiveA4PreviewPanel
-              offerData={{
-                ...watchedValues,
-                offerNumber: `DS/OFF/2026/${watchedValues.employeeId?.replace(/[^0-9]/g, '') || '001'}`,
-                documentMode,
-                manualPdf,
-              }}
-            />
+          {/* Document Section: Uploaded Manual PDF vs. Auto-Generated Letterhead */}
+          {documentMode === 'upload' ? (
+            <div className="bg-white rounded-2xl border border-indigo-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileCheck className="h-5 w-5 text-indigo-600" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Attached Manual Offer Letter Document
+                  </h3>
+                </div>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" /> Ready for Email Dispatch
+                </span>
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                      {manualPdf?.name || 'Manual_Offer_Letter_Document.pdf'}
+                    </p>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      {manualPdf?.size ? `${(manualPdf.size / 1024).toFixed(1)} KB` : 'Custom Uploaded PDF'} · External Signed Document
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentStep(2)}
+                  className="text-xs font-bold shrink-0"
+                >
+                  Change File
+                </Button>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ℹ️ This uploaded document will be automatically attached to <strong className="text-slate-800">{watchedValues.employeeName}</strong>'s onboarding email and saved in their official employee profile.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-xs overflow-hidden h-[820px]">
+              <LiveA4PreviewPanel
+                offerData={{
+                  ...watchedValues,
+                  offerNumber: `DS/OFF/2026/${watchedValues.employeeId?.replace(/[^0-9]/g, '') || '001'}`,
+                  documentMode,
+                  manualPdf,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Editable Email Content Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  Onboarding Email Content (Editable)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Review and customize the email message that will be sent to the candidate.
+                </p>
+              </div>
+              <span className="text-xs font-mono font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg self-start sm:self-auto">
+                To: {watchedValues.email || 'employee@email.com'}
+              </span>
+            </div>
+
+            {/* Email Subject Line */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Email Subject Line *
+              </label>
+              <input
+                type="text"
+                {...register('emailSubject')}
+                className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs"
+              />
+            </div>
+
+            {/* Email Message Body */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Email Message Body *
+                </label>
+                <span className="text-[11px] text-blue-600 font-medium">Editable text</span>
+              </div>
+              <textarea
+                rows={6}
+                {...register('emailBody')}
+                className="flex w-full rounded-xl border border-slate-200 bg-white p-3.5 text-xs sm:text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs resize-y"
+              />
+            </div>
+
+            {/* Attachment Checklist */}
+            <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dispatched with Email:</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold">
+                <FileText size={12} />
+                {documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                <ShieldCheck size={12} />
+                Employee Portal Login Credentials & Single-Use Activation
+              </span>
+            </div>
           </div>
         </div>
       )}
