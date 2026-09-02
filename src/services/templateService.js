@@ -2,7 +2,7 @@
 // Enterprise HRMS Module for DS PROJECTS
 
 export const JOB_POSITIONS = [
-  'ZED Implementation Co-ordinator',
+  'ZED IMPLEMENTATION COORDINATOR',
   'Mandal Co-ordinator',
   'District Co-ordinator',
   'Z-Assencer',
@@ -42,8 +42,8 @@ export const DEFAULT_TERMS_AND_CONDITIONS = [
 export const DEFAULT_TERMS = DEFAULT_TERMS_AND_CONDITIONS;
 
 export const MASTER_TEMPLATES = {
-  'ZED Implementation Co-ordinator': {
-    jobPosition: 'ZED Implementation Co-ordinator',
+  'ZED IMPLEMENTATION COORDINATOR': {
+    jobPosition: 'ZED IMPLEMENTATION COORDINATOR',
     department: 'Quality & Assessment',
     defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
     probation: '3 Months',
@@ -67,84 +67,7 @@ You are being appointed to support the company's project operations and its init
 
 Key Assignment Details:
 • Employee ID: {{employee_id}}
-• Designation: ZED Implementation Co-ordinator
-• Work Location: {{district}}, Andhra Pradesh
-• Proposed Joining Date: {{joining_date}}
-• Monthly Gross Remuneration: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
-
-Please find attached your official Appointment Offer Letter.
-
-To activate your secure Employee Portal account, follow the link: {{activation_link}}
-
-Warm Regards,
-Human Resources Directorate
-DS PROJECTS`,
-  },
-  // Aliases for backward compatibility
-  'ZED Implementation Coordinator': {
-    jobPosition: 'ZED Implementation Co-ordinator',
-    department: 'Quality & Assessment',
-    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
-    probation: '3 Months',
-    noticePeriod: '30 Days',
-    jobDescription: `Responsible for assisting the company in project activities, documentation, quality-related processes, operational improvement and implementation of applicable MSME Sustainable (ZED) practices.`,
-    responsibilities: [
-      'Maintaining quality and process documentation according to ZED framework standards.',
-      'Supporting standard operating procedures and process standardization.',
-      'Assisting in reduction of defects, rework, wastage and operational losses.',
-      'Supporting energy-efficiency and resource-conservation practices.',
-      'Maintaining documents and evidence required for applicable MSME/ZED assessments.',
-    ],
-    emailSubject: `Offer of Employment – MSME Sustainable (ZED) Implementation & Project Operations — DS PROJECTS`,
-    emailBody: `Dear {{employee_name}},
-
-Congratulations!
-
-We are pleased to offer you employment with DS PROJECTS, Ongole, subject to the terms and conditions mentioned in this letter.
-
-You are being appointed to support the company's project operations and its initiatives relating to quality improvement, process standardization, productivity enhancement, environmental responsibility and MSME Sustainable (ZED – Zero Defect Zero Effect) practices.
-
-Key Assignment Details:
-• Employee ID: {{employee_id}}
-• Designation: ZED Implementation Co-ordinator
-• Work Location: {{district}}, Andhra Pradesh
-• Proposed Joining Date: {{joining_date}}
-• Monthly Gross Remuneration: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
-
-Please find attached your official Appointment Offer Letter.
-
-To activate your secure Employee Portal account, follow the link: {{activation_link}}
-
-Warm Regards,
-Human Resources Directorate
-DS PROJECTS`,
-  },
-  'Project / ZED Compliance Executive': {
-    jobPosition: 'ZED Implementation Co-ordinator',
-    department: 'Quality & Assessment',
-    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 0 },
-    probation: '3 Months',
-    noticePeriod: '30 Days',
-    jobDescription: `Responsible for assisting the company in project activities, documentation, quality-related processes, operational improvement and implementation of applicable MSME Sustainable (ZED) practices.`,
-    responsibilities: [
-      'Maintaining quality and process documentation according to ZED framework standards.',
-      'Supporting standard operating procedures and process standardization.',
-      'Assisting in reduction of defects, rework, wastage and operational losses.',
-      'Supporting energy-efficiency and resource-conservation practices.',
-      'Maintaining documents and evidence required for applicable MSME/ZED assessments.',
-    ],
-    emailSubject: `Offer of Employment – MSME Sustainable (ZED) Implementation & Project Operations — DS PROJECTS`,
-    emailBody: `Dear {{employee_name}},
-
-Congratulations!
-
-We are pleased to offer you employment with DS PROJECTS, Ongole, subject to the terms and conditions mentioned in this letter.
-
-You are being appointed to support the company's project operations and its initiatives relating to quality improvement, process standardization, productivity enhancement, environmental responsibility and MSME Sustainable (ZED – Zero Defect Zero Effect) practices.
-
-Key Assignment Details:
-• Employee ID: {{employee_id}}
-• Designation: ZED Implementation Co-ordinator
+• Designation: ZED IMPLEMENTATION COORDINATOR
 • Work Location: {{district}}, Andhra Pradesh
 • Proposed Joining Date: {{joining_date}}
 • Monthly Gross Remuneration: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
