@@ -243,10 +243,10 @@ export default function AdminLayout() {
             </div>
           </div>
           <div className="flex items-center gap-3 ml-4">
-            <button onClick={() => navigate('/admin/employees/add')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer">
+            <button onClick={() => navigate('/admin/employees/add')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-xl text-xs font-bold shadow-md shadow-[#E63946]/20 transition-all cursor-pointer">
               <UserPlus size={14} /><span>+ Add Employee</span>
             </button>
-            <button onClick={() => navigate('/admin/onboarding/create')} className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer">
+            <button onClick={() => navigate('/admin/onboarding/create')} className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#00B4D8] hover:bg-[#48CAE4] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer">
               <Send size={14} /><span>+ Issue Offer</span>
             </button>
             <button onClick={() => navigate('/admin/notifications')} className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">
