@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Upload, 
@@ -11,12 +11,43 @@ import {
   MapPin, 
   FileText, 
   Check, 
-  Inbox
+  Inbox,
+  UploadCloud,
+  Download,
+  Eye,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
+import { storageService } from '../../services/supabaseClient';
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (typeof bytes === 'string') return bytes;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getFileCategory(fileName = '', fileType = '') {
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (['pdf'].includes(ext) || fileType?.includes('pdf')) {
+    return { label: 'PDF', bg: 'bg-red-100 text-red-700 border-red-200' };
+  }
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) || fileType?.startsWith('image/')) {
+    return { label: 'IMG', bg: 'bg-blue-100 text-blue-700 border-blue-200' };
+  }
+  if (['xls', 'xlsx', 'csv'].includes(ext) || fileType?.includes('sheet') || fileType?.includes('excel') || fileType?.includes('csv')) {
+    return { label: 'XLS', bg: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+  }
+  if (['doc', 'docx'].includes(ext) || fileType?.includes('word') || fileType?.includes('document')) {
+    return { label: 'DOC', bg: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+  }
+  return { label: 'FILE', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+}
 
 export default function MyWork() {
   const [tasks, setTasks] = useState([]);
@@ -25,8 +56,11 @@ export default function MyWork() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [reportText, setReportText] = useState('');
   const [attachedFiles, setAttachedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef(null);
 
   const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
 
@@ -72,45 +106,83 @@ export default function MyWork() {
     showToast(`Task moved to In Progress!`);
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const newFiles = files.map(f => ({ name: f.name, size: `${(f.size / (1024*1024)).toFixed(1)} MB` }));
-      setAttachedFiles([...attachedFiles, ...newFiles]);
-      showToast(`${files.length} file(s) attached.`);
-    }
+  const handleFileUpload = (filesList) => {
+    if (!filesList || filesList.length === 0) return;
+    const newItems = Array.from(filesList).map(file => ({
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }));
+    setAttachedFiles(prev => [...prev, ...newItems]);
+    showToast(`${newItems.length} file(s) attached to report.`);
+  };
+
+  const handleRemoveAttachedFile = (id) => {
+    setAttachedFiles(prev => {
+      const target = prev.find(f => f.id === id);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter(f => f.id !== id);
+    });
   };
 
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     if (!reportText.trim() || !selectedTask) return;
 
-    const taskCode = selectedTask.task_code || selectedTask.id;
-    await liveDataService.submitWorkReport(taskCode, {
-      reportSummary: reportText,
-      attachments: attachedFiles
-    });
+    setIsSubmitting(true);
+    try {
+      const taskCode = selectedTask.task_code || selectedTask.id;
 
-    setTasks(prev => prev.map(t => {
-      if (t.task_code === taskCode || t.id === taskCode) {
-        return {
-          ...t,
-          status: 'Submitted',
-          report_summary: reportText
-        };
+      const uploadedList = [];
+      for (const item of attachedFiles) {
+        let fileUrl = item.preview;
+        if (item.file) {
+          fileUrl = await storageService.uploadTaskAttachment(item.file, `${taskCode}_rep`);
+        }
+        uploadedList.push({
+          name: item.name,
+          size: formatBytes(item.size),
+          type: item.type,
+          url: fileUrl || ''
+        });
       }
-      return t;
-    }));
 
-    setSelectedTask(prev => ({
-      ...prev,
-      status: 'Submitted',
-      report_summary: reportText
-    }));
+      await liveDataService.submitWorkReport(taskCode, {
+        reportSummary: reportText,
+        attachments: uploadedList
+      });
 
-    showToast(`Report submitted for review!`);
-    setReportText('');
-    setAttachedFiles([]);
+      setTasks(prev => prev.map(t => {
+        if (t.task_code === taskCode || t.id === taskCode) {
+          return {
+            ...t,
+            status: 'Submitted',
+            report_summary: reportText,
+            report_attachments: uploadedList
+          };
+        }
+        return t;
+      }));
+
+      setSelectedTask(prev => ({
+        ...prev,
+        status: 'Submitted',
+        report_summary: reportText,
+        report_attachments: uploadedList
+      }));
+
+      showToast(`Report submitted successfully for admin review!`);
+      setReportText('');
+      setAttachedFiles([]);
+    } catch (err) {
+      console.error('Error submitting report:', err);
+      showToast('Error submitting report. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getPriorityBadge = (p) => {
@@ -140,7 +212,7 @@ export default function MyWork() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">My Daily Work & Field Tasks</h1>
-          <p className="text-sm text-slate-500">Track assigned field tasks, log survey progress, and submit completion reports.</p>
+          <p className="text-sm text-slate-500">Track assigned field tasks, review survey guidelines, and submit verification reports.</p>
         </div>
         <div>
           <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
@@ -186,6 +258,7 @@ export default function MyWork() {
           {filteredTasks.length > 0 ? (
             filteredTasks.map((work) => {
               const isSelected = selectedTask?.id === work.id || selectedTask?.task_code === work.task_code;
+              const attachCount = (work.attachments && Array.isArray(work.attachments)) ? work.attachments.length : 0;
               return (
                 <div
                   key={work.id || work.task_code}
@@ -207,6 +280,11 @@ export default function MyWork() {
                           {work.task_code || work.id}
                         </span>
                         {getPriorityBadge(work.priority)}
+                        {attachCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded">
+                            <Paperclip size={10} /> {attachCount}
+                          </span>
+                        )}
                       </div>
                       {getStatusBadge(work.status)}
                     </div>
@@ -285,6 +363,51 @@ export default function MyWork() {
                   </p>
                 </div>
 
+                {/* Supervisor Reference Documents & Guidelines */}
+                {selectedTask.attachments && Array.isArray(selectedTask.attachments) && selectedTask.attachments.length > 0 && (
+                  <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200/70 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
+                        <Paperclip size={13} className="text-blue-600" />
+                        <span>Attached Reference Documents & Guidelines ({selectedTask.attachments.length})</span>
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedTask.attachments.map((file, idx) => {
+                        const cat = getFileCategory(file.name, file.type);
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-blue-100 shadow-2xs hover:border-blue-300 transition-all">
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border shrink-0 ${cat.bg}`}>
+                                {cat.label}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate" title={file.name}>
+                                  {file.name}
+                                </p>
+                                {file.size && <p className="text-[10px] text-slate-400">{file.size}</p>}
+                              </div>
+                            </div>
+                            {file.url ? (
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 shadow-2xs"
+                              >
+                                <Download size={11} /> Download
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Attached</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Form or State Actions */}
                 {selectedTask.status === 'Assigned' && (
                   <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
@@ -310,27 +433,93 @@ export default function MyWork() {
                         rows={4}
                         value={reportText}
                         onChange={(e) => setReportText(e.target.value)}
-                        placeholder="Detailed observations and survey counts completed..."
+                        placeholder="Detailed observations, voter/farmer counts, survey status..."
                         className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
                       />
+                    </div>
+
+                    {/* Field Report Attachments Upload */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <Paperclip size={12} className="text-blue-600" />
+                          <span>Attach Completed Survey Sheets / Field Photos (Optional)</span>
+                        </label>
+                      </div>
+
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          if (e.dataTransfer.files) handleFileUpload(e.dataTransfer.files);
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
+                          isDragging ? 'border-blue-600 bg-blue-50/70' : 'border-slate-200 hover:border-blue-400 bg-slate-50/40'
+                        }`}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp"
+                          onChange={(e) => handleFileUpload(e.target.files)}
+                          className="hidden"
+                        />
+                        <div className="flex items-center justify-center gap-2 text-xs text-slate-600">
+                          <UploadCloud size={16} className="text-blue-600" />
+                          <span><strong className="text-blue-600 underline">Upload</strong> completion proof or filled Excel/PDF</span>
+                        </div>
+                      </div>
+
+                      {attachedFiles.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          {attachedFiles.map((f) => {
+                            const cat = getFileCategory(f.name, f.type);
+                            return (
+                              <div key={f.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                <div className="flex items-center gap-2 min-w-0 pr-2">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0 ${cat.bg}`}>{cat.label}</span>
+                                  <span className="font-semibold text-slate-800 truncate">{f.name}</span>
+                                  <span className="text-[10px] text-slate-400 shrink-0">({formatBytes(f.size)})</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAttachedFile(f.id)}
+                                  className="text-slate-400 hover:text-red-500 p-1"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 flex justify-end">
                       <Button
                         type="submit"
-                        disabled={!reportText.trim()}
+                        disabled={!reportText.trim() || isSubmitting}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
-                        icon={Send}
+                        icon={isSubmitting ? Loader2 : Send}
                       >
-                        Submit Report for Approval
+                        {isSubmitting ? 'Submitting Report...' : 'Submit Report for Approval'}
                       </Button>
                     </div>
                   </form>
                 )}
 
                 {selectedTask.status === 'Submitted' && (
-                  <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 font-medium">
-                    Report has been submitted and is currently awaiting admin verification.
+                  <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 font-medium space-y-1">
+                    <p className="font-bold">Report has been submitted and is currently awaiting admin verification.</p>
+                    {selectedTask.report_summary && (
+                      <p className="text-indigo-800 bg-white/70 p-3 rounded-xl mt-2 border border-indigo-100">
+                        {selectedTask.report_summary}
+                      </p>
+                    )}
                   </div>
                 )}
 

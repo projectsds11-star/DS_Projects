@@ -76,5 +76,32 @@ export const storageService = {
     }
 
     return supabase.storage.from(STORAGE_BUCKETS.OFFER_LETTERS).getPublicUrl(filePath).data.publicUrl;
+  },
+
+  async uploadTaskAttachment(file, taskCode = 'TASK') {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${taskCode}_${Date.now()}_${sanitizedName}`;
+    const filePath = `tasks/${fileName}`;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.storage
+          .from(STORAGE_BUCKETS.EMPLOYEE_DOCUMENTS)
+          .upload(filePath, file, { upsert: true });
+
+        if (!error) {
+          return supabase.storage.from(STORAGE_BUCKETS.EMPLOYEE_DOCUMENTS).getPublicUrl(filePath).data.publicUrl;
+        } else {
+          console.warn('Task attachment upload error:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase storage upload error:', err);
+      }
+    }
+
+    return URL.createObjectURL(file);
   }
 };
+

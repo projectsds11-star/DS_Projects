@@ -5,17 +5,26 @@ import {
   Plus, 
   Filter, 
   MoreHorizontal, 
+  MoreVertical,
   Users, 
   MapPin, 
   Phone, 
   Mail, 
   UserPlus, 
   CheckCircle2, 
+  XCircle,
   Clock, 
   FileText, 
   Send,
   Trash2,
-  Edit
+  Edit,
+  Power,
+  UserCheck,
+  UserX,
+  ChevronDown,
+  Check,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -30,6 +39,9 @@ export default function Employees() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null); // { type: 'action'|'status', emp: object, top: number, right?: number, left?: number }
+  const [toastMessage, setToastMessage] = useState(null);
 
   useEffect(() => {
     async function fetchEmployees() {
@@ -56,13 +68,19 @@ export default function Employees() {
           
           const hasCompletedOffer = !!matchingOffer;
           
+          let currentStatus = emp.status;
+          if (!currentStatus) {
+            currentStatus = hasCompletedOffer ? 'Active' : 'Onboarding';
+          }
+          
           return {
             ...emp,
+            status: currentStatus,
             hasOffer: hasCompletedOffer,
-            isCompletedOnboarding: hasCompletedOffer,
-            displayDesignation: hasCompletedOffer ? (matchingOffer?.position || emp.designation) : null,
-            displayDepartment: hasCompletedOffer ? (matchingOffer?.department || emp.department || 'Field Operations') : null,
-            displayStatus: hasCompletedOffer ? 'Active' : (emp.status === 'Inactive' ? 'Inactive' : 'Onboarding')
+            isCompletedOnboarding: currentStatus === 'Active' || hasCompletedOffer,
+            displayDesignation: hasCompletedOffer ? (matchingOffer?.position || emp.designation) : (emp.designation || 'Mandal Co-ordinator'),
+            displayDepartment: hasCompletedOffer ? (matchingOffer?.department || emp.department || 'Field Operations') : (emp.department || 'Field Operations'),
+            displayStatus: currentStatus
           };
         });
 
@@ -75,6 +93,64 @@ export default function Employees() {
     }
     fetchEmployees();
   }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleUpdateStatus = async (emp, newStatus) => {
+    const empId = emp.employee_id || emp.employeeId || emp.id;
+    setUpdatingId(empId);
+    setActiveMenu(null);
+    try {
+      await liveDataService.updateEmployee(empId, { status: newStatus });
+      setEmployees(prev => prev.map(e => {
+        const currentId = e.employee_id || e.employeeId || e.id;
+        if (currentId === empId) {
+          return {
+            ...e,
+            status: newStatus,
+            displayStatus: newStatus,
+            isCompletedOnboarding: newStatus === 'Active' || e.hasOffer
+          };
+        }
+        return e;
+      }));
+      showToast(`${emp.full_name || emp.name} marked as ${newStatus}!`);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      showToast('Failed to update employee status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const openActionMenu = (e, emp) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isNearBottom = rect.bottom > window.innerHeight - 230;
+
+    setActiveMenu({
+      type: 'action',
+      emp,
+      top: isNearBottom ? Math.max(10, rect.top - 200) : (rect.bottom + 6),
+      right: Math.max(16, window.innerWidth - rect.right),
+    });
+  };
+
+  const openStatusMenu = (e, emp) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isNearBottom = rect.bottom > window.innerHeight - 170;
+
+    setActiveMenu({
+      type: 'status',
+      emp,
+      top: isNearBottom ? Math.max(10, rect.top - 160) : (rect.bottom + 6),
+      left: Math.max(16, rect.left),
+    });
+  };
 
   const districts = ['All', ...new Set(employees.map(e => e.district).filter(Boolean))];
 
@@ -91,16 +167,52 @@ export default function Employees() {
   });
 
   const getStatusBadge = (emp) => {
-    if (emp.displayStatus === 'Inactive') return <Badge variant="destructive" className="font-bold text-xs">Inactive</Badge>;
-    if (emp.displayStatus === 'Draft') return <Badge variant="secondary" className="font-bold text-xs">Draft</Badge>;
-    if (emp.isCompletedOnboarding) {
-      return <Badge variant="success" className="font-bold text-xs">Active</Badge>;
+    const isUpdating = updatingId === (emp.employee_id || emp.employeeId || emp.id);
+
+    if (isUpdating) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 animate-pulse">
+          <Loader2 size={12} className="animate-spin" /> Updating...
+        </span>
+      );
     }
-    return <Badge variant="warning" className="font-bold text-xs">Onboarding</Badge>;
+
+    if (emp.displayStatus === 'Active') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          Active
+        </span>
+      );
+    }
+
+    if (emp.displayStatus === 'Inactive') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-rose-800 bg-rose-100 border border-rose-200">
+          <XCircle size={13} className="text-rose-600 shrink-0" />
+          Inactive
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200">
+        <Clock size={12} className="text-amber-600 shrink-0" />
+        Onboarding
+      </span>
+    );
   };
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <p className="text-sm font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -185,16 +297,29 @@ export default function Employees() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredEmployees.map((emp) => {
+                  const empId = emp.employee_id || emp.employeeId || emp.id;
+
                   return (
-                    <tr key={emp.id || emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={empId} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                          <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
+                            emp.displayStatus === 'Inactive' 
+                              ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70' 
+                              : 'bg-gradient-to-tr from-blue-600 to-indigo-500'
+                          }`}>
                             {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900">{emp.full_name || emp.name}</div>
-                            <div className="font-mono text-xs text-blue-600 font-semibold">{emp.employee_id || emp.id}</div>
+                            <div className="font-bold text-slate-900 flex items-center gap-2">
+                              <span>{emp.full_name || emp.name}</span>
+                              {emp.displayStatus === 'Inactive' && (
+                                <span className="text-[10px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded font-bold">
+                                  Disabled
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono text-xs text-blue-600 font-semibold">{empId}</div>
                           </div>
                         </div>
                       </td>
@@ -205,7 +330,7 @@ export default function Employees() {
                       </td>
 
                       <td className="px-6 py-4">
-                        {emp.isCompletedOnboarding && emp.displayDesignation ? (
+                        {emp.displayDesignation && emp.displayStatus !== 'Onboarding' ? (
                           <div>
                             <div className="font-bold text-slate-800">{emp.displayDesignation}</div>
                             <div className="text-xs text-slate-500">{emp.displayDepartment || 'Field Operations'}</div>
@@ -229,28 +354,58 @@ export default function Employees() {
                         <div className="text-xs text-slate-500 pl-4">{emp.mandal || '-'}</div>
                       </td>
 
+                      {/* Interactive Status Selector Column */}
                       <td className="px-6 py-4">
-                        {getStatusBadge(emp)}
+                        <button
+                          type="button"
+                          onClick={(e) => openStatusMenu(e, emp)}
+                          className="group flex items-center gap-1 hover:opacity-85 transition-opacity cursor-pointer focus:outline-none"
+                          title="Click to change status"
+                        >
+                          {getStatusBadge(emp)}
+                          <ChevronDown size={12} className="text-slate-400 group-hover:text-slate-600 ml-0.5" />
+                        </button>
                       </td>
 
+                      {/* Actions Column */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {emp.isCompletedOnboarding ? (
+                          {/* Primary Action Button */}
+                          {emp.displayStatus === 'Active' ? (
                             <button
                               onClick={() => navigate('/admin/work')}
-                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
+                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
                             >
+                              <FileText size={12} />
                               Assign Task
+                            </button>
+                          ) : emp.displayStatus === 'Inactive' ? (
+                            <button
+                              onClick={() => handleUpdateStatus(emp, 'Active')}
+                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                            >
+                              <UserCheck size={12} />
+                              Reactivate
                             </button>
                           ) : (
                             <button
-                              onClick={() => navigate(`/admin/onboarding/create?candidateId=${emp.employee_id || emp.id}`)}
-                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer flex items-center gap-1.5"
+                              onClick={() => navigate(`/admin/onboarding/create?candidateId=${empId}`)}
+                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
                             >
                               <Send size={12} />
                               Issue Offer
                             </button>
                           )}
+
+                          {/* More Options Dropdown Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => openActionMenu(e, emp)}
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors cursor-pointer focus:outline-none"
+                            title="More actions"
+                          >
+                            <MoreVertical size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -276,6 +431,149 @@ export default function Employees() {
           )}
         </div>
       </Card>
+
+      {/* Floating Action / Status Overlay Menu (Fixed to viewport - never clipped by table overflow) */}
+      {activeMenu && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-slate-900/10" 
+          onClick={() => setActiveMenu(null)}
+        >
+          {activeMenu.type === 'action' ? (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: `${activeMenu.top}px`,
+                right: `${activeMenu.right}px`,
+              }}
+              className="w-52 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-[9999] text-left animate-in fade-in zoom-in-95"
+            >
+              <div className="px-3.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Status Controls
+              </div>
+
+              {activeMenu.emp.displayStatus !== 'Active' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(activeMenu.emp, 'Active')}
+                  className="w-full text-left px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <UserCheck size={14} className="text-emerald-600" />
+                  <span>Mark as Active</span>
+                </button>
+              )}
+
+              {activeMenu.emp.displayStatus !== 'Inactive' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(activeMenu.emp, 'Inactive')}
+                  className="w-full text-left px-3.5 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <UserX size={14} className="text-rose-600" />
+                  <span>Mark as Inactive</span>
+                </button>
+              )}
+
+              {activeMenu.emp.displayStatus !== 'Onboarding' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(activeMenu.emp, 'Onboarding')}
+                  className="w-full text-left px-3.5 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Clock size={14} className="text-amber-600" />
+                  <span>Mark as Onboarding</span>
+                </button>
+              )}
+
+              <div className="my-1.5 border-t border-slate-100" />
+              <div className="px-3.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Workforce Actions
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMenu(null);
+                  navigate('/admin/work');
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <FileText size={14} className="text-blue-600" />
+                <span>Dispatch Task</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const empId = activeMenu.emp.employee_id || activeMenu.emp.employeeId || activeMenu.emp.id;
+                  setActiveMenu(null);
+                  navigate(`/admin/onboarding/create?candidateId=${empId}`);
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Send size={14} className="text-indigo-600" />
+                <span>Issue Offer Letter</span>
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: `${activeMenu.top}px`,
+                left: `${activeMenu.left}px`,
+              }}
+              className="w-48 rounded-2xl bg-white shadow-2xl border border-slate-200 py-1.5 z-[9999] animate-in fade-in zoom-in-95"
+            >
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                Change Status
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(activeMenu.emp, 'Active')}
+                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer ${
+                  activeMenu.emp.displayStatus === 'Active' ? 'text-emerald-700 bg-emerald-50/50' : 'text-slate-700'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Active
+                </span>
+                {activeMenu.emp.displayStatus === 'Active' && <Check size={14} className="text-emerald-600" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(activeMenu.emp, 'Inactive')}
+                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer ${
+                  activeMenu.emp.displayStatus === 'Inactive' ? 'text-rose-700 bg-rose-50/50' : 'text-slate-700'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Inactive
+                </span>
+                {activeMenu.emp.displayStatus === 'Inactive' && <Check size={14} className="text-rose-600" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(activeMenu.emp, 'Onboarding')}
+                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer ${
+                  activeMenu.emp.displayStatus === 'Onboarding' ? 'text-amber-700 bg-amber-50/50' : 'text-slate-700'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Onboarding
+                </span>
+                {activeMenu.emp.displayStatus === 'Onboarding' && <Check size={14} className="text-amber-600" />}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ClipboardList, 
   Plus, 
@@ -13,12 +13,46 @@ import {
   Send, 
   User, 
   AlertCircle,
-  Inbox
+  Inbox,
+  Paperclip,
+  UploadCloud,
+  FileText,
+  File,
+  Eye,
+  Trash2,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
+import { storageService } from '../../services/supabaseClient';
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (typeof bytes === 'string') return bytes;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getFileCategory(fileName = '', fileType = '') {
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (['pdf'].includes(ext) || fileType.includes('pdf')) {
+    return { label: 'PDF', bg: 'bg-red-100 text-red-700 border-red-200' };
+  }
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) || fileType.startsWith('image/')) {
+    return { label: 'IMG', bg: 'bg-blue-100 text-blue-700 border-blue-200' };
+  }
+  if (['xls', 'xlsx', 'csv'].includes(ext) || fileType.includes('sheet') || fileType.includes('excel') || fileType.includes('csv')) {
+    return { label: 'XLS', bg: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+  }
+  if (['doc', 'docx'].includes(ext) || fileType.includes('word') || fileType.includes('document')) {
+    return { label: 'DOC', bg: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+  }
+  return { label: 'FILE', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+}
 
 export default function WorkManagement() {
   const [tasks, setTasks] = useState([]);
@@ -42,6 +76,12 @@ export default function WorkManagement() {
     district: '',
     mandal: '',
   });
+
+  // Attached files state
+  const [taskFiles, setTaskFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -78,41 +118,97 @@ export default function WorkManagement() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const handleFileSelect = (filesList) => {
+    if (!filesList || filesList.length === 0) return;
+    const newItems = Array.from(filesList).map(file => ({
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }));
+    setTaskFiles(prev => [...prev, ...newItems]);
+    showToast(`${newItems.length} file(s) attached to task.`);
+  };
+
+  const handleRemoveFile = (id) => {
+    setTaskFiles(prev => {
+      const target = prev.find(f => f.id === id);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter(f => f.id !== id);
+    });
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files);
+    }
+  };
+
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!newTask.title || !newTask.assigned_employee_id) return;
 
-    const taskCode = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
-    const payload = {
-      task_code: taskCode,
-      title: newTask.title,
-      description: newTask.description,
-      priority: newTask.priority,
-      due_date: newTask.due_date,
-      assigned_employee_id: newTask.assigned_employee_id,
-      location_name: newTask.location_name || 'Field Sector',
-      district: newTask.district || 'Nellore',
-      mandal: newTask.mandal || 'Kavali',
-      status: 'Assigned'
-    };
+    setIsSubmittingTask(true);
+    try {
+      const taskCode = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    await liveDataService.createWorkTask(payload);
-    showToast(`Task ${taskCode} successfully assigned!`);
-    setActiveTab('list');
+      // Upload attached files via storageService
+      const uploadedAttachments = [];
+      for (const item of taskFiles) {
+        let fileUrl = item.preview;
+        if (item.file) {
+          fileUrl = await storageService.uploadTaskAttachment(item.file, taskCode);
+        }
+        uploadedAttachments.push({
+          name: item.name,
+          size: formatBytes(item.size),
+          type: item.type,
+          url: fileUrl || ''
+        });
+      }
 
-    const freshTasks = await liveDataService.getWorkTasks();
-    setTasks(freshTasks);
+      const payload = {
+        task_code: taskCode,
+        title: newTask.title,
+        description: newTask.description,
+        priority: newTask.priority,
+        due_date: newTask.due_date,
+        assigned_employee_id: newTask.assigned_employee_id,
+        location_name: newTask.location_name || 'Field Sector',
+        district: newTask.district || 'Nellore',
+        mandal: newTask.mandal || 'Kavali',
+        attachments: uploadedAttachments,
+        status: 'Assigned'
+      };
 
-    setNewTask({
-      title: '',
-      description: '',
-      assigned_employee_id: employees[0]?.employee_id || '',
-      due_date: new Date().toISOString().slice(0, 10),
-      priority: 'Medium',
-      location_name: '',
-      district: '',
-      mandal: '',
-    });
+      await liveDataService.createWorkTask(payload);
+      showToast(`Task ${taskCode} successfully assigned with ${uploadedAttachments.length} file(s)!`);
+      setActiveTab('list');
+
+      const freshTasks = await liveDataService.getWorkTasks();
+      setTasks(freshTasks);
+
+      setNewTask({
+        title: '',
+        description: '',
+        assigned_employee_id: employees[0]?.employee_id || '',
+        due_date: new Date().toISOString().slice(0, 10),
+        priority: 'Medium',
+        location_name: '',
+        district: '',
+        mandal: '',
+      });
+      setTaskFiles([]);
+    } catch (err) {
+      console.error('Error creating task:', err);
+      showToast('Error dispatching task. Please try again.');
+    } finally {
+      setIsSubmittingTask(false);
+    }
   };
 
   const handleApproveReport = async (taskCode) => {
@@ -293,12 +389,124 @@ export default function WorkManagement() {
               />
             </div>
 
+            {/* File Upload Option Section */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Paperclip size={13} className="text-blue-600" />
+                  <span>Attach Survey Documents & Files (Optional)</span>
+                </label>
+                <span className="text-[11px] text-slate-400 font-medium">PDF, DOC, XLS, JPG, PNG (Max 10MB)</span>
+              </div>
+
+              {/* Drag & Drop Upload Zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all ${
+                  isDragging
+                    ? 'border-blue-600 bg-blue-50/70 scale-[0.99]'
+                    : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50/60 bg-slate-50/30'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  className="hidden"
+                />
+
+                <div className="flex flex-col items-center justify-center gap-1.5">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    isDragging ? 'bg-blue-100 text-blue-700' : 'bg-blue-50 text-blue-600'
+                  }`}>
+                    <UploadCloud className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                    <span className="text-blue-600 hover:underline">Click to browse</span> or drag & drop reference files
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Questionnaires, guidelines, field manuals, lists or survey forms
+                  </p>
+                </div>
+              </div>
+
+              {/* Selected Files List */}
+              {taskFiles.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Attached Files ({taskFiles.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {taskFiles.map((f) => {
+                      const category = getFileCategory(f.name, f.type);
+                      return (
+                        <div
+                          key={f.id}
+                          className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl hover:bg-slate-100/70 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border shrink-0 ${category.bg}`}>
+                              {category.label}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-800 truncate" title={f.name}>
+                                {f.name}
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {formatBytes(f.size)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {f.preview && (
+                              <a
+                                href={f.preview}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                                title="Preview"
+                              >
+                                <Eye size={13} />
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFile(f.id);
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors"
+                              title="Remove"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={() => setActiveTab('list')}>
+              <Button type="button" variant="outline" onClick={() => { setActiveTab('list'); setTaskFiles([]); }}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
-                Dispatch Task
+              <Button 
+                type="submit" 
+                disabled={isSubmittingTask}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold" 
+                icon={isSubmittingTask ? Loader2 : Send}
+              >
+                {isSubmittingTask ? 'Dispatching & Uploading...' : 'Dispatch Task'}
               </Button>
             </div>
           </form>
@@ -355,58 +563,66 @@ export default function WorkManagement() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredTasks.map((task) => (
-                      <tr key={task.id || task.task_code} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-slate-900">{task.title}</div>
-                          <div className="font-mono text-xs text-blue-600 font-semibold">{task.task_code || task.id}</div>
-                        </td>
+                    {filteredTasks.map((task) => {
+                      const attachCount = (task.attachments && Array.isArray(task.attachments)) ? task.attachments.length : 0;
+                      return (
+                        <tr key={task.id || task.task_code} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-slate-900">{task.title}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="font-mono text-xs text-blue-600 font-semibold">{task.task_code || task.id}</span>
+                              {attachCount > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded">
+                                  <Paperclip size={10} /> {attachCount} {attachCount === 1 ? 'file' : 'files'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-slate-800">{task.assigned_employee_id}</div>
-                          <div className="text-xs text-slate-500">Mandal Lead</div>
-                        </td>
+                          <td className="px-6 py-4">
+                            <div className="font-semibold text-slate-800">{task.assigned_employee_id}</div>
+                            <div className="text-xs text-slate-500">Mandal Lead</div>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <div className="text-slate-800 flex items-center gap-1 font-medium">
-                            <MapPin size={13} className="text-rose-500" />
-                            {task.location_name || `${task.mandal || ''}, ${task.district || ''}`}
-                          </div>
-                        </td>
+                          <td className="px-6 py-4">
+                            <div className="text-slate-800 flex items-center gap-1 font-medium">
+                              <MapPin size={13} className="text-rose-500" />
+                              {task.location_name || `${task.mandal || ''}, ${task.district || ''}`}
+                            </div>
+                          </td>
 
-                        <td className="px-6 py-4 text-slate-700 whitespace-nowrap">
-                          {task.due_date || task.due || 'Open'}
-                        </td>
+                          <td className="px-6 py-4 text-slate-700 whitespace-nowrap">
+                            {task.due_date || task.due || 'Open'}
+                          </td>
 
-                        <td className="px-6 py-4">
-                          {getPriorityBadge(task.priority)}
-                        </td>
+                          <td className="px-6 py-4">
+                            {getPriorityBadge(task.priority)}
+                          </td>
 
-                        <td className="px-6 py-4">
-                          {getStatusBadge(task.status)}
-                        </td>
+                          <td className="px-6 py-4">
+                            {getStatusBadge(task.status)}
+                          </td>
 
-                        <td className="px-6 py-4 text-right">
-                          {task.status === 'Submitted' ? (
-                            <button
-                              onClick={() => setReviewTask(task)}
-                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
-                            >
-                              Review Report
-                            </button>
-                          ) : task.status === 'Assigned' ? (
-                            <span className="text-xs text-slate-400 font-medium">Awaiting Start</span>
-                          ) : (
-                            <button
-                              onClick={() => setReviewTask(task)}
-                              className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 cursor-pointer"
-                            >
-                              View
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="px-6 py-4 text-right">
+                            {task.status === 'Submitted' ? (
+                              <button
+                                onClick={() => setReviewTask(task)}
+                                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                              >
+                                Review Report
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setReviewTask(task)}
+                                className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 cursor-pointer"
+                              >
+                                View
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
@@ -421,11 +637,11 @@ export default function WorkManagement() {
         </div>
       )}
 
-      {/* Report Review Modal */}
+      {/* Report Review & Task Dossier Modal */}
       {reviewTask && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-6 bg-[#0F172A] text-white flex items-start justify-between">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+            <div className="p-6 bg-[#0F172A] text-white flex items-start justify-between shrink-0">
               <div>
                 <span className="text-[10px] font-mono font-bold bg-blue-600 px-2 py-0.5 rounded text-white">
                   {reviewTask.task_code || reviewTask.id}
@@ -441,10 +657,70 @@ export default function WorkManagement() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs sm:text-sm">
+            <div className="p-6 space-y-4 text-xs sm:text-sm overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-400 block font-medium">Target Location</span>
+                  <span className="font-bold text-slate-800 mt-0.5 block truncate">{reviewTask.location_name || 'Field HQ'}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-400 block font-medium">Due Date</span>
+                  <span className="font-bold text-slate-800 mt-0.5 block">{reviewTask.due_date || 'Open'}</span>
+                </div>
+              </div>
+
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-1">
-                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Submitted Field Report</span>
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Task Scope & Instructions</span>
                 <p className="text-slate-800 leading-relaxed font-medium">
+                  {reviewTask.description || 'No instructions specified.'}
+                </p>
+              </div>
+
+              {/* Task Reference Attachments */}
+              {reviewTask.attachments && Array.isArray(reviewTask.attachments) && reviewTask.attachments.length > 0 && (
+                <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/60 space-y-2">
+                  <span className="font-bold text-blue-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <Paperclip size={12} className="text-blue-600" />
+                    <span>Dispatched Reference Files & Guidelines ({reviewTask.attachments.length})</span>
+                  </span>
+                  <div className="space-y-1.5">
+                    {reviewTask.attachments.map((file, idx) => {
+                      const cat = getFileCategory(file.name, file.type);
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-xl border border-blue-100 text-xs">
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0 ${cat.bg}`}>
+                              {cat.label}
+                            </span>
+                            <span className="font-semibold text-slate-800 truncate" title={file.name}>{file.name}</span>
+                            {file.size && <span className="text-[10px] text-slate-400 shrink-0">({file.size})</span>}
+                          </div>
+                          {file.url ? (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0"
+                            >
+                              <Download size={11} /> View
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">Attached</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Submitted Field Report Section */}
+              <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200/70 space-y-2">
+                <span className="font-bold text-indigo-950 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <FileText size={12} className="text-indigo-600" />
+                  <span>Submitted Field Report</span>
+                </span>
+                <p className="text-slate-800 leading-relaxed font-medium bg-white p-3 rounded-xl border border-indigo-100">
                   {reviewTask.report_summary || 'No report remarks logged yet.'}
                 </p>
               </div>
