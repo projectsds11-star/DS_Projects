@@ -32,8 +32,8 @@ export const employeeSchema = z.object({
   yearOfPassing: z.string().optional(),
 
   // Section 05 – Government IDs
-  aadhaar: z.string().regex(/^\d{12}$/, 'Aadhaar number must contain exactly 12 digits.'),
-  pan: z.string().regex(panRegex, 'Please enter a valid PAN number (e.g., ABCDE1234F).'),
+  aadhaar: z.string().refine(val => /^\d{12}$/.test(val) || val.includes('•'), 'Aadhaar number must contain exactly 12 digits.'),
+  pan: z.string().refine(val => panRegex.test(val) || val.includes('•'), 'Please enter a valid PAN number (e.g., ABCDE1234F).'),
 
   // Section 06 – Bank Details
   accountHolderName: z.string().min(1, 'Account holder name is required.'),

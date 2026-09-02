@@ -74,6 +74,10 @@ ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Onboarding',
 ADD COLUMN IF NOT EXISTS onboarding_status TEXT DEFAULT 'Pending Offer',
 ADD COLUMN IF NOT EXISTS joining_date TEXT,
 ADD COLUMN IF NOT EXISTS photo_url TEXT,
+ADD COLUMN IF NOT EXISTS course TEXT,
+ADD COLUMN IF NOT EXISTS institution TEXT,
+ADD COLUMN IF NOT EXISTS year_of_passing TEXT,
+ADD COLUMN IF NOT EXISTS emergency_contact_relation TEXT,
 ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 
