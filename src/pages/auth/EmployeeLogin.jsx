@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, ArrowRight, ShieldCheck, Sparkles, Building2, MapPin } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Lock, User, ArrowRight, ShieldCheck, Sparkles, Building2, MapPin, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Label } from '../../components/ui/Label';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
+import { liveDataService } from '../../services/liveDataService';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Please enter your Employee ID, Username, or Email'),
@@ -17,14 +18,23 @@ const loginSchema = z.object({
 
 export default function EmployeeLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    if (searchParams.get('error') === 'deactivated') {
+      setLoginError('Account Deactivated: Your employee profile was disabled by the administrator. Portal access has been revoked.');
+    }
+  }, [searchParams]);
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
+    setLoginError(null);
     try {
       const input = data.username.trim();
       let emp = null;
@@ -34,13 +44,32 @@ export default function EmployeeLogin() {
           const { data: dbEmp } = await supabase
             .from('employees')
             .select('*')
-            .or(`employee_id.ilike.%${input}%,email.ilike.%${input}%`)
+            .or(`employee_id.ilike.%${input}%,email.ilike.%${input}%,phone.ilike.%${input}%`)
             .limit(1)
             .maybeSingle();
           if (dbEmp) emp = dbEmp;
         } catch (dbErr) {
           console.warn('Employee DB lookup error:', dbErr);
         }
+      }
+
+      if (!emp) {
+        // Fallback to local liveDataService
+        const liveList = await liveDataService.getEmployees();
+        emp = liveList.find(e => 
+          (e.employee_id && e.employee_id.toLowerCase() === input.toLowerCase()) ||
+          (e.email && e.email.toLowerCase() === input.toLowerCase()) ||
+          (e.phone && e.phone === input)
+        );
+      }
+
+      // Check Inactive status restriction
+      if (emp && emp.status === 'Inactive') {
+        setLoginError(
+          `Account Inactive: Employee account ${emp.employee_id || input} is currently deactivated by administration. Access to the Employee Portal is blocked.`
+        );
+        setIsSubmitting(false);
+        return;
       }
 
       const empId = emp?.employee_id || input.toUpperCase();
@@ -52,6 +81,7 @@ export default function EmployeeLogin() {
         fullName: emp?.full_name || 'Field Officer',
         district: emp?.district || 'Nellore',
         mandal: emp?.mandal || 'Kavali',
+        status: emp?.status || 'Active',
         loggedInAt: new Date().toISOString()
       }));
 
@@ -79,6 +109,17 @@ export default function EmployeeLogin() {
 
         {/* Form */}
         <div className="p-8">
+          {/* Deactivated or Blocked Alert Banner */}
+          {loginError && (
+            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-3 shadow-2xs animate-in fade-in">
+              <ShieldAlert size={20} className="text-rose-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-rose-900">Access Denied</p>
+                <p className="text-rose-700 leading-relaxed">{loginError}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="username" className="text-xs font-bold text-slate-700">
@@ -135,3 +176,4 @@ export default function EmployeeLogin() {
     </div>
   );
 }
+
