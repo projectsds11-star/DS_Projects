@@ -143,33 +143,25 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-[#0F172A] text-slate-100 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-2xl border-r border-slate-800",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-white via-slate-50/90 to-slate-100/70 text-slate-800 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-lg border-r border-slate-200/90",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-20 px-6 bg-[#0B0F19] border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
-              <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
-            </div>
-            <div>
-              <span className="text-base font-bold tracking-wider text-white">DS PROJECTS</span>
-              <span className="block text-[10px] font-semibold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 mt-0.5">
-                Executive Admin
-              </span>
-            </div>
+        <div className="flex items-center justify-between h-24 px-5 bg-white border-b border-slate-200/90 shadow-2xs">
+          <div className="flex items-center justify-center flex-1 h-full py-2">
+            <img src="/logo.png" alt="DS PROJECTS" className="h-16 w-auto max-w-[210px] object-contain" />
           </div>
-          <button onClick={toggleSidebar} className="lg:hidden text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
-            <X size={20} />
+          <button onClick={toggleSidebar} className="lg:hidden text-slate-500 hover:text-slate-900 p-2 rounded-xl hover:bg-slate-100 transition-colors shrink-0 ml-1">
+            <X size={22} />
           </button>
         </div>
         
         {/* Nav links */}
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5">
           <div className="px-3 pb-2 mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Enterprise Modules</p>
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Enterprise Modules</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           </div>
 
           {NAV_ITEMS.map((item) => {
@@ -182,50 +174,48 @@ export default function AdminLayout() {
                 className={cn(
                   "flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 text-xs sm:text-sm font-semibold group cursor-pointer",
                   isActive 
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25 font-bold" 
-                    : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-bold" 
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 )}
                 onClick={() => setSidebarOpen(false)}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-blue-400")} />
+                  <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-blue-600")} />
                   <span>{item.name}</span>
                 </div>
-                {isActive && <ChevronRight size={14} className="text-blue-200" />}
+                {isActive && <ChevronRight size={14} className="text-blue-100" />}
               </NavLink>
             );
           })}
         </div>
         
         {/* Admin Profile + Sign Out */}
-        <div className="p-4 bg-[#0B0F19] border-t border-slate-800/80 space-y-3">
-          <div className="flex items-center p-3 rounded-2xl bg-slate-900/90 border border-slate-800 gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center font-black text-white text-base shrink-0">
+        <div className="p-4 bg-white/95 backdrop-blur-sm border-t border-slate-200/90 space-y-2.5">
+          <div className="flex items-center p-3 rounded-2xl bg-slate-50/90 border border-slate-200/80 gap-3 shadow-2xs">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-base shrink-0 shadow-xs">
               {adminEmail.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold text-white truncate">Super Admin</p>
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <p className="text-xs font-bold text-slate-900 truncate">Super Admin</p>
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-400 truncate">{adminEmail}</p>
+              <p className="text-[11px] text-slate-500 truncate">{adminEmail}</p>
             </div>
           </div>
 
-          {/* Premium Sign Out Button */}
+          {/* Sign Out Button */}
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="w-full group relative overflow-hidden flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer border border-rose-500/20 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/20"
-            style={{ background: 'linear-gradient(135deg, #1c0a0e 0%, #2d1118 100%)' }}
+            className="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-all duration-200 shadow-2xs cursor-pointer"
           >
-            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-300" style={{ background: 'linear-gradient(135deg, rgba(225,29,72,0.15) 0%, rgba(190,18,60,0.15) 100%)' }} />
-            <LogOut className="h-4 w-4 text-rose-400 group-hover:text-rose-300 relative z-10 transition-all duration-200 group-hover:-translate-x-0.5" />
-            <span className="text-rose-400 group-hover:text-rose-300 relative z-10 transition-colors duration-200">Sign Out</span>
-            <span className="ml-auto relative z-10">
-              <span className="flex items-center gap-1 text-[10px] text-rose-500/60 group-hover:text-rose-400/80 font-medium transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500/50 group-hover:bg-rose-400 transition-colors animate-pulse" />
-                Active
-              </span>
+            <div className="flex items-center gap-2">
+              <LogOut className="h-4 w-4 text-slate-500 group-hover:text-rose-600 transition-transform group-hover:-translate-x-0.5" />
+              <span className="font-bold">Sign Out</span>
+            </div>
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active
             </span>
           </button>
         </div>
@@ -234,10 +224,13 @@ export default function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 shrink-0">
-          <div className="flex items-center gap-4 flex-1">
-            <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer shrink-0">
               <Menu size={22} />
             </button>
+            <div className="lg:hidden flex items-center bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-sm h-12 max-w-[160px] shrink-0">
+              <img src="/logo.png" alt="DS PROJECTS" className="h-full w-auto object-contain" />
+            </div>
             <div className="hidden md:flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">{pageTitle}</h2>
             </div>
