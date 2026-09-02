@@ -56,7 +56,7 @@ export default function SuccessOfferModal({
           aria-modal="true"
         >
           {/* Top accent banner */}
-          <div className="h-2 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-600" />
+          <div className="h-2 bg-gradient-to-r from-emerald-400 via-green-500 to-[#00B4D8]" />
 
           <div className="p-6 sm:p-8 space-y-5">
             {/* Animated Check Icon */}

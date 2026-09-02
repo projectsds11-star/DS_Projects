@@ -222,7 +222,7 @@ export default function Onboarding() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {filteredEmployees.map((emp) => (
-                <tr key={emp.employeeId} className="hover:bg-blue-50/20 transition-colors">
+                <tr key={emp.employeeId} className="hover:bg-[#D8F5FA]/20 transition-colors">
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-xs text-[var(--color-navy)] shrink-0">

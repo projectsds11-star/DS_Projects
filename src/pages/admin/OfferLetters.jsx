@@ -188,7 +188,7 @@ export default function OfferLetters() {
               {offers.map((offer) => (
                 <tr
                   key={offer.id}
-                  className="hover:bg-blue-50/20 transition-colors cursor-pointer"
+                  className="hover:bg-[#D8F5FA]/20 transition-colors cursor-pointer"
                   onClick={() => setPreviewOffer(offer)}
                 >
                   <td className="px-4 py-3.5">
@@ -235,7 +235,7 @@ export default function OfferLetters() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600"
+                        className="h-7 w-7 p-0 text-gray-500 hover:text-[#E63946]"
                         title="Resend Offer Email"
                         isLoading={resendingId === offer.id}
                         onClick={(e) => handleResend(offer.id, e)}

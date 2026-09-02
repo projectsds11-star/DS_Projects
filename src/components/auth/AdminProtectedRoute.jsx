@@ -33,7 +33,7 @@ export default function AdminProtectedRoute({ children }) {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B0F19]">
+      <div className="flex min-h-screen items-center justify-center bg-[#E63946]">
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           <p className="text-sm font-semibold tracking-wide">Verifying executive administrator session…</p>

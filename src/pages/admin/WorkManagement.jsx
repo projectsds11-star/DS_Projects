@@ -43,7 +43,7 @@ function getFileCategory(fileName = '', fileType = '') {
     return { label: 'PDF', bg: 'bg-red-100 text-red-700 border-red-200' };
   }
   if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) || fileType.startsWith('image/')) {
-    return { label: 'IMG', bg: 'bg-blue-100 text-blue-700 border-blue-200' };
+    return { label: 'IMG', bg: 'bg-[#D8F5FA] text-[#E63946] border-[#D8F5FA]' };
   }
   if (['xls', 'xlsx', 'csv'].includes(ext) || fileType.includes('sheet') || fileType.includes('excel') || fileType.includes('csv')) {
     return { label: 'XLS', bg: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
@@ -240,7 +240,7 @@ export default function WorkManagement() {
       case 'Approved': return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1"><CheckCircle2 size={12} /> Approved</span>;
       case 'Submitted': return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> Under Review</span>;
       case 'In Progress': return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> In Progress</span>;
-      default: return <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full flex items-center gap-1">Assigned</span>;
+      default: return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full flex items-center gap-1">Assigned</span>;
     }
   };
 
@@ -259,7 +259,7 @@ export default function WorkManagement() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
             <span>Daily Work Operations</span>
-            <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
               {tasks.length} Dispatched
             </span>
           </h1>
@@ -278,7 +278,7 @@ export default function WorkManagement() {
           <button
             onClick={() => setActiveTab('assign')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'assign' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              activeTab === 'assign' ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20' : 'bg-[#D8F5FA] text-[#E63946] hover:bg-[#D8F5FA]'
             }`}
           >
             <Plus size={14} />
@@ -290,9 +290,9 @@ export default function WorkManagement() {
       {/* Assign Task View */}
       {activeTab === 'assign' && (
         <Card className="border border-slate-200/80 shadow-md rounded-2xl bg-white overflow-hidden max-w-2xl mx-auto">
-          <CardHeader className="bg-[#0F172A] text-white p-6">
+          <CardHeader className="bg-[#E63946] text-white p-6">
             <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-blue-400" />
+              <ClipboardList className="h-5 w-5 text-[#00B4D8]" />
               <span>Dispatch New Field Survey Task</span>
             </CardTitle>
             <p className="text-xs text-slate-300">Assign task to a deployed mandal coordinator</p>
@@ -307,7 +307,7 @@ export default function WorkManagement() {
                 value={newTask.title}
                 onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                 placeholder="e.g. Mandal Farmer Aadhaar Linkage Survey"
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               />
             </div>
 
@@ -333,7 +333,7 @@ export default function WorkManagement() {
                         location_name: `${emp?.mandal || 'Field'} Mandal HQ`
                       });
                     }}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                   >
                     {employees.map(emp => {
                       const id = emp.employee_id || emp.employeeId || emp.id;
@@ -365,7 +365,7 @@ export default function WorkManagement() {
                 <select
                   value={newTask.priority}
                   onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 >
                   <option>High</option>
                   <option>Medium</option>
@@ -382,7 +382,7 @@ export default function WorkManagement() {
                   required
                   value={newTask.due_date}
                   onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 />
               </div>
 
@@ -393,7 +393,7 @@ export default function WorkManagement() {
                   value={newTask.location_name}
                   onChange={(e) => setNewTask({ ...newTask, location_name: e.target.value })}
                   placeholder="e.g. Kavali Mandal Office"
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 />
               </div>
             </div>
@@ -405,7 +405,7 @@ export default function WorkManagement() {
                 value={newTask.description}
                 onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                 placeholder="Specific survey deliverables, target counts, and guidance..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               />
             </div>
 
@@ -413,7 +413,7 @@ export default function WorkManagement() {
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Paperclip size={13} className="text-blue-600" />
+                  <Paperclip size={13} className="text-[#E63946]" />
                   <span>Attach Survey Documents & Files (Optional)</span>
                 </label>
                 <span className="text-[11px] text-slate-400 font-medium">PDF, DOC, XLS, JPG, PNG (Max 10MB)</span>
@@ -427,8 +427,8 @@ export default function WorkManagement() {
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all ${
                   isDragging
-                    ? 'border-blue-600 bg-blue-50/70 scale-[0.99]'
-                    : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50/60 bg-slate-50/30'
+                    ? 'border-[#E63946] bg-[#D8F5FA]/70 scale-[0.99]'
+                    : 'border-slate-200 hover:border-[#00B4D8] hover:bg-slate-50/60 bg-slate-50/30'
                 }`}
               >
                 <input
@@ -442,12 +442,12 @@ export default function WorkManagement() {
 
                 <div className="flex flex-col items-center justify-center gap-1.5">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    isDragging ? 'bg-blue-100 text-blue-700' : 'bg-blue-50 text-blue-600'
+                    isDragging ? 'bg-[#D8F5FA] text-[#E63946]' : 'bg-[#D8F5FA] text-[#E63946]'
                   }`}>
                     <UploadCloud className="h-5 w-5" />
                   </div>
                   <p className="text-xs sm:text-sm font-semibold text-slate-700">
-                    <span className="text-blue-600 hover:underline">Click to browse</span> or drag & drop reference files
+                    <span className="text-[#E63946] hover:underline">Click to browse</span> or drag & drop reference files
                   </p>
                   <p className="text-[11px] text-slate-400">
                     Questionnaires, guidelines, field manuals, lists or survey forms
@@ -490,7 +490,7 @@ export default function WorkManagement() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                                className="p-1 text-slate-400 hover:text-[#E63946] rounded transition-colors"
                                 title="Preview"
                               >
                                 <Eye size={13} />
@@ -523,7 +523,7 @@ export default function WorkManagement() {
               <Button 
                 type="submit" 
                 disabled={isSubmittingTask}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold" 
+                className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold" 
                 icon={isSubmittingTask ? Loader2 : Send}
               >
                 {isSubmittingTask ? 'Dispatching & Uploading...' : 'Dispatch Task'}
@@ -545,7 +545,7 @@ export default function WorkManagement() {
                 placeholder="Search by code, title, employee..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
               />
             </div>
 
@@ -556,7 +556,7 @@ export default function WorkManagement() {
                   onClick={() => setStatusFilter(st)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     statusFilter === st
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                      ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
                   }`}
                 >
@@ -590,7 +590,7 @@ export default function WorkManagement() {
                           <td className="px-6 py-4">
                             <div className="font-bold text-slate-900">{task.title}</div>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="font-mono text-xs text-blue-600 font-semibold">{task.task_code || task.id}</span>
+                              <span className="font-mono text-xs text-[#E63946] font-semibold">{task.task_code || task.id}</span>
                               {attachCount > 0 && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded">
                                   <Paperclip size={10} /> {attachCount} {attachCount === 1 ? 'file' : 'files'}
@@ -627,7 +627,7 @@ export default function WorkManagement() {
                             {task.status === 'Submitted' ? (
                               <button
                                 onClick={() => setReviewTask(task)}
-                                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                                className="px-3 py-1 bg-[#E63946] hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                               >
                                 Review Report
                               </button>
@@ -661,9 +661,9 @@ export default function WorkManagement() {
       {reviewTask && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
-            <div className="p-6 bg-[#0F172A] text-white flex items-start justify-between shrink-0">
+            <div className="p-6 bg-[#E63946] text-white flex items-start justify-between shrink-0">
               <div>
-                <span className="text-[10px] font-mono font-bold bg-blue-600 px-2 py-0.5 rounded text-white">
+                <span className="text-[10px] font-mono font-bold bg-[#E63946] px-2 py-0.5 rounded text-white">
                   {reviewTask.task_code || reviewTask.id}
                 </span>
                 <h3 className="text-lg font-bold text-white mt-1">{reviewTask.title}</h3>
@@ -698,16 +698,16 @@ export default function WorkManagement() {
 
               {/* Task Reference Attachments */}
               {reviewTask.attachments && Array.isArray(reviewTask.attachments) && reviewTask.attachments.length > 0 && (
-                <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/60 space-y-2">
+                <div className="p-4 bg-[#D8F5FA]/60 rounded-2xl border border-[#D8F5FA]/60 space-y-2">
                   <span className="font-bold text-blue-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                    <Paperclip size={12} className="text-blue-600" />
+                    <Paperclip size={12} className="text-[#E63946]" />
                     <span>Dispatched Reference Files & Guidelines ({reviewTask.attachments.length})</span>
                   </span>
                   <div className="space-y-1.5">
                     {reviewTask.attachments.map((file, idx) => {
                       const cat = getFileCategory(file.name, file.type);
                       return (
-                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-xl border border-blue-100 text-xs">
+                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-xl border border-[#D8F5FA] text-xs">
                           <div className="flex items-center gap-2 min-w-0 pr-2">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0 ${cat.bg}`}>
                               {cat.label}
@@ -720,7 +720,7 @@ export default function WorkManagement() {
                               href={file.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0"
+                              className="px-2 py-1 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0"
                             >
                               <Download size={11} /> View
                             </a>
@@ -737,7 +737,7 @@ export default function WorkManagement() {
               {/* Submitted Field Report Section */}
               <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200/70 space-y-2">
                 <span className="font-bold text-indigo-950 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <FileText size={12} className="text-indigo-600" />
+                  <FileText size={12} className="text-[#E63946]" />
                   <span>Submitted Field Report</span>
                 </span>
                 <p className="text-slate-800 leading-relaxed font-medium bg-white p-3 rounded-xl border border-indigo-100">

@@ -57,10 +57,10 @@ const STATUS_CONFIG = {
   'Email Delivered': {
     label: 'Email Delivered',
     icon: Mail,
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
-    dot: 'bg-teal-500',
+    bg: 'bg-[#D8F5FA]',
+    text: 'text-[#E63946]',
+    border: 'border-[#D8F5FA]',
+    dot: 'bg-[#00B4D8]',
   },
   'Offer Accepted': {
     label: 'Offer Accepted',

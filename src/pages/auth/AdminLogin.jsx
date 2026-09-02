@@ -194,11 +194,11 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#0B0F19] text-slate-100 font-sans relative overflow-hidden selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen w-full flex bg-[#E63946] text-slate-100 font-sans relative overflow-hidden selection:bg-[#00B4D8] selection:text-white">
       {/* Background Ambient Glows & Grid */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(37,99,235,0.18),rgba(255,255,255,0))]" />
-      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-[#E63946]/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-[#E63946]/15 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Decorative Grid Lines */}
       <div 
@@ -221,7 +221,7 @@ export default function AdminLogin() {
                 <img src="/logo.png" alt="DS Projects" className="h-full w-auto object-contain" />
               </div>
               <div>
-                <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase bg-blue-500/15 text-blue-300 border border-blue-500/30 rounded-lg">
+                <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase bg-[#00B4D8]/15 text-[#00B4D8] border border-[#00B4D8]/30 rounded-lg">
                   EXECUTIVE SUITE
                 </span>
                 <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase mt-1">
@@ -247,8 +247,8 @@ export default function AdminLogin() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 mb-6">
-                <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-[#00B4D8]/20 text-xs font-semibold text-[#00B4D8] mb-6">
+                <ShieldCheck className="w-4 h-4 text-[#00B4D8]" />
                 Zero-Trust Multi-Factor Identity Gate
               </div>
 
@@ -265,8 +265,8 @@ export default function AdminLogin() {
 
               {/* Feature Tiles Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/30 transition-colors backdrop-blur-sm group">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3 group-hover:scale-110 transition-transform">
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#00B4D8]/30 transition-colors backdrop-blur-sm group">
+                  <div className="w-8 h-8 rounded-lg bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] mb-3 group-hover:scale-110 transition-transform">
                     <Users className="w-4 h-4" />
                   </div>
                   <h4 className="font-bold text-sm text-white mb-1">Onboarding Engine</h4>
@@ -275,7 +275,7 @@ export default function AdminLogin() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/30 transition-colors backdrop-blur-sm group">
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#00B4D8]/30 transition-colors backdrop-blur-sm group">
                   <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
                     <Building2 className="w-4 h-4" />
                   </div>
@@ -292,7 +292,7 @@ export default function AdminLogin() {
           <div className="flex items-center justify-between pt-6 border-t border-white/10 text-xs text-slate-400">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-blue-400" /> AES-256 Auth
+                <Lock className="w-3.5 h-3.5 text-[#00B4D8]" /> AES-256 Auth
               </span>
               <span className="w-1 h-1 rounded-full bg-slate-700" />
               <span>TLS 1.3 Strict Mode</span>
@@ -339,7 +339,7 @@ export default function AdminLogin() {
                   >
                     {/* Header */}
                     <div className="mb-8 text-center sm:text-left">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-4 shadow-inner">
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00B4D8]/10 border border-[#00B4D8]/20 text-[#00B4D8] mb-4 shadow-inner">
                         <KeyRound className="h-6 w-6" />
                       </div>
                       <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
@@ -357,7 +357,7 @@ export default function AdminLogin() {
                           Administrator Email Address
                         </label>
                         <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00B4D8] transition-colors">
                             <Mail className="h-5 w-5" />
                           </div>
                           <input
@@ -367,7 +367,7 @@ export default function AdminLogin() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="admin@dsprojects.com"
-                            className="w-full h-13 pl-12 pr-4 bg-slate-950/70 border border-white/10 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500"
+                            className="w-full h-13 pl-12 pr-4 bg-slate-950/70 border border-white/10 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-[#00B4D8] focus:ring-2 focus:ring-[#E63946]/20 transition-all placeholder:text-slate-500"
                           />
                         </div>
                       </div>
@@ -389,7 +389,7 @@ export default function AdminLogin() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full h-13 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                        className="w-full h-13 rounded-xl bg-gradient-to-r from-[#E63946] to-[#FF6B6B] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-[#E63946]/25 hover:shadow-[#E63946]/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         {isLoading ? (
                           <div className="flex items-center gap-2">
@@ -411,7 +411,7 @@ export default function AdminLogin() {
                         Staff or Field Worker?{' '}
                         <Link
                           to="/employee/login"
-                          className="text-blue-400 hover:text-blue-300 font-semibold transition-colors inline-flex items-center gap-1 hover:underline"
+                          className="text-[#00B4D8] hover:text-[#00B4D8] font-semibold transition-colors inline-flex items-center gap-1 hover:underline"
                         >
                           Employee Sign In →
                         </Link>
@@ -486,8 +486,8 @@ export default function AdminLogin() {
                               onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                               className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl bg-slate-950/80 border transition-all focus:outline-none ${
                                 digit
-                                  ? 'border-blue-500 text-blue-300 bg-blue-500/10 ring-2 ring-blue-500/20'
-                                  : 'border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                                  ? 'border-[#00B4D8] text-[#00B4D8] bg-[#00B4D8]/10 ring-2 ring-[#E63946]/20'
+                                  : 'border-white/10 text-white focus:border-[#00B4D8] focus:ring-2 focus:ring-[#E63946]/20'
                               }`}
                             />
                           ))}
@@ -510,7 +510,7 @@ export default function AdminLogin() {
                       <button
                         type="submit"
                         disabled={isLoading || otpValues.join('').length !== 6}
-                        className="w-full h-13 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                        className="w-full h-13 rounded-xl bg-gradient-to-r from-[#E63946] to-[#FF6B6B] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-[#E63946]/25 hover:shadow-[#E63946]/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         {isLoading ? (
                           <div className="flex items-center gap-2">
@@ -530,13 +530,13 @@ export default function AdminLogin() {
                         {resendCooldown > 0 ? (
                           <p className="text-xs text-slate-400 font-medium">
                             Resend code available in{' '}
-                            <span className="text-blue-400 font-bold">{resendCooldown}s</span>
+                            <span className="text-[#00B4D8] font-bold">{resendCooldown}s</span>
                           </p>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleSendOtp()}
-                            className="text-xs text-blue-400 hover:text-blue-300 font-bold hover:underline inline-flex items-center gap-1.5 transition-colors"
+                            className="text-xs text-[#00B4D8] hover:text-[#00B4D8] font-bold hover:underline inline-flex items-center gap-1.5 transition-colors"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
                             Resend Verification Code

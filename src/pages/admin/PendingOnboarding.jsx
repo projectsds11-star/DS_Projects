@@ -93,7 +93,7 @@ export default function PendingOnboarding() {
       {/* Grid Cards of Pending Candidates */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {employees.map((emp) => (
-          <Card key={emp.employeeId} className="border border-[var(--color-border)] hover:border-blue-300 transition-all shadow-xs">
+          <Card key={emp.employeeId} className="border border-[var(--color-border)] hover:border-[#00B4D8] transition-all shadow-xs">
             <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">

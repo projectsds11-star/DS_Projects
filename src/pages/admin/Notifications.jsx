@@ -104,7 +104,7 @@ export default function Notifications() {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
             <span>Notifications & Broadcast Hub</span>
             {unreadCount > 0 && (
-              <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
                 {unreadCount} Unread
               </span>
             )}
@@ -124,7 +124,7 @@ export default function Notifications() {
           <button
             onClick={() => setActiveTab('send')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'send' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              activeTab === 'send' ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20' : 'bg-[#D8F5FA] text-[#E63946] hover:bg-[#D8F5FA]'
             }`}
           >
             <Megaphone size={14} />
@@ -135,7 +135,7 @@ export default function Notifications() {
 
       {activeTab === 'send' && (
         <Card className="border border-slate-200/80 shadow-md rounded-2xl bg-white overflow-hidden max-w-2xl mx-auto">
-          <CardHeader className="bg-[#0F172A] text-white p-6">
+          <CardHeader className="bg-[#E63946] text-white p-6">
             <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-amber-400" />
               <span>Broadcast Statewide Circular</span>
@@ -149,7 +149,7 @@ export default function Notifications() {
               <select
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               >
                 <option value="All">All Registered Staff (Statewide)</option>
                 <option value="Nellore">Nellore District Only</option>
@@ -165,7 +165,7 @@ export default function Notifications() {
                 value={broadcastTitle}
                 onChange={(e) => setBroadcastTitle(e.target.value)}
                 placeholder="e.g. Mandatory Mandal Survey Deadline Update"
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               />
             </div>
 
@@ -177,7 +177,7 @@ export default function Notifications() {
                 value={broadcastMsg}
                 onChange={(e) => setBroadcastMsg(e.target.value)}
                 placeholder="Detailed announcement text..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function Notifications() {
               <Button type="button" variant="outline" onClick={() => setActiveTab('inbox')}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
+              <Button type="submit" className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold" icon={Send}>
                 Dispatch Broadcast
               </Button>
             </div>
@@ -199,7 +199,7 @@ export default function Notifications() {
             {notifications.length > 0 ? (
               notifications.map((n) => (
                 <div key={n.id} className="p-5 hover:bg-slate-50/80 transition-colors flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                  <div className="w-10 h-10 rounded-xl bg-[#D8F5FA] text-[#E63946] flex items-center justify-center shrink-0 border border-[#D8F5FA]">
                     <Bell size={18} />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">

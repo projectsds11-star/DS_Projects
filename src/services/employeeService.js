@@ -34,6 +34,7 @@ export const employeeService = {
             status: e.status,
             onboardingStatus: e.onboarding_status,
             joiningDate: e.joining_date,
+            photoUrl: e.photo_url,
           }));
         }
       } catch (err) {
@@ -54,7 +55,45 @@ export const employeeService = {
       qualification: e.qualification,
       status: e.status,
       onboardingStatus: e.onboarding_status,
+      photoUrl: e.photo_url,
     }));
+  },
+
+  /** Get a single employee by ID */
+  async getEmployeeById(employeeId) {
+    const raw = await liveDataService.getEmployeeById(employeeId);
+    if (!raw) return null;
+    
+    return {
+      employeeId: raw.employee_id,
+      fullName: raw.full_name,
+      email: raw.email,
+      phone: raw.phone,
+      gender: raw.gender,
+      dob: raw.date_of_birth,
+      fatherName: raw.father_name,
+      bloodGroup: raw.blood_group,
+      maritalStatus: raw.marital_status,
+      district: raw.district,
+      mandal: raw.mandal,
+      qualification: raw.qualification,
+      designation: raw.designation,
+      department: raw.department,
+      status: raw.status,
+      onboardingStatus: raw.onboarding_status,
+      joiningDate: raw.joining_date,
+      photoUrl: raw.photo_url,
+      address: raw.address || raw.present_address,
+      permanentAddress: raw.permanent_address,
+      emergencyContactName: raw.emergency_contact,
+      emergencyContactNumber: raw.emergency_phone,
+      aadhaar: raw.aadhaar_masked,
+      pan: raw.pan_masked,
+      bankName: raw.bank_name,
+      accountNumber: raw.account_number_masked,
+      ifsc: raw.ifsc_code,
+      branchName: raw.branch_name,
+    };
   },
 
   /**
@@ -113,6 +152,7 @@ export const employeeService = {
       bank_name: payload.bankName || null,
       account_number_masked: payload.accountNumber ? `•••• •••• ${payload.accountNumber.slice(-4)}` : null,
       ifsc_code: payload.ifsc || null,
+      photo_url: payload.photoUrl || null,
       branch_name: payload.branchName || null,
       joining_date: payload.joiningDate || new Date().toISOString().slice(0, 10),
     };
@@ -125,6 +165,48 @@ export const employeeService = {
     }
 
     return { success: true, data: { ...employeeData, ...res.data } };
+  },
+
+  /** Update an existing employee */
+  async updateEmployee(employeeId, payload) {
+    const fullAddress = payload.houseNo 
+      ? `${payload.houseNo}, ${payload.street || ''}, ${payload.mandal || ''}, ${payload.district || ''} - ${payload.pincode || ''}`.trim()
+      : payload.presentAddress || payload.address || null;
+
+    const updates = {
+      full_name: payload.fullName,
+      email: payload.email,
+      phone: payload.phone,
+      gender: payload.gender || 'Male',
+      date_of_birth: payload.dateOfBirth || payload.dob || null,
+      father_name: payload.fatherName || null,
+      blood_group: payload.bloodGroup || null,
+      marital_status: payload.maritalStatus || 'Single',
+      district: payload.district || 'Nellore',
+      mandal: payload.mandal || 'Kavali',
+      qualification: payload.highestQualification || payload.qualification || 'Graduate',
+      address: fullAddress,
+      permanent_address: payload.permanentAddress || fullAddress,
+      emergency_contact: payload.referenceName || payload.emergencyContactName || null,
+      emergency_phone: payload.referenceMobile || payload.emergencyContactNumber || null,
+      aadhaar_masked: payload.aadhaar && !payload.aadhaar.includes('•') ? `•••• •••• ${payload.aadhaar.slice(-4)}` : undefined,
+      pan_masked: payload.pan && !payload.pan.includes('•') ? `•••••${payload.pan.slice(-4)}` : undefined,
+      bank_name: payload.bankName || null,
+      account_number_masked: payload.accountNumber && !payload.accountNumber.includes('•') ? `•••• •••• ${payload.accountNumber.slice(-4)}` : undefined,
+      ifsc_code: payload.ifsc || null,
+      branch_name: payload.branchName || null,
+    };
+    
+    // Only update photo_url if a new one was provided
+    if (payload.photoUrl) {
+      updates.photo_url = payload.photoUrl;
+    }
+
+    // Clean up undefined fields
+    Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
+
+    const res = await liveDataService.updateEmployee(employeeId, updates);
+    return { success: res.success, data: res.data };
   },
 
   /** Send official HTML Welcome Email to employee registered email address */

@@ -67,6 +67,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <AdminDashboard /> },
       { path: 'employees', element: <Employees /> },
       { path: 'employees/add', element: <AddEmployee /> },
+      { path: 'employees/edit/:id', element: <AddEmployee /> },
 
       // Onboarding routes
       { path: 'onboarding', element: <Onboarding /> },

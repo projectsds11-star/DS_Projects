@@ -64,18 +64,18 @@ export default function EmployeeLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-white via-slate-50/90 to-slate-100/70 text-slate-800 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-lg border-r border-slate-200/90",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-[#E63946] text-white transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-lg border-r border-[#E63946]/90",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-24 px-5 bg-white border-b border-slate-200/90 shadow-2xs">
+        <div className="flex items-center justify-between h-24 px-5 border-b border-white/20 shadow-2xs">
           <div className="flex items-center justify-center flex-1 h-full py-2">
-            <img src="/logo.png" alt="DS PROJECTS" className="h-16 w-auto max-w-[210px] object-contain" />
+            <img src="/logo.png" alt="DS PROJECTS" className="h-16 w-auto max-w-[210px] object-contain brightness-0 invert" />
           </div>
           <button 
             onClick={toggleSidebar} 
-            className="lg:hidden text-slate-500 hover:text-slate-900 p-2 rounded-xl hover:bg-slate-100 transition-colors shrink-0 ml-1"
+            className="lg:hidden text-white/70 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors shrink-0 ml-1"
           >
             <X size={22} />
           </button>
@@ -84,8 +84,8 @@ export default function EmployeeLayout() {
         {/* Navigation items */}
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5">
           <div className="px-3 pb-2 mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Navigation</p>
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+            <p className="text-[11px] font-extrabold text-white/60 uppercase tracking-wider">Navigation</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
           </div>
           
           {NAV_ITEMS.map((item) => {
@@ -98,15 +98,15 @@ export default function EmployeeLayout() {
                 className={cn(
                   "flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 group text-sm font-medium",
                   isActive 
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/25" 
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-[#E63946] font-bold shadow-md" 
+                    : "text-white/80 hover:bg-[#FF6B6B] hover:text-white"
                 )}
                 onClick={() => setSidebarOpen(false)}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
                     "p-1.5 rounded-lg transition-colors",
-                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 group-hover:text-blue-600 group-hover:bg-slate-200/80"
+                    isActive ? "bg-[#E63946]/10 text-[#E63946]" : "bg-white/10 text-white/70 group-hover:text-white group-hover:bg-white/20"
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
@@ -118,7 +118,7 @@ export default function EmployeeLayout() {
                     "text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors",
                     isActive 
                       ? "bg-white/25 text-white" 
-                      : "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA]"
                   )}>
                     {item.badge}
                   </span>
@@ -129,18 +129,18 @@ export default function EmployeeLayout() {
         </div>
         
         {/* Quick Shift Status in Sidebar */}
-        <div className="px-4 py-3 bg-white/95 border-t border-slate-200/80">
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between shadow-2xs">
+        <div className="px-4 py-3 space-y-3 mt-auto">
+          <div className="p-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-between shadow-2xs">
             <div className="flex items-center gap-2.5">
               <span className={cn(
                 "w-2.5 h-2.5 rounded-full shrink-0",
-                isCheckedIn ? "bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse" : "bg-slate-400"
+                isCheckedIn ? "bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" : "bg-white/40"
               )} />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">
+                <p className="text-xs font-bold text-white truncate">
                   {isCheckedIn ? 'Currently Clocked In' : 'Clocked Out'}
                 </p>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-white/60">
                   {isCheckedIn ? 'Since 09:15 AM (4h 25m)' : 'Shift ended'}
                 </p>
               </div>
@@ -150,41 +150,41 @@ export default function EmployeeLayout() {
               className={cn(
                 "text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 isCheckedIn 
-                  ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                  ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                  : "bg-[#00B4D8] text-white hover:bg-[#48CAE4] shadow-xs"
               )}
             >
               {isCheckedIn ? 'Out' : 'In'}
             </button>
           </div>
-        </div>
 
-        {/* User Card at bottom */}
-        <div className="p-4 bg-white border-t border-slate-200/90 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-xs">
-                RK
+          {/* User Card at bottom */}
+          <div className="p-3 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white text-sm shadow-xs">
+                  RK
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#E63946] rounded-full" />
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-900 truncate">Rahul Kumar</p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-blue-600 font-mono font-medium">DS-127</span>
-                <span className="text-slate-400">•</span>
-                <span className="text-[11px] text-slate-500 truncate">Nellore</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">Rahul Kumar</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-white/80 font-mono font-medium">DS-127</span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-[11px] text-white/60 truncate">Nellore</span>
+                </div>
               </div>
             </div>
+
+            <button 
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0 cursor-pointer"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-
-          <button 
-            onClick={handleLogout}
-            title="Sign Out"
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0 cursor-pointer"
-          >
-            <LogOut size={16} />
-          </button>
         </div>
       </aside>
 

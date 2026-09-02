@@ -41,7 +41,7 @@ function getFileCategory(fileName = '', fileType = '') {
     return { label: 'PDF', bg: 'bg-red-100 text-red-700 border-red-200' };
   }
   if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) || fileType?.startsWith('image/')) {
-    return { label: 'IMG', bg: 'bg-blue-100 text-blue-700 border-blue-200' };
+    return { label: 'IMG', bg: 'bg-[#D8F5FA] text-[#E63946] border-[#D8F5FA]' };
   }
   if (['xls', 'xlsx', 'csv'].includes(ext) || fileType?.includes('sheet') || fileType?.includes('excel') || fileType?.includes('csv')) {
     return { label: 'XLS', bg: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
@@ -213,7 +213,7 @@ export default function MyWork() {
     if (s === 'Approved') return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1"><CheckCircle2 size={12} /> Approved</span>;
     if (s === 'Submitted') return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Upload size={12} /> Submitted</span>;
     if (s === 'In Progress') return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> In Progress</span>;
-    return <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full flex items-center gap-1"><FileText size={12} /> Assigned</span>;
+    return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full flex items-center gap-1"><FileText size={12} /> Assigned</span>;
   };
 
   return (
@@ -248,7 +248,7 @@ export default function MyWork() {
             placeholder="Search task by code, title, location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
           />
         </div>
 
@@ -259,7 +259,7 @@ export default function MyWork() {
               onClick={() => setStatusFilter(f)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 statusFilter === f
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
             >
@@ -284,7 +284,7 @@ export default function MyWork() {
           <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => navigate('/employee/documents')}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="px-5 py-2.5 bg-[#E63946] hover:bg-[#FF6B6B] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               View My Documents & Status
             </button>
@@ -311,12 +311,12 @@ export default function MyWork() {
                   onClick={() => setSelectedTask(work)}
                   className={`w-full text-left p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
                     isSelected
-                      ? 'bg-white border-blue-600 shadow-lg shadow-blue-500/10 ring-2 ring-blue-500/20'
+                      ? 'bg-white border-[#E63946] shadow-lg shadow-[#E63946]/10 ring-2 ring-[#E63946]/20'
                       : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-md'
                   }`}
                 >
                   {isSelected && (
-                    <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-600" />
+                    <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#E63946]" />
                   )}
 
                   <div className="space-y-2">
@@ -327,7 +327,7 @@ export default function MyWork() {
                         </span>
                         {getPriorityBadge(work.priority)}
                         {attachCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#E63946] bg-[#D8F5FA] border border-[#D8F5FA]/60 px-1.5 py-0.5 rounded">
                             <Paperclip size={10} /> {attachCount}
                           </span>
                         )}
@@ -335,7 +335,7 @@ export default function MyWork() {
                       {getStatusBadge(work.status)}
                     </div>
 
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-[#E63946] transition-colors line-clamp-2">
                       {work.title}
                     </h3>
 
@@ -372,7 +372,7 @@ export default function MyWork() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-xs font-bold bg-blue-600 px-2.5 py-0.5 rounded text-white">
+                      <span className="font-mono text-xs font-bold bg-[#E63946] px-2.5 py-0.5 rounded text-white">
                         {selectedTask.task_code || selectedTask.id}
                       </span>
                       {getPriorityBadge(selectedTask.priority)}
@@ -411,10 +411,10 @@ export default function MyWork() {
 
                 {/* Supervisor Reference Documents & Guidelines */}
                 {selectedTask.attachments && Array.isArray(selectedTask.attachments) && selectedTask.attachments.length > 0 && (
-                  <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200/70 space-y-2.5">
+                  <div className="p-4 bg-[#D8F5FA]/70 rounded-2xl border border-[#D8F5FA]/70 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
-                        <Paperclip size={13} className="text-blue-600" />
+                        <Paperclip size={13} className="text-[#E63946]" />
                         <span>Attached Reference Documents & Guidelines ({selectedTask.attachments.length})</span>
                       </h4>
                     </div>
@@ -423,7 +423,7 @@ export default function MyWork() {
                       {selectedTask.attachments.map((file, idx) => {
                         const cat = getFileCategory(file.name, file.type);
                         return (
-                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-blue-100 shadow-2xs hover:border-blue-300 transition-all">
+                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-[#D8F5FA] shadow-2xs hover:border-[#00B4D8] transition-all">
                             <div className="flex items-center gap-2 min-w-0 pr-2">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border shrink-0 ${cat.bg}`}>
                                 {cat.label}
@@ -440,7 +440,7 @@ export default function MyWork() {
                                 href={file.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 shadow-2xs"
+                                className="px-2 py-1 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 shadow-2xs"
                               >
                                 <Download size={11} /> Download
                               </a>
@@ -460,7 +460,7 @@ export default function MyWork() {
                     <p className="text-sm font-bold text-slate-800">Ready to start work on this task?</p>
                     <Button
                       onClick={() => handleStartWork(selectedTask.task_code || selectedTask.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                      className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
                       icon={Play}
                     >
                       Move to In Progress
@@ -480,7 +480,7 @@ export default function MyWork() {
                         value={reportText}
                         onChange={(e) => setReportText(e.target.value)}
                         placeholder="Detailed observations, voter/farmer counts, survey status..."
-                        className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                       />
                     </div>
 
@@ -488,7 +488,7 @@ export default function MyWork() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Paperclip size={12} className="text-blue-600" />
+                          <Paperclip size={12} className="text-[#E63946]" />
                           <span>Attach Completed Survey Sheets / Field Photos (Optional)</span>
                         </label>
                       </div>
@@ -503,7 +503,7 @@ export default function MyWork() {
                         }}
                         onClick={() => fileInputRef.current?.click()}
                         className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
-                          isDragging ? 'border-blue-600 bg-blue-50/70' : 'border-slate-200 hover:border-blue-400 bg-slate-50/40'
+                          isDragging ? 'border-[#E63946] bg-[#D8F5FA]/70' : 'border-slate-200 hover:border-[#00B4D8] bg-slate-50/40'
                         }`}
                       >
                         <input
@@ -515,8 +515,8 @@ export default function MyWork() {
                           className="hidden"
                         />
                         <div className="flex items-center justify-center gap-2 text-xs text-slate-600">
-                          <UploadCloud size={16} className="text-blue-600" />
-                          <span><strong className="text-blue-600 underline">Upload</strong> completion proof or filled Excel/PDF</span>
+                          <UploadCloud size={16} className="text-[#E63946]" />
+                          <span><strong className="text-[#E63946] underline">Upload</strong> completion proof or filled Excel/PDF</span>
                         </div>
                       </div>
 
@@ -549,7 +549,7 @@ export default function MyWork() {
                       <Button
                         type="submit"
                         disabled={!reportText.trim() || isSubmitting}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                        className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
                         icon={isSubmitting ? Loader2 : Send}
                       >
                         {isSubmitting ? 'Submitting Report...' : 'Submit Report for Approval'}

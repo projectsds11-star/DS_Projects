@@ -424,7 +424,7 @@ export default function CreateJobOffer() {
               }}
               className={cn(
                 'p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center gap-3',
-                isActive && 'bg-blue-50/60 border-blue-600 shadow-xs ring-1 ring-blue-600',
+                isActive && 'bg-[#D8F5FA]/60 border-[#E63946] shadow-xs ring-1 ring-[#E63946]',
                 isDone && 'bg-white border-green-500 cursor-pointer',
                 !isActive && !isDone && 'bg-white border-[var(--color-border)] opacity-60'
               )}
@@ -514,7 +514,7 @@ export default function CreateJobOffer() {
       {currentStep === 3 && (
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Executive Overview Summary Banner */}
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50/60 to-purple-50 rounded-2xl border border-blue-200/80 p-5 shadow-xs">
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50/60 to-purple-50 rounded-2xl border border-[#D8F5FA]/80 p-5 shadow-xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-navy)] mb-3 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[var(--color-primary)]" />
               Executive Appointment Summary
@@ -555,7 +555,7 @@ export default function CreateJobOffer() {
             <div className="bg-white rounded-2xl border border-indigo-200/80 p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <FileCheck className="h-5 w-5 text-indigo-600" />
+                  <FileCheck className="h-5 w-5 text-[#E63946]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                     Attached Manual Offer Letter Document
                   </h3>
@@ -567,7 +567,7 @@ export default function CreateJobOffer() {
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                  <div className="w-11 h-11 rounded-xl bg-[#E63946] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
                     <FileText className="h-6 w-6" />
                   </div>
                   <div className="min-w-0">
@@ -613,7 +613,7 @@ export default function CreateJobOffer() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-[#E63946] text-white flex items-center justify-center shadow-xs">
                     <Mail className="h-4 w-4" />
                   </div>
                   <span>Onboarding Email Content (Editable Dispatch Draft)</span>
@@ -622,8 +622,8 @@ export default function CreateJobOffer() {
                   Full preview of the appointment message dispatched to the candidate with their credentials.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-blue-50/80 border border-blue-200 px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
-                <span className="text-[11px] font-semibold text-blue-700">Recipient:</span>
+              <div className="flex items-center gap-2 bg-[#D8F5FA]/80 border border-[#D8F5FA] px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
+                <span className="text-[11px] font-semibold text-[#E63946]">Recipient:</span>
                 <span className="text-xs font-mono font-bold text-blue-900">{watchedValues.email || 'employee@email.com'}</span>
               </div>
             </div>
@@ -636,7 +636,7 @@ export default function CreateJobOffer() {
               <input
                 type="text"
                 {...register('emailSubject')}
-                className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs"
+                className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:border-transparent transition shadow-2xs"
                 placeholder="Enter email subject..."
               />
             </div>
@@ -647,14 +647,14 @@ export default function CreateJobOffer() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Email Message Body *
                 </label>
-                <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-md">
+                <span className="text-xs text-[#E63946] font-semibold bg-[#D8F5FA] px-2.5 py-0.5 rounded-md">
                   ✍️ Freely Editable Message
                 </span>
               </div>
               <textarea
                 rows={13}
                 {...register('emailBody')}
-                className="flex w-full rounded-2xl border border-slate-200 bg-slate-50/40 focus:bg-white p-5 text-sm text-slate-800 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-inner min-h-[340px] resize-y"
+                className="flex w-full rounded-2xl border border-slate-200 bg-slate-50/40 focus:bg-white p-5 text-sm text-slate-800 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:border-transparent transition shadow-inner min-h-[340px] resize-y"
                 placeholder="Enter personalized onboarding welcome message..."
               />
               <p className="text-[11px] text-slate-400 font-medium">
@@ -666,8 +666,8 @@ export default function CreateJobOffer() {
             <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2.5 text-xs">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Attached Package:</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold shadow-2xs">
-                  <FileText size={13} className="text-blue-600" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D8F5FA] text-blue-800 border border-[#D8F5FA] text-xs font-bold shadow-2xs">
+                  <FileText size={13} className="text-[#E63946]" />
                   {documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">

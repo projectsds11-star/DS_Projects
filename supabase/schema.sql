@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     status TEXT DEFAULT 'Onboarding',                 -- 'Active', 'Inactive', 'Onboarding', 'Draft'
     onboarding_status TEXT DEFAULT 'Pending Offer',   -- 'Pending Offer', 'Offer Sent', 'Offer Accepted', 'Completed'
     joining_date TEXT,
+    photo_url TEXT,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
@@ -72,6 +73,7 @@ ADD COLUMN IF NOT EXISTS permanent_address TEXT,
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Onboarding',
 ADD COLUMN IF NOT EXISTS onboarding_status TEXT DEFAULT 'Pending Offer',
 ADD COLUMN IF NOT EXISTS joining_date TEXT,
+ADD COLUMN IF NOT EXISTS photo_url TEXT,
 ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 

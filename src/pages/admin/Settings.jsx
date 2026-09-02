@@ -69,7 +69,7 @@ export default function Settings() {
 
         <Button 
           onClick={() => showToast('Configurations successfully saved!')} 
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+          className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
           icon={Save}
         >
           Save Changes
@@ -89,7 +89,7 @@ export default function Settings() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -138,7 +138,7 @@ export default function Settings() {
                   <CardTitle className="text-base font-bold text-slate-900">
                     Andhra Pradesh Location Master (26 Districts)
                   </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">Selected: <strong className="text-blue-600">{selectedDistrict?.name} District</strong> ({selectedDistrict?.mandals?.length} Mandals)</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Selected: <strong className="text-[#E63946]">{selectedDistrict?.name} District</strong> ({selectedDistrict?.mandals?.length} Mandals)</p>
                 </div>
               </CardHeader>
 
@@ -152,7 +152,7 @@ export default function Settings() {
                       placeholder="Filter district..."
                       value={districtSearch}
                       onChange={(e) => setDistrictSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946]"
                     />
                   </div>
 
@@ -163,7 +163,7 @@ export default function Settings() {
                         onClick={() => setSelectedDistrict(d)}
                         className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
                           selectedDistrict?.code === d.code
-                            ? 'bg-blue-600 text-white shadow-xs'
+                            ? 'bg-[#E63946] text-white shadow-xs'
                             : 'text-slate-700 hover:bg-slate-100'
                         }`}
                       >
@@ -183,7 +183,7 @@ export default function Settings() {
                       placeholder="Filter mandals in this district..."
                       value={mandalSearch}
                       onChange={(e) => setMandalSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946]"
                     />
                   </div>
 
@@ -219,7 +219,7 @@ export default function Settings() {
                     <p className="font-bold text-slate-900">JWT Single-Session Tokenization</p>
                     <p className="text-xs text-slate-500 mt-0.5">8-hour session lifetime with automatic revocation</p>
                   </div>
-                  <span className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                  <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-3 py-1 rounded-full">
                     Active
                   </span>
                 </div>
@@ -243,7 +243,7 @@ export default function Settings() {
                       <p className="font-bold text-slate-900">{item.title}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded cursor-pointer" />
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-[#E63946] rounded cursor-pointer" />
                   </div>
                 ))}
               </CardContent>

@@ -149,7 +149,7 @@ export default function EmployeeProfile() {
             variant={editing ? 'outline' : 'default'} 
             size="sm"
             onClick={() => setEditing(!editing)} 
-            className={`font-semibold cursor-pointer ${!editing ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+            className={`font-semibold cursor-pointer ${!editing ? 'bg-[#E63946] hover:bg-[#FF6B6B] text-white' : ''}`}
             icon={editing ? X : Edit}
           >
             {editing ? 'Cancel Edit' : 'Edit Details'}
@@ -158,7 +158,7 @@ export default function EmployeeProfile() {
       </div>
 
       {/* Hero Profile Banner Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E3A8A] text-white p-6 sm:p-8 shadow-xl border border-slate-700/60">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#E63946] via-[#FF6B6B] to-[#FFDDE0] text-white p-6 sm:p-8 shadow-xl border border-[#E63946]/40">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
           <div className="relative shrink-0">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-900 shadow-xl ring-4 ring-white/10">
@@ -166,7 +166,7 @@ export default function EmployeeProfile() {
             </div>
             <button 
               onClick={() => showToast('Select new profile photo to upload')}
-              className="absolute -bottom-2 -right-2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg transition-transform hover:scale-110 cursor-pointer"
+              className="absolute -bottom-2 -right-2 p-2 bg-[#E63946] hover:bg-[#00B4D8] text-white rounded-xl shadow-lg transition-transform hover:scale-110 cursor-pointer"
             >
               <Camera size={16} />
             </button>
@@ -177,7 +177,7 @@ export default function EmployeeProfile() {
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
                 {formData.firstName ? `${formData.firstName} ${formData.lastName}` : 'Live Employee Profile'}
               </h2>
-              <span className="inline-flex items-center text-xs font-mono font-bold bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full border border-blue-400/30">
+              <span className="inline-flex items-center text-xs font-mono font-bold bg-[#00B4D8]/20 text-[#00B4D8] px-3 py-1 rounded-full border border-[#00B4D8]/30">
                 {currentEmpId}
               </span>
             </div>
@@ -189,7 +189,7 @@ export default function EmployeeProfile() {
             <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-y-2 gap-x-5 text-xs text-slate-300">
               {formData.email && (
                 <span className="flex items-center gap-1.5">
-                  <Mail size={14} className="text-blue-300" />
+                  <Mail size={14} className="text-[#00B4D8]" />
                   {formData.email}
                 </span>
               )}
@@ -220,7 +220,7 @@ export default function EmployeeProfile() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -237,7 +237,7 @@ export default function EmployeeProfile() {
           <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white">
             <CardHeader className="px-6 py-5 border-b border-slate-100">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-600" />
+                <User className="h-5 w-5 text-[#E63946]" />
                 Personal Information
               </CardTitle>
             </CardHeader>
@@ -276,7 +276,7 @@ export default function EmployeeProfile() {
                   </div>
                   <div className="md:col-span-2 pt-4 flex justify-end gap-3 border-t border-slate-100">
                     <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
-                    <Button type="submit" className="bg-blue-600 text-white" icon={Save}>Save</Button>
+                    <Button type="submit" className="bg-[#E63946] text-white" icon={Save}>Save</Button>
                   </div>
                 </form>
               ) : (
@@ -330,7 +330,7 @@ export default function EmployeeProfile() {
           <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white">
             <CardHeader className="px-6 py-5 border-b border-slate-100">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-indigo-600" />
+                <Briefcase className="h-5 w-5 text-[#E63946]" />
                 Deployment Record
               </CardTitle>
             </CardHeader>

@@ -142,10 +142,10 @@ export default function EmployeeAttendance() {
       </div>
 
       {/* Live Punch-In Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E3A8A] text-white p-6 sm:p-8 lg:p-10 shadow-xl border border-slate-700/60">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#E63946] via-[#FF6B6B] to-[#FFDDE0] text-white p-6 sm:p-8 lg:p-10 shadow-xl border border-[#E63946]/40">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 relative z-10">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-blue-200 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#D8F5FA] text-xs font-semibold">
               <span className={`w-2 h-2 rounded-full ${isCheckedIn ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`} />
               <span>{isCheckedIn ? 'Live Active Shift' : 'Shift Off'}</span>
             </div>
@@ -156,7 +156,7 @@ export default function EmployeeAttendance() {
 
             <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-slate-300">
               <span className="flex items-center gap-1.5 font-medium">
-                <Clock size={14} className="text-blue-300" />
+                <Clock size={14} className="text-[#00B4D8]" />
                 Shift: 09:00 AM - 06:00 PM
               </span>
               <span className="text-slate-500">•</span>
@@ -242,7 +242,7 @@ export default function EmployeeAttendance() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#E63946]"
             >
               <option>September 2026</option>
               <option>August 2026</option>
@@ -298,7 +298,7 @@ export default function EmployeeAttendance() {
       {showRegularizeModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-6 bg-[#0F172A] text-white flex items-center justify-between">
+            <div className="p-6 bg-[#E63946] text-white flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-white">Attendance Regularization</h3>
                 <p className="text-xs text-slate-300">Request missed punch correction</p>
@@ -319,7 +319,7 @@ export default function EmployeeAttendance() {
                   required
                   value={regDate}
                   onChange={(e) => setRegDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 />
               </div>
 
@@ -328,7 +328,7 @@ export default function EmployeeAttendance() {
                 <select 
                   value={regType}
                   onChange={(e) => setRegType(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 >
                   <option>Missed Check-In</option>
                   <option>Missed Check-Out</option>
@@ -344,7 +344,7 @@ export default function EmployeeAttendance() {
                   value={regReason}
                   onChange={(e) => setRegReason(e.target.value)}
                   placeholder="Explain why punch was missed..."
-                  className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 />
               </div>
 
@@ -352,7 +352,7 @@ export default function EmployeeAttendance() {
                 <Button type="button" variant="outline" onClick={() => setShowRegularizeModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
+                <Button type="submit" className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold" icon={Send}>
                   Submit Request
                 </Button>
               </div>

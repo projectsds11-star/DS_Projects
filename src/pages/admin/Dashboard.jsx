@@ -71,47 +71,57 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Hero Executive Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0B0F19] via-[#1E293B] to-[#1E3A8A] text-white p-6 sm:p-8 lg:p-10 shadow-2xl border border-slate-700/60">
-        <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 -top-20 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+      {/* Hero Executive Banner - Redesigned */}
+      <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200/80 shadow-sm p-6 sm:p-8 lg:p-10">
+        {/* Subtle decorative background elements */}
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+          <svg width="200" height="200" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#grid)" />
+          </svg>
+        </div>
+        <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-gradient-to-tl from-[#FFDDE0]/40 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-blue-200 text-xs font-semibold">
-              <Sparkles size={14} className="text-amber-300" />
-              <span>Executive HRMS & Operations Infrastructure</span>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+          <div className="space-y-4 max-w-3xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF7F7] border border-[#FFDDE0] text-[#E63946] text-xs font-bold shadow-2xs">
+              <Sparkles size={14} className="text-[#E63946]" />
+              <span className="uppercase tracking-wider">Executive HRMS & Operations</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
-              Command Overview & <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">
-                Workforce Intelligence
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#252525] leading-tight">
+              Command Overview <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E63946] to-[#FF6B6B]">
+                & Workforce Intelligence
               </span>
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 flex items-center gap-2">
-              <Clock size={14} className="text-blue-400" />
+            <p className="text-sm font-medium text-[#6B7280] flex items-center gap-2 max-w-xl">
+              <Clock size={16} className="text-[#00B4D8]" />
               <span>{currentDate} • All 26 District Nodes Synchronized</span>
             </p>
           </div>
 
           {/* Action Hub */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-4 shrink-0 pb-1">
             <button
               onClick={() => navigate('/admin/employees/add')}
-              className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-8 py-3.5 rounded-xl bg-[#E63946] text-white text-base font-bold shadow-md shadow-[#E63946]/20 hover:bg-[#FF6B6B] hover:shadow-lg transition-all flex items-center gap-2.5 cursor-pointer group border border-[#E63946] hover:border-[#FF6B6B]"
             >
-              <UserPlus size={16} />
-              <span>+ Add Employee</span>
+              <UserPlus size={20} className="group-hover:scale-110 transition-transform" />
+              <span>Add Employee</span>
             </button>
 
             <button
               onClick={() => navigate('/admin/onboarding/create')}
-              className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-bold backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer"
+              className="px-8 py-3.5 rounded-xl bg-[#00B4D8] text-white text-base font-bold shadow-md shadow-[#00B4D8]/20 hover:bg-[#48CAE4] hover:shadow-lg transition-all flex items-center gap-2.5 cursor-pointer group border border-[#00B4D8] hover:border-[#48CAE4]"
             >
-              <Send size={16} />
-              <span>+ Issue Offer</span>
+              <Send size={20} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <span>Issue Offer</span>
             </button>
           </div>
         </div>
@@ -122,10 +132,10 @@ export default function AdminDashboard() {
         {/* Card 1: Total Employees */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow group">
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 bg-[#D8F5FA] rounded-xl text-[#E63946] group-hover:scale-110 transition-transform">
               <Users className="h-5 w-5" />
             </div>
-            <span className="inline-flex items-center text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center text-[11px] font-bold text-[#E63946] bg-[#D8F5FA] px-2 py-0.5 rounded-full">
               Live State
             </span>
           </div>
@@ -169,7 +179,7 @@ export default function AdminDashboard() {
         {/* Card 4: Assigned Work */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow group">
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 bg-indigo-50 rounded-xl text-[#E63946] group-hover:scale-110 transition-transform">
               <ClipboardList className="h-5 w-5" />
             </div>
             <span className="inline-flex items-center text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
@@ -199,10 +209,10 @@ export default function AdminDashboard() {
         {/* Card 6: Today's Attendance */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow group">
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2.5 bg-teal-50 rounded-xl text-teal-600 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 bg-[#D8F5FA] rounded-xl text-[#E63946] group-hover:scale-110 transition-transform">
               <CalendarCheck className="h-5 w-5" />
             </div>
-            <span className="inline-flex items-center text-[11px] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center text-[11px] font-bold text-[#E63946] bg-[#D8F5FA] px-2 py-0.5 rounded-full">
               Punches
             </span>
           </div>
@@ -221,7 +231,7 @@ export default function AdminDashboard() {
             <CardHeader className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Activity size={18} className="text-blue-600" />
+                  <Activity size={18} className="text-[#E63946]" />
                   <span>Recent Registered Staff</span>
                 </CardTitle>
                 <p className="text-xs text-slate-500 mt-0.5">Live records from database</p>
@@ -229,7 +239,7 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => navigate('/admin/employees')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#E63946] hover:text-[#E63946] flex items-center gap-1 hover:underline cursor-pointer"
               >
                 <span>View Directory ({employees.length})</span>
                 <ChevronRight size={14} />
@@ -241,7 +251,7 @@ export default function AdminDashboard() {
                 employees.slice(0, 5).map((emp) => (
                   <div key={emp.id || emp.employee_id} className="p-5 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#E63946] to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
                         {emp.full_name?.charAt(0) || 'E'}
                       </div>
                       <div className="min-w-0">
@@ -276,7 +286,7 @@ export default function AdminDashboard() {
           <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white p-6">
             <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
               <span>Work Completion Progress</span>
-              <ClipboardList size={16} className="text-blue-600" />
+              <ClipboardList size={16} className="text-[#E63946]" />
             </h3>
 
             <div className="space-y-6">
@@ -296,11 +306,11 @@ export default function AdminDashboard() {
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-2">
                   <span className="text-slate-600">In Progress / Assigned</span>
-                  <span className="text-blue-600">{pendingTasks} Tasks</span>
+                  <span className="text-[#E63946]">{pendingTasks} Tasks</span>
                 </div>
                 <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                    className="h-full bg-[#00B4D8] rounded-full transition-all duration-500" 
                     style={{ width: totalTasks > 0 ? `${(pendingTasks / totalTasks) * 100}%` : '0%' }}
                   />
                 </div>
@@ -327,10 +337,10 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={() => navigate('/admin/work')}
-                className="p-3 rounded-xl bg-blue-50/60 hover:bg-blue-100/60 text-blue-900 border border-blue-100 text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer"
+                className="p-3 rounded-xl bg-[#D8F5FA]/60 hover:bg-[#D8F5FA]/60 text-blue-900 border border-[#D8F5FA] text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer"
               >
                 <span>Daily Work</span>
-                <ChevronRight size={14} className="text-blue-600" />
+                <ChevronRight size={14} className="text-[#E63946]" />
               </button>
               <button
                 onClick={() => navigate('/admin/attendance')}
@@ -344,7 +354,7 @@ export default function AdminDashboard() {
                 className="p-3 rounded-xl bg-indigo-50/60 hover:bg-indigo-100/60 text-indigo-900 border border-indigo-100 text-xs font-bold text-left flex items-center justify-between transition-colors cursor-pointer"
               >
                 <span>Job Offers</span>
-                <ChevronRight size={14} className="text-indigo-600" />
+                <ChevronRight size={14} className="text-[#E63946]" />
               </button>
               <button
                 onClick={() => navigate('/admin/reports')}

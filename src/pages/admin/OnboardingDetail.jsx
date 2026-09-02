@@ -185,7 +185,7 @@ export default function OnboardingDetail() {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-2 px-3.5 py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
                 activeTab === t.id
-                  ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-blue-50/40 rounded-t-lg'
+                  ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[#D8F5FA]/40 rounded-t-lg'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -390,7 +390,7 @@ export default function OnboardingDetail() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900 text-sm">{log.subject}</span>
-                    <span className="bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                    <span className="bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA] px-2 py-0.5 rounded-full font-semibold text-[10px]">
                       {log.status}
                     </span>
                   </div>
@@ -435,7 +435,7 @@ export default function OnboardingDetail() {
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-2 text-xs">
+            <div className="p-4 bg-[#D8F5FA] border border-[#D8F5FA] rounded-xl space-y-2 text-xs">
               <h4 className="font-bold text-[var(--color-navy)] flex items-center gap-2">
                 <KeyRound className="h-4 w-4 text-[var(--color-primary)]" />
                 Candidate Activation URL
@@ -448,7 +448,7 @@ export default function OnboardingDetail() {
                   type="text"
                   readOnly
                   value={`http://localhost:5175/activate-account?token=${offer?.activationToken || 'demo_token'}`}
-                  className="h-8 flex-1 px-3 bg-white border border-blue-200 rounded-lg font-mono text-[11px] text-gray-700"
+                  className="h-8 flex-1 px-3 bg-white border border-[#D8F5FA] rounded-lg font-mono text-[11px] text-gray-700"
                 />
                 <Button size="sm" className="h-8" icon={copiedLink ? Check : Copy} onClick={handleCopyActivationLink}>
                   {copiedLink ? 'Copied' : 'Copy'}

@@ -76,7 +76,7 @@ export default function Reports() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
             <span>Executive Reports & Analytics</span>
-            <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
               Live Feed
             </span>
           </h1>
@@ -109,7 +109,7 @@ export default function Reports() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-slate-500 uppercase">Total Personnel</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#D8F5FA] text-[#E63946] flex items-center justify-center">
               <Users size={16} />
             </div>
           </div>
@@ -131,12 +131,12 @@ export default function Reports() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-slate-500 uppercase">Tasks Dispatched</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-[#E63946] flex items-center justify-center">
               <ClipboardCheck size={16} />
             </div>
           </div>
           <p className="text-2xl sm:text-3xl font-extrabold text-slate-900">{tasks.length}</p>
-          <p className="text-[11px] text-blue-600 font-bold mt-1">{completedRate}% completion rate</p>
+          <p className="text-[11px] text-[#E63946] font-bold mt-1">{completedRate}% completion rate</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">

@@ -103,7 +103,7 @@ export default function EmployeeLogin() {
           <div className="flex items-center justify-center mx-auto mb-3 h-20 w-auto max-w-[260px]">
             <img src="/logo.png" alt="DS PROJECTS" className="h-full w-auto object-contain" />
           </div>
-          <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-widest rounded-full">
+          <span className="inline-block px-3 py-1 bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA] text-xs font-bold uppercase tracking-widest rounded-full">
             Field Operations Employee Portal
           </span>
         </div>
@@ -132,7 +132,7 @@ export default function EmployeeLogin() {
                   id="username"
                   type="text"
                   placeholder="e.g. DS-001 or email@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white transition"
                   {...register('username')}
                 />
               </div>
@@ -151,7 +151,7 @@ export default function EmployeeLogin() {
                   id="password"
                   type="password"
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white transition"
                   {...register('password')}
                 />
               </div>
@@ -161,7 +161,7 @@ export default function EmployeeLogin() {
             </div>
 
             <div className="pt-2">
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-blue-500/25" isLoading={isSubmitting}>
+              <Button type="submit" className="w-full bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold h-11 rounded-xl shadow-lg shadow-[#E63946]/20" isLoading={isSubmitting}>
                 <span>Sign In to Portal</span>
                 <ArrowRight size={16} className="ml-2" />
               </Button>

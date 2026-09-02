@@ -1,19 +1,41 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #234398;
-  --color-navy: #25275E;
-  --color-lavender: #E2DCED;
-  --color-background: #F7F8FC;
-  --color-card: #FFFFFF;
-  --color-border: #E5E7EB;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
-  
-  --color-success: #16A34A;
-  --color-warning: #F59E0B;
-  --color-error: #DC2626;
-  --color-info: #2563EB;
+  /* ── Brand / Primary (Coral) ── */
+  --color-primary:        #E63946;  /* Primary Coral  */
+  --color-primary-dark:   #E63946;  /* Using Coral for primary dark   */
+  --color-primary-medium: #FF6B6B;  /* Secondary Coral */
+  --color-primary-light:  #FFDDE0;  /* Light Coral    */
+
+  /* ── Secondary (Cyan) ── */
+  --color-secondary:        #00B4D8; /* Primary Cyan */
+  --color-secondary-medium: #48CAE4; /* Secondary Cyan */
+  --color-secondary-light:  #D8F5FA; /* Light Cyan */
+
+  /* ── Surface ── */
+  --color-background: #FFF7F7;      /* Light Warm Background */
+  --color-card:       #FFFFFF;      /* White         */
+  --color-cool-bg:    #F3FCFE;      /* Light Cool Background */
+
+  /* ── Text ── */
+  --color-text-primary:   #252525;  /* Main Text     */
+  --color-text-secondary: #6B7280;  /* Secondary Text */
+  --color-text-info:      #6B7280;  /* Info Gray     */
+
+  /* ── Border ── */
+  --color-border: #E5E7EB;          /* Border Gray   */
+
+  /* ── Status ── */
+  --color-success: #00B4D8;         /* Cyan (Info/Success in new palette) */
+  --color-warning: #FF6B6B;         /* Secondary Coral */
+  --color-error:   #E63946;         /* Primary Coral */
+  --color-info:    #00B4D8;         /* Primary Cyan */
+
+  /* ── Custom utilities for arbitrary usage ── */
+  --color-coral:       #E63946;
+  --color-coral-light: #FFDDE0;
+  --color-cyan:        #00B4D8;
+  --color-cyan-light:  #D8F5FA;
 
   --font-sans: "Inter", system-ui, sans-serif;
 }
@@ -22,5 +44,31 @@
   body {
     background-color: var(--color-background);
     color: var(--color-text-primary);
+    font-family: var(--font-sans);
   }
+}
+
+/* ── Utility shortcuts using the brand palette ── */
+@layer utilities {
+  .bg-brand          { background-color: #E63946; }
+  .bg-brand-dark     { background-color: #E63946; }
+  .bg-brand-medium   { background-color: #FF6B6B; }
+  .bg-brand-light    { background-color: #FFDDE0; }
+  .bg-warm-white     { background-color: #FFF7F7; }
+
+  .text-brand        { color: #E63946; }
+  .text-brand-dark   { color: #E63946; }
+  .text-brand-medium { color: #FF6B6B; }
+
+  .border-brand      { border-color: #E63946; }
+  .border-brand-light{ border-color: #FFDDE0; }
+  .border-ui         { border-color: #E5E7EB; }
+
+  .ring-brand        { --tw-ring-color: #E63946; }
+
+  .shadow-brand      { --tw-shadow-color: #E6394633; }
+
+  /* gradient helpers */
+  .from-brand        { --tw-gradient-from: #E63946; }
+  .to-brand-medium   { --tw-gradient-to:   #FF6B6B; }
 }

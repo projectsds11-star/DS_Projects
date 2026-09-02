@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { ChevronRight, Save, Check, ArrowLeft, Eye, EyeOff, User, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
@@ -13,6 +13,8 @@ import PhotoUploader from '../../components/employee/PhotoUploader';
 import DocumentUploader from '../../components/employee/DocumentUploader';
 import ConfirmationModal from '../../components/employee/ConfirmationModal';
 import SuccessModal from '../../components/employee/SuccessModal';
+
+import { storageService } from '../../services/supabaseClient';
 
 // ─── Shared input class ────────────────────────────────────────────
 const INPUT_BASE = 'flex h-11 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] transition disabled:bg-gray-50 disabled:cursor-not-allowed';
@@ -43,8 +45,10 @@ function Toast({ message, type = 'success', onDone }) {
 
 // ─── Page ─────────────────────────────────────────────────────────
 export default function AddEmployee() {
-  const navigate = useNavigate();
-  const [employeeId, setEmployeeId] = useState('DS-001'); // placeholder, overwritten by service
+  const { id } = useParams();
+  const isEditMode = !!id;
+  
+  const [employeeId, setEmployeeId] = useState(id || 'DS-001'); // placeholder, overwritten by service if creating
   const idFetched = useRef(false); // guard against React StrictMode double-invoke
   const [photo, setPhoto] = useState(null);
   const [documents, setDocuments] = useState({
@@ -55,6 +59,7 @@ export default function AddEmployee() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode);
   const [createdEmployee, setCreatedEmployee] = useState(null);
   const [toast, setToast] = useState(null);
   const [showAccNo, setShowAccNo] = useState(false);
@@ -66,6 +71,7 @@ export default function AddEmployee() {
     watch,
     setValue,
     getValues,
+    reset,
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(employeeSchema),
@@ -78,12 +84,29 @@ export default function AddEmployee() {
   const accountsMatch = watchedAccountNo && watchedReEnter && watchedAccountNo === watchedReEnter;
   const accountsMismatch = watchedAccountNo && watchedReEnter && watchedAccountNo !== watchedReEnter;
 
-  // Load next employee ID on mount — useRef guard prevents React StrictMode double-call
+  // Load next employee ID on mount — or load existing employee data if edit mode
   useEffect(() => {
     if (idFetched.current) return;
     idFetched.current = true;
-    employeeService.getNextEmployeeId().then(setEmployeeId);
-  }, []);
+    
+    if (isEditMode) {
+      employeeService.getEmployeeById(id).then(emp => {
+        if (emp) {
+          reset(emp);
+          setEmployeeId(emp.employeeId);
+          if (emp.photoUrl) {
+            setPhoto({ preview: emp.photoUrl });
+          }
+          if (emp.district) {
+            setSelectedDistrict(emp.district);
+          }
+        }
+        setIsLoading(false);
+      });
+    } else {
+      employeeService.getNextEmployeeId().then(setEmployeeId);
+    }
+  }, [id, isEditMode, reset]);
 
   // Warn on unsaved changes
   useEffect(() => {
@@ -150,13 +173,29 @@ export default function AddEmployee() {
     try {
       const values = getValues();
       const username = employeeService.generateUsername(values.fullName, employeeId);
-      const result = await employeeService.createEmployee({ ...values, employeeId, username });
-      const emp = { ...result.data, employeeId, username };
+      
+      // Upload Photo if present (and it's a new file, not just a preview URL)
+      let photoUrl = null;
+      if (photo?.file) {
+        photoUrl = await storageService.uploadEmployeePhoto(photo.file, employeeId);
+      } else if (photo?.preview && !photo.preview.startsWith('blob:')) {
+        photoUrl = photo.preview;
+      }
+
+      let result, emp;
+      if (isEditMode) {
+        result = await employeeService.updateEmployee(employeeId, { ...values, photoUrl });
+        emp = { ...result.data, employeeId, photoUrl };
+      } else {
+        result = await employeeService.createEmployee({ ...values, employeeId, username, photoUrl });
+        emp = { ...result.data, employeeId, username, photoUrl };
+      }
+      
       setCreatedEmployee(emp);
       setShowConfirm(false);
       setShowSuccess(true);
     } catch {
-      showToast('Unable to create employee. Please try again.', 'error');
+      showToast(`Unable to ${isEditMode ? 'update' : 'create'} employee. Please try again.`, 'error');
       setShowConfirm(false);
     } finally {
       setIsSubmitting(false);
@@ -210,46 +249,53 @@ export default function AddEmployee() {
         </button>
         <div className="flex-1 min-w-0">
           <nav className="flex items-center gap-1 text-xs text-gray-400 mb-1">
-            <Link to="/admin/employees" className="hover:text-[var(--color-primary)] transition-colors">Employees</Link>
+            <Link to="/admin/employees" className="hover:text-[var(--color-primary)] transition-colors">Directory</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-gray-600 font-medium">Add Employee</span>
+            <span className="text-gray-600 font-medium">{isEditMode ? 'Edit Employee' : 'Add Employee'}</span>
           </nav>
-          <h1 className="text-xl font-bold text-[var(--color-navy)]">Add New Employee</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Register a new employee and maintain their complete information.</p>
+          <h1 className="text-xl font-bold text-[var(--color-navy)]">{isEditMode ? 'Edit Employee' : 'Add New Employee'}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{isEditMode ? 'Update existing employee information.' : 'Register a new employee and maintain their complete information.'}</p>
         </div>
       </div>
 
-      {/* ── ID Banner ───────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--color-navy)] text-white rounded-xl px-6 py-4"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-            <User className="h-6 w-6 text-white/80" />
-          </div>
-          <div>
-            <p className="text-xs text-blue-300 font-medium uppercase tracking-wider">New Employee</p>
-            <p className="text-white font-semibold text-lg mt-0.5">Register Employee Record</p>
-          </div>
+      {isLoading ? (
+        <div className="py-20 text-center">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">Loading employee details...</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-blue-300">Employee ID</p>
-          <p className="text-2xl font-mono font-bold text-white">{employeeId}</p>
-          <p className="text-xs text-blue-300/70 mt-0.5">Auto-generated by system</p>
-        </div>
-      </motion.div>
+      ) : (
+        <>
+          {/* ── ID Banner ───────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--color-navy)] text-white rounded-xl px-6 py-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                <User className="h-6 w-6 text-white/80" />
+              </div>
+              <div>
+                <p className="text-xs text-[#00B4D8] font-medium uppercase tracking-wider">{isEditMode ? 'Edit Employee' : 'New Employee'}</p>
+                <p className="text-white font-semibold text-lg mt-0.5">Register Employee Record</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-[#00B4D8]">Employee ID</p>
+              <p className="text-2xl font-mono font-bold text-white">{employeeId}</p>
+              <p className="text-xs text-[#00B4D8]/70 mt-0.5">Auto-generated by system</p>
+            </div>
+          </motion.div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-
-        {/* ── SECTION 01 – IDENTIFICATION ─────────────────── */}
-        <FormSection number={1} title="Employee Identification" description="System-assigned ID and employment status.">
-          <FormGrid>
-            <FormField label="Employee ID" helper="Automatically generated — cannot be changed.">
-              <div className="relative">
-                <input readOnly value={employeeId}
-                  className="flex h-11 w-full rounded-lg border border-[var(--color-border)] bg-gray-50 px-3 py-2 text-sm font-mono font-semibold text-[var(--color-primary)] cursor-not-allowed" />
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <div className="p-6 md:p-8 space-y-12">
+              {/* ── SECTION 01 – IDENTIFICATION ─────────────────── */}
+              <FormSection number={1} title="Employee Identification" description="System-assigned ID and employment status.">
+                <FormGrid>
+                  <FormField label="Employee ID" helper="Automatically generated — cannot be changed.">
+                    <div className="relative">
+                      <input readOnly value={employeeId}
+                        className="flex h-11 w-full rounded-lg border border-[var(--color-border)] bg-gray-50 px-3 py-2 text-sm font-mono font-semibold text-[var(--color-primary)] cursor-not-allowed" />
               </div>
             </FormField>
             <FormField label="Employee Status" error={errors.status?.message}>
@@ -391,9 +437,9 @@ export default function AddEmployee() {
         <div className="mt-5">
           <FormSection number={5} title="Government ID Details" description="Aadhaar and PAN information for compliance.">
             <div className="space-y-6">
-              <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                <ShieldAlert className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700">Aadhaar and PAN information is securely stored and encrypted. This data is used only for compliance and verification purposes.</p>
+              <div className="flex items-start gap-2 p-3 bg-[#D8F5FA] border border-[#D8F5FA] rounded-lg">
+                <ShieldAlert className="h-4 w-4 text-[#00B4D8] shrink-0 mt-0.5" />
+                <p className="text-xs text-[#E63946]">Aadhaar and PAN information is securely stored and encrypted. This data is used only for compliance and verification purposes.</p>
               </div>
 
               <FormGrid>
@@ -575,16 +621,19 @@ export default function AddEmployee() {
             </div>
           </FormSection>
         </div>
+        </div>
       </form>
 
       {/* ── FLOATING FOOTER ─────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[var(--color-border)] shadow-[0_-2px_16px_rgba(0,0,0,0.07)] z-30">
         <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
           <Button type="button" variant="outline" onClick={() => navigate('/admin/employees')}>Cancel</Button>
-          <Button type="button" variant="outline" icon={Save} isLoading={isSavingDraft} onClick={handleSaveDraft}>Save as Draft</Button>
-          <Button type="button" onClick={handleSubmit(onSubmit)}>Create Employee</Button>
+          {!isEditMode && <Button type="button" variant="outline" icon={Save} isLoading={isSavingDraft} onClick={handleSaveDraft}>Save as Draft</Button>}
+          <Button type="button" onClick={handleSubmit(onSubmit)}>{isEditMode ? 'Update Employee' : 'Create Employee'}</Button>
         </div>
       </div>
+      </>
+      )}
 
       {/* ── MODALS ──────────────────────────────────────── */}
       <ConfirmationModal
@@ -592,13 +641,24 @@ export default function AddEmployee() {
         onClose={() => !isSubmitting && setShowConfirm(false)}
         onConfirm={handleConfirmCreate}
         isSubmitting={isSubmitting}
+        title={isEditMode ? "Update Employee?" : "Create Employee?"}
+        message={isEditMode 
+          ? `You are about to update the record for ${getValues('fullName')}. Are you sure?` 
+          : `You are about to create a new employee record for ${getValues('fullName')}. Are you sure all details are correct?`
+        }
+        confirmText={isEditMode ? "Yes, Update" : "Yes, Create"}
         employee={{ fullName: watchedName, employeeId, email: watch('email'), phone: watch('phone'), status: watch('status') }}
       />
       <SuccessModal
         open={showSuccess}
+        title={isEditMode ? "Employee Updated Successfully!" : "Employee Created Successfully!"}
+        message={isEditMode
+          ? `${createdEmployee?.full_name || createdEmployee?.fullName} has been updated in the system.`
+          : `${createdEmployee?.full_name || createdEmployee?.fullName} has been added to the system.`
+        }
         employee={createdEmployee}
         onViewEmployee={() => navigate('/admin/employees')}
-        onCreateOffer={() => navigate('/admin/offers')}
+        onCreateOffer={!isEditMode ? () => navigate('/admin/offers') : undefined}
         onClose={() => { setShowSuccess(false); navigate('/admin/employees'); }}
       />
 

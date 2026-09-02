@@ -111,7 +111,7 @@ export default function EmailHistory() {
             <tbody className="divide-y divide-[var(--color-border)]">
               {filteredLogs.length > 0 ? (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-blue-50/20 transition-colors">
+                  <tr key={log.id} className="hover:bg-[#D8F5FA]/20 transition-colors">
                     <td className="px-4 py-3.5">
                       <p className="font-bold text-gray-900">{log.recipientName}</p>
                       <p className="text-[11px] font-mono text-[var(--color-primary)]">{log.employeeId}</p>
@@ -139,9 +139,9 @@ export default function EmailHistory() {
 
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
-                        log.status === 'Delivered' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-red-50 text-red-700 border border-red-200'
+                        log.status === 'Delivered' ? 'bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA]' : 'bg-red-50 text-red-700 border border-red-200'
                       }`}>
-                        <CheckCircle2 className="h-3 w-3 text-teal-600" />
+                        <CheckCircle2 className="h-3 w-3 text-[#E63946]" />
                         {log.status}
                       </span>
                     </td>

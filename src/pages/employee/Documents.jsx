@@ -123,9 +123,9 @@ export default function Documents() {
       </div>
 
       {/* Drag & Drop Upload Zone */}
-      <Card className="border-2 border-dashed border-blue-200 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-white rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
+      <Card className="border-2 border-dashed border-[#D8F5FA] bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-white rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
         <div className="max-w-md mx-auto space-y-3">
-          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30">
+          <div className="w-14 h-14 bg-[#E63946] text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-[#E63946]/30">
             <Upload className="h-6 w-6" />
           </div>
 
@@ -137,7 +137,7 @@ export default function Documents() {
           </div>
 
           <div className="pt-2">
-            <label className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 cursor-pointer transition-all">
+            <label className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#E63946] hover:bg-[#FF6B6B] text-white text-xs font-bold rounded-xl shadow-md shadow-[#E63946]/20 cursor-pointer transition-all">
               <Upload size={14} />
               <span>{isUploading ? 'Uploading file...' : 'Choose File to Upload'}</span>
               <input 
@@ -160,7 +160,7 @@ export default function Documents() {
             placeholder="Search document name or type..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
           />
         </div>
 
@@ -171,7 +171,7 @@ export default function Documents() {
               onClick={() => setActiveCategory(cat)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
             >
@@ -204,7 +204,7 @@ export default function Documents() {
                   <div className="min-w-0 space-y-1">
                     <p className="font-bold text-sm text-slate-900 truncate">{doc.document_name || doc.name}</p>
                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-500">
-                      <span className="font-semibold text-blue-600">{doc.category}</span>
+                      <span className="font-semibold text-[#E63946]">{doc.category}</span>
                       <span>•</span>
                       <span>{doc.file_size || doc.size || '1.0 MB'}</span>
                     </div>
@@ -215,7 +215,7 @@ export default function Documents() {
                   <div>{getStatusBadge(doc.verification_status || doc.status)}</div>
                   <button
                     onClick={() => setPreviewDoc(doc)}
-                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-slate-500 hover:text-[#E63946] hover:bg-[#D8F5FA] rounded-xl transition-colors cursor-pointer"
                     title="Preview Document"
                   >
                     <Eye size={16} />
@@ -237,7 +237,7 @@ export default function Documents() {
       {previewDoc && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-6 bg-[#0F172A] text-white flex items-center justify-between">
+            <div className="p-6 bg-[#E63946] text-white flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-white mt-1">{previewDoc.document_name || previewDoc.name}</h3>
                 <p className="text-xs text-slate-300">Category: {previewDoc.category}</p>
@@ -251,7 +251,7 @@ export default function Documents() {
             </div>
 
             <div className="p-8 bg-slate-50 text-center space-y-4 border-b border-slate-200">
-              <FileText size={48} className="text-blue-600 mx-auto" />
+              <FileText size={48} className="text-[#E63946] mx-auto" />
               <div className="space-y-1">
                 <p className="font-bold text-sm text-slate-800">{previewDoc.document_name || previewDoc.name}</p>
                 <p className="text-xs text-slate-500">Status: {previewDoc.verification_status || previewDoc.status}</p>

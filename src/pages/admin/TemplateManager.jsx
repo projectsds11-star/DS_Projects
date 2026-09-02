@@ -86,7 +86,7 @@ export default function TemplateManager() {
               onClick={() => setSelectedRole(pos)}
               className={`w-full text-left p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-between ${
                 selectedRole === pos
-                  ? 'border-[var(--color-primary)] bg-blue-50 text-[var(--color-primary)] shadow-xs'
+                  ? 'border-[var(--color-primary)] bg-[#D8F5FA] text-[var(--color-primary)] shadow-xs'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >

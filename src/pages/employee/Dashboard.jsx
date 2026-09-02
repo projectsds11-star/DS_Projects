@@ -149,13 +149,13 @@ export default function EmployeeDashboard() {
       )}
 
       {/* Hero Welcome & Shift Status Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E3A8A] text-white p-6 sm:p-8 lg:p-10 shadow-xl border border-slate-700/60">
-        <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 -top-20 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#E63946] via-[#FF6B6B] to-[#FFDDE0] text-white p-6 sm:p-8 lg:p-10 shadow-xl border border-[#E63946]/40">
+        <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-[#00B4D8]/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute left-1/3 -top-20 w-60 h-60 bg-[#D8F5FA]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
           <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-blue-200 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#D8F5FA] text-xs font-semibold">
               <Sparkles size={14} className="text-amber-300" />
               <span>Live Field Operations Portal</span>
             </div>
@@ -165,7 +165,7 @@ export default function EmployeeDashboard() {
             </h1>
 
             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300">
-              <span className="flex items-center gap-1.5 font-mono text-blue-300 font-bold bg-blue-950/80 px-3 py-1 rounded-xl border border-blue-700/60 shadow-sm">
+              <span className="flex items-center gap-1.5 font-mono text-[#00B4D8] font-bold bg-blue-950/80 px-3 py-1 rounded-xl border border-blue-700/60 shadow-sm">
                 ID: {employee?.employee_id || currentEmpId}
               </span>
               <span className="flex items-center gap-1.5 font-bold text-emerald-300 bg-emerald-950/80 px-3 py-1 rounded-xl border border-emerald-700/60 shadow-sm">
@@ -216,10 +216,10 @@ export default function EmployeeDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+            <div className="p-3 bg-[#D8F5FA] rounded-xl text-[#E63946]">
               <CheckSquare className="h-5 w-5" />
             </div>
-            <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full">
               Live Total
             </span>
           </div>
@@ -242,7 +242,7 @@ export default function EmployeeDashboard() {
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+            <div className="p-3 bg-indigo-50 rounded-xl text-[#E63946]">
               <Upload className="h-5 w-5" />
             </div>
             <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">
@@ -332,7 +332,7 @@ export default function EmployeeDashboard() {
                         <Button
                           size="sm"
                           onClick={() => setSelectedTaskForSubmission(task)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer"
+                          className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-semibold cursor-pointer"
                           icon={Send}
                         >
                           Submit Report
@@ -357,7 +357,7 @@ export default function EmployeeDashboard() {
           <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white p-5">
             <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
               <span>Quick Actions</span>
-              <Sparkles size={14} className="text-blue-600" />
+              <Sparkles size={14} className="text-[#E63946]" />
             </h3>
             <div className="grid grid-cols-2 gap-2.5">
               <button 
@@ -368,7 +368,7 @@ export default function EmployeeDashboard() {
               </button>
               <button 
                 onClick={() => showToast('Navigating to Documents Hub...')}
-                className="p-3.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-100 text-xs font-bold text-center cursor-pointer"
+                className="p-3.5 rounded-xl bg-[#D8F5FA] hover:bg-[#D8F5FA] text-blue-800 border border-[#D8F5FA] text-xs font-bold text-center cursor-pointer"
               >
                 Upload KYC
               </button>
@@ -402,9 +402,9 @@ export default function EmployeeDashboard() {
       {selectedTaskForSubmission && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-6 bg-[#0F172A] text-white flex items-start justify-between">
+            <div className="p-6 bg-[#E63946] text-white flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold bg-blue-600 px-2 py-0.5 rounded text-white">
+                <span className="text-[10px] font-mono font-bold bg-[#E63946] px-2 py-0.5 rounded text-white">
                   {selectedTaskForSubmission.task_code || selectedTaskForSubmission.id}
                 </span>
                 <h3 className="text-lg font-bold text-white mt-1">Submit Work Report</h3>
@@ -427,7 +427,7 @@ export default function EmployeeDashboard() {
                   value={submissionRemarks}
                   onChange={(e) => setSubmissionRemarks(e.target.value)}
                   placeholder="Enter detailed field observations, completed count, and outcomes..."
-                  className="w-full rounded-xl border border-slate-300 p-3 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-3 text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                 />
               </div>
 
@@ -435,7 +435,7 @@ export default function EmployeeDashboard() {
                 <Button type="button" variant="outline" onClick={() => setSelectedTaskForSubmission(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" icon={Send}>
+                <Button type="submit" className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold" icon={Send}>
                   Submit Report
                 </Button>
               </div>

@@ -74,7 +74,7 @@ export default function AdminLayout() {
             onClick={() => setShowLogoutModal(false)}
           />
           <div
-            className="relative w-full max-w-sm rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            className="relative w-full max-w-sm rounded-2xl border border-[#E63946]/40 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             style={{ background: 'linear-gradient(145deg, #0f172a 0%, #1a0a1e 100%)' }}
           >
             {/* Top accent bar */}
@@ -143,16 +143,16 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-white via-slate-50/90 to-slate-100/70 text-slate-800 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-lg border-r border-slate-200/90",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-[#E63946] text-white transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-lg border-r border-[#E63946]/90",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-24 px-5 bg-white border-b border-slate-200/90 shadow-2xs">
+        <div className="flex items-center justify-between h-24 px-5 border-b border-white/20 shadow-2xs">
           <div className="flex items-center justify-center flex-1 h-full py-2">
-            <img src="/logo.png" alt="DS PROJECTS" className="h-16 w-auto max-w-[210px] object-contain" />
+            <img src="/logo.png" alt="DS PROJECTS" className="h-16 w-auto max-w-[210px] object-contain brightness-0 invert" />
           </div>
-          <button onClick={toggleSidebar} className="lg:hidden text-slate-500 hover:text-slate-900 p-2 rounded-xl hover:bg-slate-100 transition-colors shrink-0 ml-1">
+          <button onClick={toggleSidebar} className="lg:hidden text-white/70 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors shrink-0 ml-1">
             <X size={22} />
           </button>
         </div>
@@ -160,8 +160,8 @@ export default function AdminLayout() {
         {/* Nav links */}
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5">
           <div className="px-3 pb-2 mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Enterprise Modules</p>
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <p className="text-[11px] font-extrabold text-white/60 uppercase tracking-wider">Enterprise Modules</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
           </div>
 
           {NAV_ITEMS.map((item) => {
@@ -174,49 +174,49 @@ export default function AdminLayout() {
                 className={cn(
                   "flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 text-xs sm:text-sm font-semibold group cursor-pointer",
                   isActive 
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-bold" 
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    ? "bg-white text-[#E63946] shadow-md font-bold" 
+                    : "text-white/80 hover:text-white hover:bg-[#FF6B6B]"
                 )}
                 onClick={() => setSidebarOpen(false)}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-blue-600")} />
+                  <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-[#E63946]" : "text-white/70 group-hover:text-white")} />
                   <span>{item.name}</span>
                 </div>
-                {isActive && <ChevronRight size={14} className="text-blue-100" />}
+                {isActive && <ChevronRight size={14} className="text-[#E63946]" />}
               </NavLink>
             );
           })}
         </div>
         
         {/* Admin Profile + Sign Out */}
-        <div className="p-4 bg-white/95 backdrop-blur-sm border-t border-slate-200/90 space-y-2.5">
+        <div className="p-4 space-y-2.5 mt-auto">
           {/* Sign Out Button - TOP */}
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-all duration-200 shadow-2xs cursor-pointer"
+            className="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/30 transition-all duration-200 shadow-2xs cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <LogOut className="h-4 w-4 text-slate-500 group-hover:text-rose-600 transition-transform group-hover:-translate-x-0.5" />
+              <LogOut className="h-4 w-4 text-white/60 group-hover:text-white transition-transform group-hover:-translate-x-0.5" />
               <span className="font-bold">Sign Out</span>
             </div>
-            <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="flex items-center gap-1.5 text-[10px] text-white font-bold bg-white/10 border border-white/20 px-2 py-0.5 rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Active
             </span>
           </button>
 
           {/* Admin Profile Card - BOTTOM */}
-          <div className="flex items-center p-3 rounded-2xl bg-slate-50/90 border border-slate-200/80 gap-3 shadow-2xs">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-base shrink-0 shadow-xs">
+          <div className="flex items-center p-3 rounded-2xl bg-white/10 border border-white/10 gap-3 shadow-2xs">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-white text-base shrink-0 shadow-xs">
               {adminEmail.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold text-slate-900 truncate">Super Admin</p>
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <p className="text-xs font-bold text-white truncate">Super Admin</p>
+                <ShieldCheck className="h-3.5 w-3.5 text-[#00B4D8] shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-500 truncate">{adminEmail}</p>
+              <p className="text-[11px] text-white/60 truncate">{adminEmail}</p>
             </div>
           </div>
         </div>

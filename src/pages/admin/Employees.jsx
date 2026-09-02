@@ -218,7 +218,7 @@ export default function Employees() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
             <span>Staff Directory & Workforce</span>
-            <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
               {employees.length} Total
             </span>
           </h1>
@@ -228,7 +228,7 @@ export default function Employees() {
         <div className="flex items-center gap-3">
           <Button 
             onClick={() => navigate('/admin/employees/add')} 
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+            className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
             icon={UserPlus}
           >
             + Add New Employee
@@ -245,7 +245,7 @@ export default function Employees() {
             placeholder="Search by name, ID, phone, email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
           />
         </div>
 
@@ -270,7 +270,7 @@ export default function Employees() {
             <select
               value={districtFilter}
               onChange={(e) => setDistrictFilter(e.target.value)}
-              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#E63946]"
             >
               {districts.map(d => (
                 <option key={d} value={d}>{d === 'All' ? 'All Districts' : d}</option>
@@ -303,13 +303,23 @@ export default function Employees() {
                     <tr key={empId} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
-                            emp.displayStatus === 'Inactive' 
-                              ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70' 
-                              : 'bg-gradient-to-tr from-blue-600 to-indigo-500'
-                          }`}>
-                            {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
-                          </div>
+                          {emp.photoUrl ? (
+                            <img 
+                              src={emp.photoUrl} 
+                              alt={emp.full_name || emp.name} 
+                              className={`w-10 h-10 rounded-xl object-cover shrink-0 shadow-xs ${
+                                emp.displayStatus === 'Inactive' ? 'opacity-50 grayscale' : ''
+                              }`} 
+                            />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
+                              emp.displayStatus === 'Inactive' 
+                                ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70' 
+                                : 'bg-gradient-to-tr from-[#E63946] to-[#FF6B6B]'
+                            }`}>
+                              {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <div className="font-bold text-slate-900 flex items-center gap-2">
                               <span>{emp.full_name || emp.name}</span>
@@ -319,7 +329,7 @@ export default function Employees() {
                                 </span>
                               )}
                             </div>
-                            <div className="font-mono text-xs text-blue-600 font-semibold">{empId}</div>
+                            <div className="font-mono text-xs text-[#E63946] font-semibold">{empId}</div>
                           </div>
                         </div>
                       </td>
@@ -390,7 +400,7 @@ export default function Employees() {
                           ) : (
                             <button
                               onClick={() => navigate(`/admin/onboarding/create?candidateId=${empId}`)}
-                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              className="px-3 py-1.5 text-xs font-bold text-[#E63946] bg-[#D8F5FA] hover:bg-[#D8F5FA] rounded-xl border border-[#D8F5FA] transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
                             >
                               <Send size={12} />
                               Issue Offer
@@ -423,7 +433,7 @@ export default function Employees() {
                   : 'Try adjusting your search query or filter settings.'}
               </p>
               {employees.length === 0 && (
-                <Button onClick={() => navigate('/admin/employees/add')} className="bg-blue-600 text-white font-bold mt-2" icon={Plus}>
+                <Button onClick={() => navigate('/admin/employees/add')} className="bg-[#E63946] text-white font-bold mt-2" icon={Plus}>
                   Add First Employee
                 </Button>
               )}
@@ -493,12 +503,25 @@ export default function Employees() {
               <button
                 type="button"
                 onClick={() => {
+                  const empId = activeMenu.emp.employee_id || activeMenu.emp.employeeId || activeMenu.emp.id;
+                  setActiveMenu(null);
+                  navigate(`/admin/employees/edit/${empId}`);
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Edit size={14} className="text-[#00B4D8]" />
+                <span>Edit Employee</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveMenu(null);
                   navigate('/admin/work');
                 }}
                 className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <FileText size={14} className="text-blue-600" />
+                <FileText size={14} className="text-[#E63946]" />
                 <span>Dispatch Task</span>
               </button>
 
@@ -511,7 +534,7 @@ export default function Employees() {
                 }}
                 className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Send size={14} className="text-indigo-600" />
+                <Send size={14} className="text-[#E63946]" />
                 <span>Issue Offer Letter</span>
               </button>
             </div>

@@ -77,15 +77,15 @@ export default function EmployeeNotifications() {
   });
 
   const getTypeIcon = (type) => {
-    if (type === 'task' || type === 'work') return <ClipboardCheck className="h-5 w-5 text-blue-600" />;
+    if (type === 'task' || type === 'work') return <ClipboardCheck className="h-5 w-5 text-[#E63946]" />;
     if (type === 'success') return <CheckCircle2 className="h-5 w-5 text-emerald-600" />;
     if (type === 'reminder') return <Clock className="h-5 w-5 text-amber-600" />;
     if (type === 'announcement') return <Megaphone className="h-5 w-5 text-purple-600" />;
-    return <Sparkles className="h-5 w-5 text-indigo-600" />;
+    return <Sparkles className="h-5 w-5 text-[#E63946]" />;
   };
 
   const getTypeBg = (type) => {
-    if (type === 'task' || type === 'work') return 'bg-blue-50 border-blue-200';
+    if (type === 'task' || type === 'work') return 'bg-[#D8F5FA] border-[#D8F5FA]';
     if (type === 'success') return 'bg-emerald-50 border-emerald-200';
     if (type === 'reminder') return 'bg-amber-50 border-amber-200';
     if (type === 'announcement') return 'bg-purple-50 border-purple-200';
@@ -108,7 +108,7 @@ export default function EmployeeNotifications() {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-0.5 rounded-full shadow-xs">
+              <span className="text-xs font-bold bg-[#E63946] text-white px-2.5 py-0.5 rounded-full shadow-xs">
                 {unreadCount} New
               </span>
             )}
@@ -138,7 +138,7 @@ export default function EmployeeNotifications() {
             placeholder="Search notifications..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
           />
         </div>
 
@@ -149,7 +149,7 @@ export default function EmployeeNotifications() {
               onClick={() => setActiveCategory(cat)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
             >
@@ -170,7 +170,7 @@ export default function EmployeeNotifications() {
                   key={n.id}
                   onClick={() => markSingleAsRead(n.id)}
                   className={`p-6 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-5 cursor-pointer ${
-                    !isRead ? 'bg-blue-50/40 hover:bg-blue-50/70' : 'hover:bg-slate-50/80'
+                    !isRead ? 'bg-[#D8F5FA]/40 hover:bg-[#D8F5FA]/70' : 'hover:bg-slate-50/80'
                   }`}
                 >
                   <div className="flex items-start gap-4 flex-1">
@@ -184,7 +184,7 @@ export default function EmployeeNotifications() {
                           {n.title}
                         </h3>
                         {!isRead && (
-                          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-[#E63946] shrink-0" />
                         )}
                       </div>
 
@@ -201,7 +201,7 @@ export default function EmployeeNotifications() {
                               markSingleAsRead(n.id);
                               navigate(n.action_link || n.actionLink);
                             }}
-                            className="inline-flex items-center gap-1 font-bold text-blue-600 hover:underline cursor-pointer"
+                            className="inline-flex items-center gap-1 font-bold text-[#E63946] hover:underline cursor-pointer"
                           >
                             <span>{n.action_text || n.actionText || 'View'}</span>
                             <ArrowRight size={12} />

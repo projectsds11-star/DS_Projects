@@ -74,7 +74,7 @@ export default function EmployeeSettings() {
 
     if (score <= 1) return { score: 25, label: 'Weak', color: 'bg-rose-500' };
     if (score === 2) return { score: 50, label: 'Fair', color: 'bg-amber-500' };
-    if (score === 3) return { score: 75, label: 'Good', color: 'bg-blue-500' };
+    if (score === 3) return { score: 75, label: 'Good', color: 'bg-[#00B4D8]' };
     return { score: 100, label: 'Strong', color: 'bg-emerald-500' };
   };
 
@@ -115,7 +115,7 @@ export default function EmployeeSettings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold text-left transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                    ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
@@ -133,7 +133,7 @@ export default function EmployeeSettings() {
             <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
               <CardHeader className="px-6 py-5 border-b border-slate-100">
                 <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Lock className="h-5 w-5 text-blue-600" />
+                  <Lock className="h-5 w-5 text-[#E63946]" />
                   Change Account Password
                 </CardTitle>
                 <p className="text-xs text-slate-500 mt-0.5">Ensure your portal password is secure and updated regularly</p>
@@ -230,7 +230,7 @@ export default function EmployeeSettings() {
                   <div className="pt-2 flex justify-end">
                     <Button 
                       type="submit" 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20"
+                      className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold shadow-md shadow-[#E63946]/20"
                       icon={Save}
                     >
                       Update Password
@@ -246,7 +246,7 @@ export default function EmployeeSettings() {
             <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
               <CardHeader className="px-6 py-5 border-b border-slate-100">
                 <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-indigo-600" />
+                  <Bell className="h-5 w-5 text-[#E63946]" />
                   Notification Channels & Alerts
                 </CardTitle>
                 <p className="text-xs text-slate-500 mt-0.5">Control how and when you receive field updates and reminders</p>
@@ -274,7 +274,7 @@ export default function EmployeeSettings() {
                             ...notifPrefs,
                             [item.key]: { ...notifPrefs[item.key], email: e.target.checked }
                           })}
-                          className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          className="rounded text-[#E63946] focus:ring-[#E63946] h-4 w-4"
                         />
                         <span>Email Alert</span>
                       </label>
@@ -287,7 +287,7 @@ export default function EmployeeSettings() {
                             ...notifPrefs,
                             [item.key]: { ...notifPrefs[item.key], inApp: e.target.checked }
                           })}
-                          className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          className="rounded text-[#E63946] focus:ring-[#E63946] h-4 w-4"
                         />
                         <span>In-App Banner</span>
                       </label>
@@ -300,7 +300,7 @@ export default function EmployeeSettings() {
                             ...notifPrefs,
                             [item.key]: { ...notifPrefs[item.key], sms: e.target.checked }
                           })}
-                          className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          className="rounded text-[#E63946] focus:ring-[#E63946] h-4 w-4"
                         />
                         <span>SMS / WhatsApp</span>
                       </label>
@@ -311,7 +311,7 @@ export default function EmployeeSettings() {
                 <div className="pt-2 flex justify-end">
                   <Button 
                     onClick={() => showToast('Notification preferences saved!')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold"
                     icon={Save}
                   >
                     Save Preferences
@@ -337,7 +337,7 @@ export default function EmployeeSettings() {
                   <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                   >
                     <option>English (Default)</option>
                     <option>తెలుగు (Telugu)</option>
@@ -350,7 +350,7 @@ export default function EmployeeSettings() {
                   <select 
                     value={dateFormat}
                     onChange={(e) => setDateFormat(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
                   >
                     <option>DD/MM/YYYY (e.g. 01/09/2026)</option>
                     <option>MM/DD/YYYY (e.g. 09/01/2026)</option>
@@ -361,7 +361,7 @@ export default function EmployeeSettings() {
                 <div className="pt-2 flex justify-end">
                   <Button 
                     onClick={() => showToast('Regional preferences saved!')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold"
                     icon={Save}
                   >
                     Save Settings
@@ -377,7 +377,7 @@ export default function EmployeeSettings() {
               {/* Field Support Hotline */}
               <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white shadow-md space-y-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-white/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#00B4D8] bg-white/10 px-2 py-0.5 rounded">
                     Field Operations Helpdesk
                   </span>
                   <h3 className="text-lg font-bold text-white mt-1">Need Assistance or Field Escalation?</h3>
@@ -388,11 +388,11 @@ export default function EmployeeSettings() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div className="p-3 rounded-xl bg-white/10 border border-white/15">
-                    <p className="text-[11px] text-blue-200 font-medium">District Officer Hotline</p>
+                    <p className="text-[11px] text-[#D8F5FA] font-medium">District Officer Hotline</p>
                     <p className="text-sm font-bold text-white font-mono mt-0.5">+91 94400 12345</p>
                   </div>
                   <div className="p-3 rounded-xl bg-white/10 border border-white/15">
-                    <p className="text-[11px] text-blue-200 font-medium">Technical Support Email</p>
+                    <p className="text-[11px] text-[#D8F5FA] font-medium">Technical Support Email</p>
                     <p className="text-sm font-bold text-white mt-0.5">support@dsprojects.in</p>
                   </div>
                 </div>
