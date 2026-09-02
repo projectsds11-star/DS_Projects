@@ -150,8 +150,8 @@ export default function AdminLayout() {
         {/* Brand Header */}
         <div className="flex items-center justify-between h-20 px-6 bg-[#0B0F19] border-b border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/25 tracking-tight text-base ring-2 ring-white/10">
-              DS
+            <div className="w-11 h-11 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
+              <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <div>
               <span className="text-base font-bold tracking-wider text-white">DS PROJECTS</span>

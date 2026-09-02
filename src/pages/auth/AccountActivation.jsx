@@ -62,8 +62,8 @@ export default function AccountActivation() {
     <div className="min-h-screen bg-[var(--color-background)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
-        <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold text-xl mx-auto shadow-md mb-3">
-          DS
+        <div className="w-14 h-14 rounded-2xl bg-slate-900 p-1.5 flex items-center justify-center mx-auto shadow-md mb-3 border border-slate-200 overflow-hidden">
+          <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-xl" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-navy)]">
           DS PROJECTS

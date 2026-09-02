@@ -100,8 +100,8 @@ export default function EmployeeLogin() {
         
         {/* Header */}
         <div className="bg-[#0F172A] p-8 text-center text-white relative">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-white font-extrabold text-xl shadow-lg shadow-blue-500/30">
-            DS
+          <div className="w-14 h-14 bg-slate-900 rounded-2xl p-1.5 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden">
+            <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white">DS PROJECTS</h1>
           <p className="text-blue-300 text-xs uppercase tracking-widest font-semibold mt-1">Field Operations Employee Portal</p>

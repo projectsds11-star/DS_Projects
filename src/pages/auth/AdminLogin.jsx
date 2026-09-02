@@ -217,10 +217,8 @@ export default function AdminLogin() {
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-lg shadow-blue-500/25">
-                <div className="w-full h-full bg-[#0B0F19] rounded-[10px] flex items-center justify-center font-black text-lg text-white tracking-tighter">
-                  DS
-                </div>
+              <div className="w-12 h-12 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
+                <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
               </div>
               <div>
                 <h1 className="font-extrabold text-xl tracking-tight text-white flex items-center gap-2">
@@ -314,8 +312,8 @@ export default function AdminLogin() {
           {/* Mobile Top Header */}
           <div className="lg:hidden w-full max-w-md flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-extrabold text-white">
-                DS
+              <div className="w-11 h-11 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
+                <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
               </div>
               <div>
                 <h3 className="font-bold text-base text-white">DS PROJECTS</h3>
