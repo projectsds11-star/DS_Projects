@@ -89,7 +89,7 @@ export default function WorkManagement() {
       try {
         const [taskList, empList] = await Promise.all([
           liveDataService.getWorkTasks(),
-          liveDataService.getEmployees()
+          liveDataService.getActiveOnboardedEmployees()
         ]);
         if (taskList) setTasks(taskList);
         if (empList) {
@@ -97,7 +97,7 @@ export default function WorkManagement() {
           if (empList.length > 0) {
             setNewTask(prev => ({
               ...prev,
-              assigned_employee_id: empList[0].employee_id,
+              assigned_employee_id: empList[0].employee_id || empList[0].employeeId,
               district: empList[0].district,
               mandal: empList[0].mandal,
               location_name: `${empList[0].mandal || 'Field'} Mandal HQ`
@@ -313,31 +313,51 @@ export default function WorkManagement() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Assign To Staff *</label>
-                <select
-                  required
-                  value={newTask.assigned_employee_id}
-                  onChange={(e) => {
-                    const emp = employees.find(x => x.employee_id === e.target.value);
-                    setNewTask({
-                      ...newTask,
-                      assigned_employee_id: e.target.value,
-                      district: emp?.district || '',
-                      mandal: emp?.mandal || '',
-                      location_name: `${emp?.mandal || 'Field'} Mandal HQ`
-                    });
-                  }}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                >
-                  {employees.map(emp => (
-                    <option key={emp.employee_id} value={emp.employee_id}>
-                      {emp.full_name} ({emp.employee_id}) - {emp.mandal || emp.district}
-                    </option>
-                  ))}
-                  {employees.length === 0 && (
-                    <option value="DS-127">Rahul Kumar (DS-127)</option>
-                  )}
-                </select>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">Assign To Staff *</label>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Onboarded & Active Only
+                  </span>
+                </div>
+                {employees.length > 0 ? (
+                  <select
+                    required
+                    value={newTask.assigned_employee_id}
+                    onChange={(e) => {
+                      const emp = employees.find(x => (x.employee_id || x.employeeId || x.id) === e.target.value);
+                      setNewTask({
+                        ...newTask,
+                        assigned_employee_id: e.target.value,
+                        district: emp?.district || '',
+                        mandal: emp?.mandal || '',
+                        location_name: `${emp?.mandal || 'Field'} Mandal HQ`
+                      });
+                    }}
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  >
+                    {employees.map(emp => {
+                      const id = emp.employee_id || emp.employeeId || emp.id;
+                      const name = emp.full_name || emp.name || 'Staff Member';
+                      const role = emp.designation || 'Field Staff';
+                      const loc = emp.mandal || emp.district || 'AP';
+                      return (
+                        <option key={id} value={id}>
+                          {name} ({id}) — {role} [{loc}]
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                      <span>No Onboarded Active Staff Found</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700">
+                      Candidates must complete the Onboarding process and have their offer accepted before field tasks can be assigned to them.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">

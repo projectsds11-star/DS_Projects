@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Play, 
   Upload, 
@@ -16,13 +17,15 @@ import {
   Download,
   Eye,
   Trash2,
-  Loader2
+  Loader2,
+  AlertCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
-import { storageService } from '../../services/supabaseClient';
+import { storageService, supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -50,6 +53,7 @@ function getFileCategory(fileName = '', fileType = '') {
 }
 
 export default function MyWork() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +64,7 @@ export default function MyWork() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(true);
   const fileInputRef = useRef(null);
 
   const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
@@ -68,7 +73,20 @@ export default function MyWork() {
     async function fetchTasks() {
       setLoading(true);
       try {
-        const liveTasks = await liveDataService.getWorkTasks(currentEmpId);
+        const [liveTasks, emp] = await Promise.all([
+          liveDataService.getWorkTasks(currentEmpId),
+          liveDataService.getEmployeeById(currentEmpId)
+        ]);
+
+        // Check if onboarding is completed
+        let isCompleted = true;
+        if (emp) {
+          if (emp.status === 'Onboarding' || emp.status === 'Draft' || emp.status === 'Inactive') {
+            isCompleted = false;
+          }
+        }
+        setIsOnboardingCompleted(isCompleted);
+
         setTasks(liveTasks || []);
         if (liveTasks && liveTasks.length > 0) {
           setSelectedTask(liveTasks[0]);
@@ -251,8 +269,36 @@ export default function MyWork() {
         </div>
       </div>
 
-      {/* Main Split Layout: Tasks List (Left) + Detail & Submission Workspace (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* If Employee is pending onboarding, show informational gate */}
+      {!isOnboardingCompleted ? (
+        <Card className="p-8 sm:p-12 text-center space-y-5 border border-amber-200/90 bg-gradient-to-b from-amber-50/80 to-amber-50/30 rounded-3xl shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs border border-amber-200">
+            <Clock size={32} />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h2 className="text-xl font-extrabold text-slate-900">Onboarding Verification In Progress</h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Your employee profile is currently in the onboarding and document verification stage. Daily task dispatch, survey assignments, and work reporting will be unlocked as soon as your appointment offer is accepted and verified by the HR Directorate.
+            </p>
+          </div>
+          <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => navigate('/employee/documents')}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              View My Documents & Status
+            </button>
+            <button
+              onClick={() => navigate('/employee/profile')}
+              className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-xs transition-colors cursor-pointer"
+            >
+              My Profile
+            </button>
+          </div>
+        </Card>
+      ) : (
+        /* Main Split Layout: Tasks List (Left) + Detail & Submission Workspace (Right) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Side: Tasks List */}
         <div className="lg:col-span-5 space-y-3.5">
           {filteredTasks.length > 0 ? (
@@ -539,6 +585,7 @@ export default function MyWork() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

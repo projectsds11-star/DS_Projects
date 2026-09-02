@@ -32,7 +32,7 @@ export default function Notifications() {
       try {
         const [notifList, empList] = await Promise.all([
           liveDataService.getNotifications(),
-          liveDataService.getEmployees()
+          liveDataService.getActiveOnboardedEmployees()
         ]);
         if (notifList) setNotifications(notifList);
         if (empList) setEmployees(empList);

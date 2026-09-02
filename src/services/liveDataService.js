@@ -30,6 +30,46 @@ export const liveDataService = {
     return [..._employees];
   },
 
+  /**
+   * Returns ONLY employees who have completed onboarding and are Active.
+   * Filters out candidates who are still in Draft, Pending Offer, or Inactive status.
+   */
+  async getActiveOnboardedEmployees() {
+    const allEmps = await this.getEmployees();
+    let offers = [];
+    if (isSupabaseConfigured) {
+      try {
+        const { data } = await supabase.from('job_offers').select('*');
+        offers = data || [];
+      } catch (e) {
+        console.warn('Could not fetch job offers in getActiveOnboardedEmployees:', e);
+      }
+    }
+
+    return (allEmps || []).filter(emp => {
+      const empId = emp.employee_id || emp.employeeId || emp.id;
+      const matchingOffer = offers.find(o => 
+        (o.employee_id === empId || o.employeeId === empId) && 
+        (o.status === 'Offer Accepted' || o.status === 'Onboarding Completed' || o.status === 'Offer Sent')
+      );
+
+      const isCompleted = emp.status === 'Active' || 
+                          emp.onboarding_status === 'Completed' || 
+                          emp.onboarding_status === 'Onboarding Completed' ||
+                          matchingOffer?.status === 'Offer Accepted' ||
+                          matchingOffer?.status === 'Onboarding Completed';
+      
+      const isNotDisabled = emp.status !== 'Inactive' && emp.status !== 'Draft' && emp.status !== 'Onboarding';
+
+      // If status is explicitly 'Onboarding' without offer acceptance/completion, filter out
+      if (emp.status === 'Onboarding' && !matchingOffer) {
+        return false;
+      }
+
+      return (isCompleted || emp.status === 'Active') && isNotDisabled;
+    });
+  },
+
   async getEmployeeById(employeeId) {
     if (!employeeId) return null;
     if (isSupabaseConfigured) {
