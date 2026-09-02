@@ -99,12 +99,13 @@ export default function EmployeeLogin() {
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
         
         {/* Header */}
-        <div className="bg-[#0F172A] p-8 text-center text-white relative">
-          <div className="w-14 h-14 bg-slate-900 rounded-2xl p-1.5 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden">
-            <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-xl" />
+        <div className="bg-white p-8 pb-6 text-center border-b border-slate-100 relative">
+          <div className="flex items-center justify-center mx-auto mb-3 h-20 w-auto max-w-[260px]">
+            <img src="/logo.png" alt="DS PROJECTS" className="h-full w-auto object-contain" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">DS PROJECTS</h1>
-          <p className="text-blue-300 text-xs uppercase tracking-widest font-semibold mt-1">Field Operations Employee Portal</p>
+          <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-widest rounded-full">
+            Field Operations Employee Portal
+          </span>
         </div>
 
         {/* Form */}

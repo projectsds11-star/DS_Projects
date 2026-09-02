@@ -216,19 +216,16 @@ export default function AdminLogin() {
         <div className="hidden lg:flex lg:w-7/12 p-12 xl:p-16 flex-col justify-between border-r border-white/10 backdrop-blur-sm relative">
           {/* Brand Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
-                <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
+            <div className="flex items-center gap-4">
+              <div className="bg-white rounded-2xl p-3 shadow-2xl flex items-center justify-center border border-white/30 h-16 w-auto max-w-[240px]">
+                <img src="/logo.png" alt="DS Projects" className="h-full w-auto object-contain" />
               </div>
               <div>
-                <h1 className="font-extrabold text-xl tracking-tight text-white flex items-center gap-2">
-                  DS PROJECTS
-                  <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
-                    PRO SUITE
-                  </span>
-                </h1>
-                <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase">
-                  Executive HRMS & Operations Infrastructure
+                <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase bg-blue-500/15 text-blue-300 border border-blue-500/30 rounded-lg">
+                  EXECUTIVE SUITE
+                </span>
+                <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase mt-1">
+                  HRMS & Workforce Platform
                 </p>
               </div>
             </div>
@@ -311,17 +308,11 @@ export default function AdminLogin() {
           
           {/* Mobile Top Header */}
           <div className="lg:hidden w-full max-w-md flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/15 overflow-hidden shrink-0">
-                <img src="/logo.png" alt="DS Projects Logo" className="w-full h-full object-contain rounded-lg" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-white">DS PROJECTS</h3>
-                <p className="text-[10px] text-blue-400 font-semibold tracking-wider uppercase">Executive Console</p>
-              </div>
+            <div className="bg-white rounded-2xl p-2.5 shadow-xl border border-white/30 flex items-center justify-center h-14 max-w-[190px]">
+              <img src="/logo.png" alt="DS Projects" className="h-full w-auto object-contain" />
             </div>
-            <span className="px-2.5 py-1 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Secure
+            <span className="px-3 py-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Console
             </span>
           </div>
 
