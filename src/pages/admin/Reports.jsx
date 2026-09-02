@@ -30,7 +30,7 @@ export default function Reports() {
         liveDataService.getWorkTasks(),
         liveDataService.getAttendance()
       ]);
-      if (empList) setEmployees(empList);
+      if (empList) setEmployees(empList.filter(e => e.status === 'Active'));
       if (taskList) setTasks(taskList);
       if (attList) setAttendance(attList);
     }

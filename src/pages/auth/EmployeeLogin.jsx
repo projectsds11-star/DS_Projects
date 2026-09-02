@@ -72,6 +72,15 @@ export default function EmployeeLogin() {
         return;
       }
 
+      // Check Onboarding status restriction
+      if (emp && emp.status === 'Onboarding') {
+        setLoginError(
+          `Onboarding Incomplete: Employee account ${emp.employee_id || input} has not completed the onboarding process. Access to the Employee Portal is restricted until onboarding is marked complete.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const empId = emp?.employee_id || input.toUpperCase();
       localStorage.setItem('ds_employee_token', 'emp_jwt_' + Date.now());
       localStorage.setItem('ds_current_employee_id', empId);
