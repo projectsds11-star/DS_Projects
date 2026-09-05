@@ -447,8 +447,8 @@ export const updateStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!['active', 'inactive'].includes(status)) {
-    return res.status(422).json({ success: false, message: 'Status must be "active" or "inactive".' });
+  if (!['active', 'inactive', 'onboarding'].includes(status)) {
+    return res.status(422).json({ success: false, message: 'Status must be "active", "inactive", or "onboarding".' });
   }
 
   const { error } = await supabaseAdmin
@@ -461,7 +461,7 @@ export const updateStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to update employee status.' });
   }
 
-  return res.status(200).json({ success: true, message: `Employee ${status === 'active' ? 'activated' : 'deactivated'} successfully.` });
+  return res.status(200).json({ success: true, message: `Employee status updated to ${status} successfully.` });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,25 +473,33 @@ export const deleteEmployee = async (req, res) => {
 
   const { data: emp, error: fetchErr } = await supabaseAdmin
     .from('employees')
-    .select('id, candidate_photo_path, bank_passbook_path')
+    .select('id, candidate_photo_path, bank_passbook_path, aadhaar_document_path, pan_document_path')
     .eq('employee_id', id)
-    .is('deleted_at', null)
     .single();
 
   if (fetchErr || !emp) {
     return res.status(404).json({ success: false, message: 'Employee not found.' });
   }
 
+  // Hard delete from database
   const { error: delErr } = await supabaseAdmin
     .from('employees')
-    .update({ deleted_at: new Date().toISOString(), status: 'inactive' })
+    .delete()
     .eq('employee_id', id);
 
   if (delErr) {
     return res.status(500).json({ success: false, message: 'Failed to delete employee.' });
   }
 
-  return res.status(200).json({ success: true, message: 'Employee removed successfully.' });
+  // Cleanup files in background (don't block response)
+  Promise.all([
+    deleteFile('employee-photos', emp.candidate_photo_path),
+    deleteFile('employee-documents', emp.bank_passbook_path),
+    deleteFile('employee-documents', emp.aadhaar_document_path),
+    deleteFile('employee-documents', emp.pan_document_path)
+  ]).catch(err => console.error('[deleteEmployee] Failed to delete files:', err));
+
+  return res.status(200).json({ success: true, message: 'Employee permanently removed.' });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

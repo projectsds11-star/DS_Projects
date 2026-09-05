@@ -29,6 +29,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { employeeService } from '../../services/employeeService';
 
 function EmployeeAvatar({ emp }) {
@@ -76,6 +77,7 @@ export default function Employees() {
   const [updatingId, setUpdatingId] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null); // { type: 'action'|'status', emp: object, top: number, right?: number, left?: number }
   const [toastMessage, setToastMessage] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, emp: null });
 
   useEffect(() => {
     async function fetchEmployees() {
@@ -122,9 +124,14 @@ export default function Employees() {
     }
   };
 
-  const handleDelete = async (emp) => {
-    if (!window.confirm(`Permanently remove ${emp.name} (${emp.employeeId})? This action cannot be undone.`)) return;
+  const handleDelete = (emp) => {
     setActiveMenu(null);
+    setConfirmModal({ isOpen: true, emp });
+  };
+
+  const executeDelete = async () => {
+    const emp = confirmModal.emp;
+    if (!emp) return;
     try {
       await employeeService.deleteEmployee(emp.employeeId);
       setEmployees(prev => prev.filter(e => e.employeeId !== emp.employeeId));
@@ -526,6 +533,15 @@ export default function Employees() {
           )}
         </div>
       )}
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, emp: null })}
+        onConfirm={executeDelete}
+        title="Delete Employee?"
+        message={confirmModal.emp ? `Permanently remove ${confirmModal.emp.name} (${confirmModal.emp.employeeId})? This action cannot be undone and will delete all their uploaded documents.` : ''}
+        confirmText="Yes, delete"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

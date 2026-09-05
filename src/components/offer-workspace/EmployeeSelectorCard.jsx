@@ -24,12 +24,16 @@ export default function EmployeeSelectorCard({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
-  const filteredEmployees = employees.filter(e =>
-    !search ||
-    e.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    e.employeeId.toLowerCase().includes(search.toLowerCase()) ||
-    e.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredEmployees = employees.filter(e => {
+    const empName = e.name || e.fullName || '';
+    const empId = e.employeeId || '';
+    const empEmail = e.email || '';
+    
+    return !search ||
+      empName.toLowerCase().includes(search.toLowerCase()) ||
+      empId.toLowerCase().includes(search.toLowerCase()) ||
+      empEmail.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 sm:p-6 shadow-xs space-y-4" ref={dropdownRef}>
@@ -61,7 +65,7 @@ export default function EmployeeSelectorCard({
           )}
         >
           <span className={selectedEmployee ? 'font-semibold text-gray-900 truncate' : 'text-gray-400'}>
-            {selectedEmployee ? `${selectedEmployee.fullName} (${selectedEmployee.employeeId})` : 'Search & select employee by name or ID...'}
+            {selectedEmployee ? `${selectedEmployee.name || selectedEmployee.fullName || 'Unknown'} (${selectedEmployee.employeeId})` : 'Search & select employee by name or ID...'}
           </span>
           <Search className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
         </div>
@@ -98,10 +102,10 @@ export default function EmployeeSelectorCard({
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-xs text-[var(--color-navy)] shrink-0">
-                        {emp.fullName.charAt(0)}
+                        {(emp.name || emp.fullName || 'U').charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold truncate leading-tight">{emp.fullName}</p>
+                        <p className="font-bold truncate leading-tight">{emp.name || emp.fullName}</p>
                         <p className="text-[11px] font-mono text-gray-400 truncate mt-0.5">
                           {emp.employeeId} · {emp.email}
                         </p>
@@ -129,10 +133,10 @@ export default function EmployeeSelectorCard({
         <div className="bg-gray-50/90 rounded-xl p-4 border border-gray-200 space-y-3 text-xs">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
             <div className="w-11 h-11 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
-              {selectedEmployee.fullName.charAt(0)}
+              {(selectedEmployee.name || selectedEmployee.fullName || 'U').charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="font-bold text-gray-900 text-sm truncate">{selectedEmployee.fullName}</h4>
+              <h4 className="font-bold text-gray-900 text-sm truncate">{selectedEmployee.name || selectedEmployee.fullName}</h4>
               <p className="text-xs font-mono font-bold text-[var(--color-primary)]">
                 {selectedEmployee.employeeId}
               </p>

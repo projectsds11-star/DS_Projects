@@ -4,7 +4,7 @@
  */
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertTriangle, User, ArrowLeft, Check, PartyPopper } from 'lucide-react';
+import { CheckCircle, AlertTriangle, User, ArrowLeft, Check, PartyPopper, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Button } from '../ui/Button';
 
@@ -63,9 +63,16 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
         confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
       }, 250);
       
-      return () => clearInterval(interval);
+      const autoCloseTimer = setTimeout(() => {
+        if (onClose) onClose();
+      }, 5000);
+      
+      return () => {
+        clearInterval(interval);
+        clearTimeout(autoCloseTimer);
+      };
     }
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -88,6 +95,14 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
             
             {/* Top accent */}
             <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+            
+            {/* Close button */}
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-full transition-colors z-20"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
             <div className="px-6 py-8 space-y-5 text-center">
               {/* Icon */}
