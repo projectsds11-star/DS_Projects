@@ -31,6 +31,41 @@ import { Badge } from '../../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { employeeService } from '../../services/employeeService';
 
+function EmployeeAvatar({ emp }) {
+  const [imgUrl, setImgUrl] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (emp.photoPath) {
+      employeeService.getSignedUrl('employee-photos', emp.photoPath)
+        .then(url => {
+          if (isMounted) setImgUrl(url);
+        })
+        .catch(() => {});
+    }
+    return () => { isMounted = false; };
+  }, [emp.photoPath]);
+
+  if (imgUrl) {
+    return (
+      <img 
+        src={imgUrl} 
+        alt={emp.name} 
+        className={`w-10 h-10 rounded-xl object-cover shrink-0 shadow-xs border border-slate-200 ${emp.displayStatus === 'Inactive' ? 'opacity-70 grayscale' : ''}`}
+      />
+    );
+  }
+
+  return (
+    <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${emp.displayStatus === 'Inactive'
+        ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70'
+        : 'bg-gradient-to-tr from-[#E63946] to-[#FF6B6B]'
+      }`}>
+      {(emp.name || 'E').charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 export default function Employees() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
@@ -278,12 +313,7 @@ export default function Employees() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${emp.displayStatus === 'Inactive'
-                            ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70'
-                            : 'bg-gradient-to-tr from-[#E63946] to-[#FF6B6B]'
-                          }`}>
-                          {(emp.name || 'E').charAt(0).toUpperCase()}
-                        </div>
+                        <EmployeeAvatar emp={emp} />
                         <div>
                           <div className="font-bold text-slate-900 flex items-center gap-2">
                             <span>{emp.name}</span>

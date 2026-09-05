@@ -71,9 +71,9 @@ export default function DocumentUploader({
   return (
     <div className="space-y-1.5">
       {label && (
-        <p className="text-sm font-medium text-gray-700">
+        <p className="text-sm font-bold text-slate-700">
           {label}
-          {required && <span className="text-[var(--color-error)] ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1 font-black">*</span>}
         </p>
       )}
 
@@ -84,30 +84,30 @@ export default function DocumentUploader({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            className="flex items-center gap-3 p-3 border border-green-200 bg-green-50 rounded-lg"
+            className="flex items-center gap-3 p-3 border border-emerald-200 bg-emerald-50 rounded-xl"
           >
-            <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0', fileInfo?.color || 'bg-gray-100 text-gray-500')}>
+            <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 shadow-sm', fileInfo?.color || 'bg-slate-100 text-slate-500')}>
               {fileInfo?.label || 'FILE'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">{value.name}</p>
-              <p className="text-xs text-gray-400">{formatBytes(value.size)}</p>
+              <p className="text-sm font-bold text-slate-800 truncate">{value.name}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500 mt-0.5">{formatBytes(value.size)}</p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Check className="h-4 w-4 text-green-500" />
+              <Check className="h-5 w-5 text-emerald-500 mr-2" />
               {value.preview && (
                 <a href={value.preview} target="_blank" rel="noopener noreferrer"
-                  className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] rounded transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-indigo-600 rounded transition-colors"
                   title="Preview">
                   <Eye className="h-4 w-4" />
                 </a>
               )}
               <button type="button" onClick={() => inputRef.current?.click()}
-                className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] rounded transition-colors" title="Replace">
+                className="p-1.5 text-slate-400 hover:text-indigo-600 rounded transition-colors" title="Replace">
                 <UploadCloud className="h-4 w-4" />
               </button>
               <button type="button" onClick={handleRemove}
-                className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors" title="Remove">
+                className="p-1.5 text-slate-400 hover:text-red-500 rounded transition-colors" title="Remove">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -118,33 +118,33 @@ export default function DocumentUploader({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className={cn(
-              'flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-lg cursor-pointer transition-all text-center',
+              'flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed rounded-xl cursor-pointer transition-all text-center',
               dragging
-                ? 'border-[var(--color-primary)] bg-blue-50'
-                : 'border-gray-200 hover:border-[var(--color-primary)] hover:bg-blue-50/30',
-              displayError && 'border-[var(--color-error)] bg-red-50/20'
+                ? 'border-indigo-400 bg-indigo-50'
+                : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30',
+              displayError && 'border-red-400 bg-red-50/20'
             )}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
           >
-            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', dragging ? 'bg-blue-100' : 'bg-gray-100')}>
-              <UploadCloud className={cn('h-5 w-5', dragging ? 'text-[var(--color-primary)]' : 'text-gray-400')} />
+            <div className={cn('w-12 h-12 rounded-full flex items-center justify-center shadow-sm', dragging ? 'bg-indigo-100' : 'bg-slate-100')}>
+              <UploadCloud className={cn('h-6 w-6', dragging ? 'text-indigo-600' : 'text-slate-400')} />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Drag & drop or <span className="text-[var(--color-primary)]">browse</span>
+              <p className="text-sm font-bold text-slate-600">
+                Drag & drop or <span className="text-indigo-600 hover:underline">browse</span>
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{acceptedLabel} · Max {MAX_SIZE_MB}MB</p>
+              <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">{acceptedLabel} · Max {MAX_SIZE_MB}MB</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {displayError && (
-        <p className="text-xs text-[var(--color-error)] flex items-center gap-1 mt-1">
-          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <p className="text-xs font-bold text-red-500 flex items-center gap-1.5 mt-1.5">
+          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
           {displayError}

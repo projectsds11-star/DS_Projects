@@ -9,31 +9,34 @@ import { cn } from '../../utils/cn';
 export default function FormSection({ number, title, description, children, className }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: number * 0.04, ease: 'easeOut' }}
+      transition={{ duration: 0.4, delay: number * 0.05, ease: 'easeOut' }}
       className={cn(
-        'bg-white rounded-xl border border-[var(--color-border)] overflow-hidden shadow-sm',
+        'bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative',
         className
       )}
     >
+      {/* Decorative Gradient Line */}
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-teal-400" />
+
       {/* Section Header */}
-      <div className="px-6 py-4 border-b border-[var(--color-border)] bg-gray-50/60 flex items-start gap-4">
-        <div className="w-9 h-9 rounded-lg bg-[var(--color-lavender)] flex items-center justify-center shrink-0">
-          <span className="text-xs font-bold text-[var(--color-primary)]">
+      <div className="px-6 py-5 bg-gradient-to-b from-slate-50/80 to-white/20 border-b border-slate-100/60 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/50">
+          <span className="text-sm font-black text-indigo-600">
             {String(number).padStart(2, '0')}
           </span>
         </div>
         <div className="pt-0.5">
-          <h3 className="text-sm font-semibold text-[var(--color-navy)] leading-tight">{title}</h3>
+          <h3 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h3>
           {description && (
-            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{description}</p>
+            <p className="text-sm text-slate-500 mt-1 font-medium">{description}</p>
           )}
         </div>
       </div>
 
       {/* Section Body */}
-      <div className="p-6">{children}</div>
+      <div className="p-6 sm:p-8 bg-white/40">{children}</div>
     </motion.div>
   );
 }
@@ -60,10 +63,10 @@ export function FieldLabel({ htmlFor, required, children }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-sm font-medium text-gray-700 mb-1.5"
+      className="block text-sm font-bold tracking-wide text-slate-700 mb-2 uppercase text-[11px]"
     >
       {children}
-      {required && <span className="text-[var(--color-error)] ml-1">*</span>}
+      {required && <span className="text-red-500 ml-1 font-black">*</span>}
     </label>
   );
 }
@@ -91,9 +94,9 @@ export function FormField({ label, required, error, helper, children, className,
   return (
     <div className={cn('flex flex-col', colSpan === 2 && 'sm:col-span-2', className)}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-2">
           {label}
-          {required && <span className="text-[var(--color-error)] ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1 font-black">*</span>}
         </label>
       )}
       {children}

@@ -230,7 +230,7 @@ export const createEmployee = async (req, res) => {
   // ── 6. Database insert ────────────────────────────────────────────────────
   const employeeRecord = {
     employee_id: employeeId,
-    name: name.trim(),
+    full_name: name.trim(),
     address: address.trim(),
     phone: phone.trim().replace(/\s/g, ''),
     email: email.trim().toLowerCase(),
@@ -268,8 +268,8 @@ export const createEmployee = async (req, res) => {
     // Rollback file uploads
     await deleteFile('employee-photos', photoPath);
     await deleteFile('employee-documents', passbookPath);
-    console.error('[createEmployee] DB insert error:', insertError.message);
-    return res.status(500).json({ success: false, message: 'Failed to save employee record. Please try again.' });
+    console.error('[createEmployee] DB insert error:', insertError.message, insertError.details);
+    return res.status(500).json({ success: false, message: `DB Error: ${insertError.message}` });
   }
 
   // ── 7. Welcome email (non-blocking — employee already created) ────────────
@@ -399,7 +399,7 @@ export const updateEmployee = async (req, res) => {
   }
 
   const updates = {};
-  if (name) updates.name = name.trim();
+  if (name) updates.full_name = name.trim();
   if (address) updates.address = address.trim();
   if (phone) updates.phone = phone.trim();
   if (email) updates.email = email.trim().toLowerCase();

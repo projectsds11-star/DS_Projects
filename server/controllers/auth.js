@@ -141,7 +141,7 @@ export const verifyOtp = async (req, res) => {
   const token = jwt.sign(
     { email: formattedEmail, role: 'admin' },
     process.env.JWT_SECRET || 'DS_Projects_JWT_SuperSecret_2026_#Andhra',
-    { expiresIn: '8h' }
+    { expiresIn: '7d' }
   );
 
   return res.status(200).json({ message: 'Login successful', token, email: formattedEmail });

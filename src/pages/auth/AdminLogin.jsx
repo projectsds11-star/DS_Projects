@@ -2,22 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Mail,
-  ArrowRight,
-  ShieldCheck,
-  KeyRound,
-  Lock,
-  Sparkles,
-  RefreshCw,
-  Building2,
-  Users,
-  CheckCircle2,
-  AlertCircle,
-  ArrowLeft,
-  Copy,
-  Check,
-  Fingerprint,
-  ShieldAlert,
+  Mail, ArrowRight, ShieldCheck, KeyRound, Lock,
+  RefreshCw, Building2, Users, AlertCircle, ArrowLeft
 } from 'lucide-react';
 
 const ADMIN_EMAILS = [
@@ -38,7 +24,6 @@ export default function AdminLogin() {
 
   const otpInputsRef = useRef([]);
 
-  // Resend OTP countdown timer
   useEffect(() => {
     let timer;
     if (resendCooldown > 0) {
@@ -49,7 +34,6 @@ export default function AdminLogin() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Handle Step 1: Send OTP
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     setError('');
@@ -83,7 +67,6 @@ export default function AdminLogin() {
       setStep('otp');
       setResendCooldown(60);
       setMessage(data.message || `A 6-digit passcode was dispatched to ${formattedEmail}`);
-      // Focus first OTP input on transition
       setTimeout(() => {
         if (otpInputsRef.current[0]) {
           otpInputsRef.current[0].focus();
@@ -96,7 +79,6 @@ export default function AdminLogin() {
     }
   };
 
-  // Handle OTP digit changes
   const handleOtpChange = (index, value) => {
     const sanitized = value.replace(/[^0-9]/g, '');
     if (!sanitized && value !== '') return;
@@ -104,7 +86,6 @@ export default function AdminLogin() {
     const newOtp = [...otpValues];
 
     if (sanitized.length > 1) {
-      // Handle multi-character paste into one slot
       const pastedDigits = sanitized.slice(0, 6).split('');
       pastedDigits.forEach((digit, i) => {
         if (index + i < 6) newOtp[index + i] = digit;
@@ -120,20 +101,17 @@ export default function AdminLogin() {
     newOtp[index] = sanitized;
     setOtpValues(newOtp);
 
-    // Auto-focus next input
     if (sanitized && index < 5 && otpInputsRef.current[index + 1]) {
       otpInputsRef.current[index + 1].focus();
     }
   };
 
-  // Handle OTP keyboard navigation (backspace)
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
       otpInputsRef.current[index - 1].focus();
     }
   };
 
-  // Handle OTP paste across all inputs
   const handleOtpPaste = (e) => {
     e.preventDefault();
     const pasteData = e.clipboardData.getData('text').trim().replace(/[^0-9]/g, '');
@@ -152,7 +130,6 @@ export default function AdminLogin() {
     }
   };
 
-  // Handle Step 2: Verify OTP
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
     setError('');
@@ -180,11 +157,8 @@ export default function AdminLogin() {
         throw new Error(data.message || 'Invalid or expired verification code.');
       }
 
-      // Store security credentials
       localStorage.setItem('ds_admin_token', data.token);
       localStorage.setItem('ds_admin_session', JSON.stringify({ email: data.email }));
-
-      // Navigate to admin console
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Verification failed. Please check the code.');
@@ -194,366 +168,228 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#E63946] text-slate-100 font-sans relative overflow-hidden selection:bg-[#00B4D8] selection:text-white">
-      {/* Background Ambient Glows & Grid */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(37,99,235,0.18),rgba(255,255,255,0))]" />
-      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-[#E63946]/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-[#E63946]/15 rounded-full blur-[140px] pointer-events-none" />
-
-      {/* Decorative Grid Lines */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
-          backgroundSize: '40px 40px',
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-indigo-800 to-blue-700 lg:bg-none lg:bg-slate-50 relative overflow-hidden font-sans">
+      {/* Dynamic Background for Desktop */}
+      <div className="hidden lg:block absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-blue-50 pointer-events-none" />
+      <div className="hidden lg:block absolute -top-40 -right-40 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="hidden lg:block absolute -bottom-40 -left-40 w-96 h-96 bg-blue-200/40 rounded-full blur-3xl pointer-events-none" />
+      
+      {/* Mobile animated background elements */}
+      <motion.div 
+        animate={{ backgroundPosition: ['0px 0px', '100px 100px'] }}
+        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+        className="lg:hidden absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" 
+      />
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.6, 0.3],
+          x: [0, -40, 0],
+          y: [0, 40, 0]
         }}
+        transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
+        className="lg:hidden absolute -top-20 -right-20 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl" 
+      />
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.3, 1],
+          opacity: [0.2, 0.5, 0.2],
+          x: [0, 40, 0],
+          y: [0, -40, 0]
+        }}
+        transition={{ repeat: Infinity, duration: 15, ease: "easeInOut" }}
+        className="lg:hidden absolute -bottom-20 -left-20 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl" 
       />
 
-      {/* Main Container */}
-      <div className="w-full flex flex-col lg:flex-row relative z-10">
+      {/* Container */}
+      <div className="w-full max-w-5xl flex flex-col lg:grid lg:grid-cols-2 bg-transparent lg:bg-white/70 lg:backdrop-blur-xl lg:border border-white lg:rounded-3xl shadow-none lg:shadow-2xl overflow-hidden relative z-10 m-0 min-h-screen lg:min-h-0 lg:m-4 xl:m-8">
         
-        {/* Left Side: Enterprise Branding & Live Telemetry */}
-        <div className="hidden lg:flex lg:w-7/12 p-12 xl:p-16 flex-col justify-between border-r border-white/10 backdrop-blur-sm relative">
-          {/* Brand Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-white rounded-2xl p-3 shadow-2xl flex items-center justify-center border border-white/30 h-16 w-auto max-w-[240px]">
-                <img src="/logo.png" alt="DS Projects" className="h-full w-auto object-contain" />
-              </div>
-              <div>
-                <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase bg-[#00B4D8]/15 text-[#00B4D8] border border-[#00B4D8]/30 rounded-lg">
-                  EXECUTIVE SUITE
-                </span>
-                <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase mt-1">
-                  HRMS & Workforce Platform
-                </p>
-              </div>
-            </div>
+        {/* Mobile/Tablet Header (Visible only on < lg) */}
+        <div className="lg:hidden w-full text-white p-6 pt-16 sm:pt-20 pb-8 relative flex flex-col items-center text-center">
 
-            {/* Live Node Status */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-white/10 text-xs text-slate-300 backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="font-semibold text-[11px] text-slate-200">AP Central Nodes Online</span>
+          
+          <div className="relative z-10 bg-white rounded-2xl p-3 shadow-2xl w-24 h-24 flex items-center justify-center mb-4 border-2 border-white/20">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain scale-110" />
+          </div>
+          <h1 className="relative z-10 text-3xl font-black tracking-widest uppercase drop-shadow-md mb-2">Admin Portal</h1>
+          <p className="relative z-10 text-indigo-100 text-sm font-medium px-4">
+            Secure workforce management console
+          </p>
+        </div>
+
+        {/* Left Side: Desktop Branding (Visible only on lg+) */}
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-b from-indigo-600 to-blue-700 text-white relative overflow-hidden">
+          {/* Background Accents */}
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
+
+          <div className="relative z-10 flex flex-col items-start gap-4">
+            <div className="bg-white rounded-2xl p-4 shadow-xl w-32 h-32 flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain scale-125" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black tracking-widest text-white uppercase drop-shadow-md">Admin Portal</h1>
             </div>
           </div>
 
-          {/* Hero Centerpiece */}
-          <div className="my-auto py-12 max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-[#00B4D8]/20 text-xs font-semibold text-[#00B4D8] mb-6">
-                <ShieldCheck className="w-4 h-4 text-[#00B4D8]" />
-                Zero-Trust Multi-Factor Identity Gate
-              </div>
-
-              <h2 className="text-4xl xl:text-5xl font-black text-white leading-[1.12] tracking-tight mb-6">
-                Central Administrative & <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-teal-300">
-                  Workforce Command Console
-                </span>
-              </h2>
-
-              <p className="text-slate-300 text-base leading-relaxed mb-10 max-w-xl font-normal">
-                Authorized access point for executive management, automated candidate onboarding, digital offer issuance, and district-wide workforce attendance intelligence.
-              </p>
-
-              {/* Feature Tiles Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#00B4D8]/30 transition-colors backdrop-blur-sm group">
-                  <div className="w-8 h-8 rounded-lg bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] mb-3 group-hover:scale-110 transition-transform">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <h4 className="font-bold text-sm text-white mb-1">Onboarding Engine</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Automated document collection and background verification workflows.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#00B4D8]/30 transition-colors backdrop-blur-sm group">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <h4 className="font-bold text-sm text-white mb-1">Statewide Deployment</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Unified telemetry across all 26 Andhra Pradesh district sectors.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Footer Security Badges */}
-          <div className="flex items-center justify-between pt-6 border-t border-white/10 text-xs text-slate-400">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#00B4D8]" /> AES-256 Auth
-              </span>
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
-              <span>TLS 1.3 Strict Mode</span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              DS Projects Private Limited © {new Date().getFullYear()}
+          <div className="relative z-10 my-16">
+            <h2 className="text-4xl font-black mb-6 leading-tight">
+              Manage your workforce <br />
+              <span className="text-indigo-200">with precision.</span>
+            </h2>
+            <p className="text-indigo-100 text-base leading-relaxed max-w-md">
+              Secure, centralized access to employee onboarding, offer letters, attendance telemetry, and statewide deployment metrics.
             </p>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-6 text-sm font-medium text-indigo-200 border-t border-indigo-400/30 pt-6">
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> AES-256 Auth
+            </span>
+            <span className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-emerald-400" /> TLS 1.3 Secure
+            </span>
           </div>
         </div>
 
-        {/* Right Side: High-End Glassmorphic Login Form */}
-        <div className="w-full lg:w-5/12 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-14 relative min-h-screen lg:min-h-auto">
-          
-          {/* Mobile Top Header */}
-          <div className="lg:hidden w-full max-w-md flex items-center justify-between mb-8">
-            <div className="bg-white rounded-2xl p-2.5 shadow-xl border border-white/30 flex items-center justify-center h-14 max-w-[190px]">
-              <img src="/logo.png" alt="DS Projects" className="h-full w-auto object-contain" />
-            </div>
-            <span className="px-3 py-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Console
-            </span>
-          </div>
-
-          {/* Login Card */}
-          <div className="w-full max-w-md">
-            <motion.div
-              layout
-              className="bg-slate-900/60 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl shadow-black/80 relative overflow-hidden"
-            >
-              {/* Top Accent Gradient Border */}
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-teal-400" />
-
-              <AnimatePresence mode="wait">
-                {step === 'email' ? (
-                  /* ==================================================== */
-                  /* STEP 1: EMAIL ENTRY                                  */
-                  /* ==================================================== */
-                  <motion.div
-                    key="step-email"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Header */}
-                    <div className="mb-8 text-center sm:text-left">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00B4D8]/10 border border-[#00B4D8]/20 text-[#00B4D8] mb-4 shadow-inner">
-                        <KeyRound className="h-6 w-6" />
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
-                        Executive Sign In
-                      </h2>
-                      <p className="text-sm text-slate-400">
-                        Enter your registered administrative email to receive a secure real-time OTP.
-                      </p>
+        {/* Right Side: Login Form */}
+        <div className="flex flex-col flex-1 p-6 sm:p-12 relative bg-transparent lg:bg-white/40 justify-center z-20">
+          <div className="max-w-md w-full mx-auto bg-white/95 lg:bg-transparent backdrop-blur-2xl lg:backdrop-blur-none rounded-3xl p-6 sm:p-8 lg:p-0 shadow-2xl lg:shadow-none border border-white/20 lg:border-none">
+            <AnimatePresence mode="wait">
+              {step === 'email' ? (
+                <motion.div
+                  key="email-step"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mb-8">
+                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-indigo-200">
+                      <KeyRound className="w-6 h-6" />
                     </div>
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Sign In</h2>
+                    <p className="text-slate-500 font-medium">Enter your administrative email to continue.</p>
+                  </div>
 
-                    {/* Email Form */}
-                    <form onSubmit={handleSendOtp} className="space-y-5">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                          Administrator Email Address
-                        </label>
-                        <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00B4D8] transition-colors">
-                            <Mail className="h-5 w-5" />
-                          </div>
-                          <input
-                            type="email"
-                            required
-                            autoFocus
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@dsprojects.com"
-                            className="w-full h-13 pl-12 pr-4 bg-slate-950/70 border border-white/10 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-[#00B4D8] focus:ring-2 focus:ring-[#E63946]/20 transition-all placeholder:text-slate-500"
-                          />
+                  <form onSubmit={handleSendOtp} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Email Address</label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                          <Mail className="h-5 w-5" />
                         </div>
+                        <input
+                          type="email"
+                          required
+                          autoFocus
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="admin@dsprojects.com"
+                          className="w-full h-12 pl-12 pr-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                        />
                       </div>
-
-
-                      {/* Error Alert */}
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-start gap-2.5"
-                        >
-                          <AlertCircle className="w-4 h-4 min-w-4 mt-0.5 text-red-400" />
-                          <span>{error}</span>
-                        </motion.div>
-                      )}
-
-                      {/* Submit Action */}
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full h-13 rounded-xl bg-gradient-to-r from-[#E63946] to-[#FF6B6B] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-[#E63946]/25 hover:shadow-[#E63946]/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center gap-2">
-                            <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                            <span>GENERATING PASSCODE...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <span>SEND ONE-TIME PASSCODE</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </>
-                        )}
-                      </button>
-                    </form>
-
-                    {/* Portal Switcher */}
-                    <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                      <p className="text-xs text-slate-400">
-                        Staff or Field Worker?{' '}
-                        <Link
-                          to="/employee/login"
-                          className="text-[#00B4D8] hover:text-[#00B4D8] font-semibold transition-colors inline-flex items-center gap-1 hover:underline"
-                        >
-                          Employee Sign In →
-                        </Link>
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  /* ==================================================== */
-                  /* STEP 2: OTP VERIFICATION                            */
-                  /* ==================================================== */
-                  <motion.div
-                    key="step-otp"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Top Navigation */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep('email');
-                        setOtpValues(['', '', '', '', '', '']);
-                        setError('');
-                        setMessage('');
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-6 group font-medium"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                      Back to Email Input
-                    </button>
-
-                    {/* Header */}
-                    <div className="mb-6">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-4 shadow-inner">
-                        <Fingerprint className="h-6 w-6" />
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
-                        Enter Security Code
-                      </h2>
-                      <p className="text-sm text-slate-400">
-                        Sent to <span className="font-semibold text-slate-200">{email}</span>
-                      </p>
                     </div>
 
-                    {/* Info Notice */}
-                    {message && (
-                      <div className="mb-6 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-start gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 min-w-4 mt-0.5 text-emerald-400" />
-                        <span>{message}</span>
-                      </div>
+                    {error && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium flex gap-3 shadow-sm">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <p>{error}</p>
+                      </motion.div>
                     )}
 
-                    {/* OTP Form */}
-                    <form onSubmit={handleVerifyOtp} className="space-y-6">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 text-center">
-                          6-Digit Verification Code
-                        </label>
-                        
-                        {/* 6 Individual Interactive OTP Input Boxes */}
-                        <div className="flex items-center justify-between gap-2 sm:gap-3" onPaste={handleOtpPaste}>
-                          {otpValues.map((digit, idx) => (
-                            <input
-                              key={idx}
-                              ref={(el) => (otpInputsRef.current[idx] = el)}
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={1}
-                              value={digit}
-                              onChange={(e) => handleOtpChange(idx, e.target.value)}
-                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                              className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl bg-slate-950/80 border transition-all focus:outline-none ${
-                                digit
-                                  ? 'border-[#00B4D8] text-[#00B4D8] bg-[#00B4D8]/10 ring-2 ring-[#E63946]/20'
-                                  : 'border-white/10 text-white focus:border-[#00B4D8] focus:ring-2 focus:ring-[#E63946]/20'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Error Alert */}
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-start gap-2.5"
-                        >
-                          <AlertCircle className="w-4 h-4 min-w-4 mt-0.5 text-red-400" />
-                          <span>{error}</span>
-                        </motion.div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>Continue <ArrowRight className="w-5 h-5" /></>
                       )}
+                    </button>
+                  </form>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="otp-step"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <button
+                    onClick={() => setStep('email')}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-8 group"
+                  >
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back
+                  </button>
 
-                      {/* Verify Action */}
+                  <div className="mb-8">
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Verify Identity</h2>
+                    <p className="text-slate-500 font-medium">We sent a 6-digit passcode to <span className="text-slate-900 font-bold">{email}</span></p>
+                  </div>
+
+                  <form onSubmit={handleVerifyOtp} className="space-y-6">
+                    <div className="flex gap-2 sm:gap-3 justify-between">
+                      {otpValues.map((value, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (otpInputsRef.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          value={value}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          onPaste={index === 0 ? handleOtpPaste : undefined}
+                          className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black text-slate-900 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                        />
+                      ))}
+                    </div>
+
+                    {error && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium flex gap-3 shadow-sm">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <p>{error}</p>
+                      </motion.div>
+                    )}
+                    {message && !error && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium flex gap-3 shadow-sm">
+                        <ShieldCheck className="w-5 h-5 shrink-0" />
+                        <p>{message}</p>
+                      </motion.div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoading || otpValues.join('').length !== 6}
+                      className="w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                      ) : (
+                        'Secure Login'
+                      )}
+                    </button>
+
+                    <div className="text-center pt-2">
                       <button
-                        type="submit"
-                        disabled={isLoading || otpValues.join('').length !== 6}
-                        className="w-full h-13 rounded-xl bg-gradient-to-r from-[#E63946] to-[#FF6B6B] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-[#E63946]/25 hover:shadow-[#E63946]/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={resendCooldown > 0 || isLoading}
+                        className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors disabled:text-slate-400 disabled:pointer-events-none"
                       >
-                        {isLoading ? (
-                          <div className="flex items-center gap-2">
-                            <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                            <span>AUTHENTICATING IDENTITY...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <ShieldCheck className="w-4 h-4" />
-                            <span>VERIFY & ENTER CONSOLE</span>
-                          </>
-                        )}
+                        {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend Passcode'}
                       </button>
-
-                      {/* Resend OTP Timer & Button */}
-                      <div className="text-center pt-2">
-                        {resendCooldown > 0 ? (
-                          <p className="text-xs text-slate-400 font-medium">
-                            Resend code available in{' '}
-                            <span className="text-[#00B4D8] font-bold">{resendCooldown}s</span>
-                          </p>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSendOtp()}
-                            className="text-xs text-[#00B4D8] hover:text-[#00B4D8] font-bold hover:underline inline-flex items-center gap-1.5 transition-colors"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            Resend Verification Code
-                          </button>
-                        )}
-                      </div>
-                    </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Bottom Security Notice */}
-            <div className="mt-6 flex items-center justify-center gap-2 text-center text-xs text-slate-500 font-medium">
-              <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
-              Protected Executive Perimeter • Single-Session Tokenization
-            </div>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -2,12 +2,71 @@
  * src/components/employee/SuccessModal.jsx
  * Success screen shown after employee creation or update.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertTriangle, User, ArrowLeft, Check } from 'lucide-react';
+import { CheckCircle, AlertTriangle, User, ArrowLeft, Check, PartyPopper } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Button } from '../ui/Button';
 
+const playSuccessSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    // Play a cheerful two-tone chime
+    const playTone = (freq, startTime, duration) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + startTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+      
+      osc.start(ctx.currentTime + startTime);
+      osc.stop(ctx.currentTime + startTime + duration);
+    };
+
+    playTone(523.25, 0, 0.4); // C5
+    playTone(659.25, 0.1, 0.6); // E5
+    playTone(783.99, 0.2, 0.8); // G5
+    playTone(1046.50, 0.3, 1.2); // C6
+  } catch (e) {
+    // Ignore audio context errors (e.g. browser policy)
+  }
+};
+
 export default function SuccessModal({ open, employee, onViewEmployee, onClose, isEdit }) {
+  useEffect(() => {
+    if (open) {
+      playSuccessSound();
+      
+      // Fire confetti
+      const duration = 2500;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+      const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+        const particleCount = 40 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+      }, 250);
+      
+      return () => clearInterval(interval);
+    }
+  }, [open]);
+
   if (!open) return null;
 
   const emailSent = employee?.emailStatus === 'SENT';
@@ -16,16 +75,19 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100"
+            className="bg-white/90 backdrop-blur-2xl rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden border border-white/60 relative"
           >
+            {/* Top gradient glow */}
+            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-indigo-500/20 to-transparent pointer-events-none" />
+            
             {/* Top accent */}
-            <div className="h-1.5 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600" />
+            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
 
             <div className="px-6 py-8 space-y-5 text-center">
               {/* Icon */}
@@ -33,36 +95,53 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.15 }}
-                className="w-16 h-16 rounded-full bg-green-50 border-4 border-green-100 flex items-center justify-center mx-auto relative"
+                className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-100 to-blue-50 border-[6px] border-white shadow-xl flex items-center justify-center mx-auto relative z-10"
               >
                 <motion.div
                   initial={{ opacity: 0.5, scale: 1 }}
                   animate={{ opacity: 0, scale: 1.6 }}
                   transition={{ repeat: Infinity, duration: 2.2, ease: 'easeOut', delay: 0.8 }}
-                  className="absolute inset-0 rounded-full bg-green-300"
+                  className="absolute inset-0 rounded-full bg-indigo-400/40"
                 />
-                <CheckCircle className="h-8 w-8 text-green-500 relative z-10" />
+                <CheckCircle className="h-10 w-10 text-indigo-600 relative z-10" />
               </motion.div>
 
               {/* Title */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
+              <div className="relative z-10">
+                <h2 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                   {isEdit ? 'Employee Updated!' : 'Employee Created!'}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-slate-500 mt-2 font-medium">
                   {isEdit
                     ? 'The employee record has been successfully updated.'
                     : 'The employee has been successfully registered in DS Projects.'}
                 </p>
               </div>
 
-              {/* Employee ID badge */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-left">
-                <p className="text-xs text-blue-600 font-medium mb-1">Employee ID</p>
-                <p className="text-2xl font-bold text-blue-800 font-mono tracking-wider">
-                  {employee?.employeeId || '—'}
-                </p>
-                <p className="text-xs text-blue-500 mt-1 truncate">{employee?.name}</p>
+              {/* Employee ID badge & Details */}
+              <div className="relative bg-gradient-to-br from-indigo-50/80 to-blue-50/80 border border-indigo-100/60 rounded-2xl p-5 text-center shadow-inner overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                  <User className="w-24 h-24" />
+                </div>
+                <div className="relative z-10 space-y-3">
+                  <div>
+                    <p className="text-xs text-indigo-500 font-bold uppercase tracking-wider mb-0.5">Employee ID</p>
+                    <p className="text-3xl font-black text-indigo-900 font-mono tracking-tight drop-shadow-sm">
+                      {employee?.employeeId || '—'}
+                    </p>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-indigo-200/50">
+                    <p className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
+                      {employee?.name || 'Unknown Name'}
+                    </p>
+                    {employee?.email && (
+                      <p className="text-sm font-semibold text-indigo-600 mt-0.5 bg-indigo-100/50 inline-block px-2 py-0.5 rounded-md">
+                        {employee.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Email status (only for new employees) */}
@@ -100,16 +179,21 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
               )}
 
               {/* Actions */}
-              <div className="flex flex-col gap-2.5 pt-1">
-                <Button type="button" onClick={onViewEmployee} className="w-full" icon={User}>
+              <div className="flex flex-col gap-3 pt-2 relative z-10">
+                <button
+                  type="button"
+                  onClick={onViewEmployee}
+                  className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 font-bold transition-all"
+                >
+                  <User className="h-5 w-5" />
                   View Employee Profile
-                </Button>
+                </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition py-1"
+                  className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-bold shadow-sm transition-all"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <ArrowLeft className="h-4 w-4" />
                   Back to Employees List
                 </button>
               </div>

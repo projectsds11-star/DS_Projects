@@ -30,11 +30,11 @@ const cn = (...cls) => cls.filter(Boolean).join(' ');
 
 function inputCls(hasError) {
   return cn(
-    'w-full rounded-lg border px-3 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400',
-    'focus:ring-2 focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)]',
+    'w-full rounded-xl border px-4 py-3 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium',
+    'focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 shadow-sm',
     hasError
-      ? 'border-[var(--color-error)] bg-red-50/30'
-      : 'border-gray-300 bg-white hover:border-gray-400'
+      ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10'
+      : 'border-slate-200 bg-white hover:border-slate-300'
   );
 }
 
@@ -48,21 +48,24 @@ function formatAadhaar(raw) {
 // ─── Preview card ──────────────────────────────────────────────────────────────
 function PreviewRow({ label, value, mono }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
-      <span className="text-xs text-gray-500 shrink-0 w-36">{label}</span>
-      <span className={cn('text-sm font-medium text-gray-800 text-right break-all', mono && 'font-mono')}>{value || '—'}</span>
+    <div className="flex items-start justify-between gap-3 py-3 border-b border-slate-100/60 last:border-0">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 shrink-0 w-36">{label}</span>
+      <span className={cn('text-sm font-semibold text-slate-800 text-right break-all', mono && 'font-mono tracking-tight')}>{value || '—'}</span>
     </div>
   );
 }
 
 function PreviewSection({ title, icon: Icon, children }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-      <div className="flex items-center gap-2.5 px-4 py-3 bg-gray-50 border-b border-gray-200">
-        <Icon className="h-4 w-4 text-[var(--color-primary)]" />
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+    <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative">
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-teal-400" />
+      <div className="flex items-center gap-3 px-6 py-5 bg-gradient-to-b from-slate-50/80 to-white/20 border-b border-slate-100/60">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center shadow-sm border border-indigo-100/50">
+          <Icon className="h-5 w-5 text-indigo-600" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h3>
       </div>
-      <div className="px-4 py-1">{children}</div>
+      <div className="px-6 py-2 bg-white/40">{children}</div>
     </div>
   );
 }
@@ -115,7 +118,7 @@ export default function AddEmployee() {
       photo: null, aadhaar: '', aadhaarDocument: null, pan: '', panDocument: null,
       passbook: null, accountHolderName: '', bankName: '', accountNumber: '', reEnterAccountNumber: '', ifsc: '', branchName: '',
       referenceMobile: '', referenceName: '', relationship: '',
-      stateId: '', districtId: '', mandalId: '',
+      stateId: 'AP-STATE-01', districtId: '', mandalId: '',
     },
   });
 
@@ -202,9 +205,21 @@ export default function AddEmployee() {
         mandalId: emp.mandalId,
       });
 
-      // Existing files shown as "already uploaded" — not re-required
-      if (emp.photoPath) setPhoto({ preview: null, file: null, existingPath: emp.photoPath });
-      if (emp.passbookPath) setPassbook({ preview: null, file: null, existingPath: emp.passbookPath, name: 'Existing passbook' });
+      // Existing files shown as "already uploaded" — fetch previews
+      if (emp.photoPath) {
+        employeeService.getSignedUrl('employee-photos', emp.photoPath)
+          .then(url => setPhoto({ preview: url, file: null, existingPath: emp.photoPath }))
+          .catch(() => setPhoto({ preview: null, file: null, existingPath: emp.photoPath }));
+      }
+      if (emp.passbookPath) {
+        setPassbook({ preview: null, file: null, existingPath: emp.passbookPath, name: 'Existing passbook' });
+      }
+      if (emp.aadhaarDocumentPath) {
+        setAadhaarDocument({ preview: null, file: null, existingPath: emp.aadhaarDocumentPath, name: 'Existing Aadhaar' });
+      }
+      if (emp.panDocumentPath) {
+        setPanDocument({ preview: null, file: null, existingPath: emp.panDocumentPath, name: 'Existing PAN' });
+      }
 
       setLoadingEdit(false);
     })();
@@ -267,6 +282,7 @@ export default function AddEmployee() {
     if (!isFormValid || !validFiles) {
       // Small delay to allow DOM to update with error states
       setTimeout(() => {
+        // Try to find the first error field
         const firstErr = document.querySelector('[data-error="true"]');
         if (firstErr) {
           firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -275,11 +291,71 @@ export default function AddEmployee() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       }, 100);
+      
+      // We must get the errors from getValues or wait for next render, but trigger() internally handles it.
+      // To reliably print errors in the closure, we can just print the current RHF state.
+      console.error("Form Validation Failed!");
+      trigger().then(() => {
+         // trigger resolves, we can just log the formState errors from a fresh reference if we want, but visually the UI should show it now.
+      });
       return;
     }
 
     setStep('preview');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ── DUMMY DATA FILLER ──────────────────────────────────────────────────────
+  const fillDummyData = async () => {
+    const createDummyFile = (name, type) => {
+      const blob = new Blob(['dummy content'], { type });
+      return new File([blob], name, { type });
+    };
+
+    setValue('name', 'John Doe', { shouldValidate: true });
+    setValue('phone', '9876543210', { shouldValidate: true });
+    setValue('email', 'john.doe@example.com', { shouldValidate: true });
+    setValue('address', '123 Main St, Tech Park, City', { shouldValidate: true });
+    
+    setValue('qualification', 'B.Tech', { shouldValidate: true });
+    setValue('course', 'Computer Science', { shouldValidate: true });
+    setValue('university', 'JNTU', { shouldValidate: true });
+    setValue('year_of_passing', '2020', { shouldValidate: true });
+    
+    const aadhaarFormatted = formatAadhaar('123456789012');
+    setValue('aadhaar', aadhaarFormatted, { shouldValidate: true });
+    setValue('pan', 'ABCDE1234F', { shouldValidate: true });
+
+    setValue('accountHolderName', 'John Doe', { shouldValidate: true });
+    setValue('bankName', 'State Bank of India', { shouldValidate: true });
+    setValue('accountNumber', '123456789012', { shouldValidate: true });
+    setValue('reEnterAccountNumber', '123456789012', { shouldValidate: true });
+    setValue('ifsc', 'SBIN0001234', { shouldValidate: true });
+    setValue('branchName', 'Main Branch', { shouldValidate: true });
+
+    setValue('referenceName', 'Jane Doe', { shouldValidate: true });
+    setValue('referenceMobile', '9876543211', { shouldValidate: true });
+    setValue('relationship', 'Sister', { shouldValidate: true });
+
+    setValue('stateId', 'AP-STATE-01', { shouldValidate: true });
+
+    if (districts.length > 0) {
+      setValue('districtId', districts[0].name, { shouldValidate: true });
+      // We also need to fetch mandals to select one
+      const mList = await locationService.getMandalsByDistrict(districts[0].name);
+      setMandals(mList);
+      if (mList.length > 0) {
+        setValue('mandalId', mList[0].name, { shouldValidate: true });
+      }
+    }
+
+    const dummyImage = { file: createDummyFile('photo.jpg', 'image/jpeg'), preview: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg==' };
+    const dummyPdf = { file: createDummyFile('doc.pdf', 'application/pdf'), name: 'doc.pdf', size: 1024, type: 'application/pdf' };
+    
+    setPhoto(dummyImage);
+    setPassbook(dummyPdf);
+    setAadhaarDocument(dummyPdf);
+    setPanDocument(dummyPdf);
   };
 
   // ── SUBMIT — actual employee creation / update ─────────────────────────────
@@ -358,7 +434,7 @@ export default function AddEmployee() {
   // ── PREVIEW SCREEN ──────────────────────────────────────────────────────────
   if (step === 'preview') {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-sans">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -440,23 +516,23 @@ export default function AddEmployee() {
         </div>
 
         {/* Footer actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row gap-4 pt-8 mt-4 border-t border-slate-200 items-center justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={() => { setStep('form'); window.scrollTo({ top: 0 }); }}
-            className="flex-1"
+            className="w-full sm:w-auto h-12 px-8 rounded-xl text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-900 border-slate-200 font-bold"
           >
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Edit
           </Button>
           <Button
             type="button"
             onClick={handleSubmit_}
-            className="flex-1"
+            className="w-full sm:w-auto h-12 px-8 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 font-bold tracking-wide"
           >
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            {isEdit ? 'Save Changes' : 'Create Employee'}
+            <UserPlus className="h-5 w-5 mr-2" />
+            {isEdit ? 'Save Changes' : 'Confirm & Create Employee'}
           </Button>
         </div>
       </div>
@@ -491,27 +567,37 @@ export default function AddEmployee() {
 
   // ── FORM SCREEN ─────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 space-y-8 font-sans">
       {/* Page header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4 bg-white/60 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/50 shadow-sm">
         <button
           onClick={() => navigate('/admin/employees')}
-          className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors shrink-0"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            {isEdit ? `Edit Employee — ${editId}` : 'Add New Employee'}
-          </h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {isEdit ? 'Update employee information below.' : 'Fill in all required fields. Review before submitting.'}
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              {isEdit ? 'Edit Employee Profile' : 'Add New Employee'}
+            </h1>
+            {isEdit && (
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                {editId}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-500 mt-1 font-medium">
+            {isEdit ? 'Update workforce intelligence records.' : 'Enter accurate details to provision a new executive workspace.'}
           </p>
         </div>
         {!isEdit && (
-          <span className="ml-auto text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full font-medium whitespace-nowrap">
-            Expected ID: {previewId}
-          </span>
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Generated ID</span>
+            <span className="px-3 py-1.5 bg-blue-50/50 text-blue-700 border border-blue-200/50 rounded-xl font-mono text-sm font-semibold shadow-sm">
+              {previewId}
+            </span>
+          </div>
         )}
       </div>
 
@@ -871,21 +957,29 @@ export default function AddEmployee() {
       </FormSection>
 
       {/* ── Footer Buttons ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200 pb-8">
+      <div className="flex flex-col sm:flex-row gap-4 pt-8 mt-4 border-t border-slate-200 items-center justify-end">
         <Button
           type="button"
           variant="outline"
           onClick={() => navigate('/admin/employees')}
-          className="flex-1"
+          className="w-full sm:w-auto h-12 px-8 rounded-xl text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-900 border-slate-200 font-bold order-2 sm:order-1"
         >
           Cancel
         </Button>
         <Button
           type="button"
-          onClick={handlePreview}
-          className="flex-1"
+          variant="outline"
+          onClick={fillDummyData}
+          className="w-full sm:w-auto h-12 px-8 rounded-xl border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 bg-orange-50/50 font-bold order-3 sm:order-2"
         >
-          <Eye className="h-4 w-4 mr-1.5" />
+          Fill Dummy Data
+        </Button>
+        <Button
+          type="button"
+          onClick={handlePreview}
+          className="w-full sm:w-auto h-12 px-8 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 font-bold tracking-wide order-1 sm:order-3"
+        >
+          <Eye className="h-5 w-5 mr-2" />
           Preview &amp; Review
         </Button>
       </div>

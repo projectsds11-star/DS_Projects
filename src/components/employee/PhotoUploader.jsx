@@ -64,7 +64,7 @@ export default function PhotoUploader({ value, onChange, error }) {
             <img
               src={value.preview}
               alt="Employee photo"
-              className="w-28 h-28 rounded-xl object-cover border-2 border-[var(--color-primary)] shadow-sm"
+              className="w-28 h-28 rounded-xl object-cover border-2 border-indigo-400 shadow-sm"
             />
             <button
               type="button"
@@ -83,25 +83,25 @@ export default function PhotoUploader({ value, onChange, error }) {
             className={cn(
               'w-28 h-28 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all shrink-0',
               dragging
-                ? 'border-[var(--color-primary)] bg-blue-50'
-                : 'border-gray-300 bg-gray-50 hover:border-[var(--color-primary)] hover:bg-blue-50/40',
-              displayError && 'border-[var(--color-error)]'
+                ? 'border-indigo-400 bg-indigo-50'
+                : 'border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/40',
+              displayError && 'border-red-400 bg-red-50/50'
             )}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
           >
-            <User className="h-7 w-7 text-gray-300 mb-1" />
-            <span className="text-xs text-gray-400 text-center px-2">Upload Photo</span>
+            <User className="h-7 w-7 text-slate-300 mb-1" />
+            <span className="text-xs text-slate-400 text-center px-2 font-bold tracking-wide uppercase">Upload</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Instructions & Actions */}
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-gray-700">Candidate Photo</p>
-        <p className="text-xs text-gray-400 leading-relaxed">
+        <p className="text-sm font-bold text-slate-700">Candidate Photo</p>
+        <p className="text-xs text-slate-500 font-medium leading-relaxed">
           JPG, PNG or WEBP · Maximum {MAX_SIZE_MB}MB
           <br />Drag & drop or click the box to upload.
         </p>
@@ -109,7 +109,7 @@ export default function PhotoUploader({ value, onChange, error }) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline transition"
+            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
           >
             <UploadCloud className="h-3.5 w-3.5" />
             {value ? 'Replace Photo' : 'Browse Files'}
@@ -126,7 +126,7 @@ export default function PhotoUploader({ value, onChange, error }) {
           )}
         </div>
         {displayError && (
-          <p className="text-xs text-[var(--color-error)]">{displayError}</p>
+          <p className="text-xs text-red-500 font-bold">{displayError}</p>
         )}
       </div>
 
