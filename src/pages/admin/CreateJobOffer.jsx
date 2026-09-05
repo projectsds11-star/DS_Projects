@@ -2,19 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   ArrowRight,
-  Save, 
-  Send, 
-  Eye, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  FileText, 
-  Sparkles, 
-  Loader2, 
-  X, 
+  Save,
+  Send,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  FileText,
+  Sparkles,
+  Loader2,
+  X,
   User,
   Briefcase,
   MapPin,
@@ -45,10 +45,10 @@ import SuccessOfferModal from '../../components/onboarding/SuccessOfferModal';
 import { offerSchema } from '../../validators/offerSchema';
 import { onboardingService } from '../../services/onboardingService';
 import { employeeService } from '../../services/employeeService';
-import { 
-  MASTER_TEMPLATES, 
-  DEFAULT_TERMS, 
-  formatINR 
+import {
+  MASTER_TEMPLATES,
+  DEFAULT_TERMS,
+  formatINR
 } from '../../services/templateService';
 
 const WIZARD_STEPS = [
@@ -164,7 +164,8 @@ export default function CreateJobOffer() {
   const handleSelectEmployee = async (emp) => {
     setSelectedEmployee(emp);
     setValue('employeeId', emp.employeeId);
-    setValue('employeeName', emp.fullName);
+    const empName = emp.fullName || emp.name || '';
+    setValue('employeeName', empName);
     setValue('email', emp.email);
     setValue('phone', emp.phone);
 
@@ -177,7 +178,7 @@ export default function CreateJobOffer() {
       setShowDuplicateModal(true);
     }
 
-    refreshEmailBody(emp.fullName, watchedValues.position, watchedValues.district, watchedValues.mandal, watchedValues.joiningDate);
+    refreshEmailBody(empName, watchedValues.position, watchedValues.district, watchedValues.mandal, watchedValues.joiningDate);
   };
 
   // 3. Job Position Selection
@@ -252,10 +253,13 @@ export default function CreateJobOffer() {
       } else {
         const errs = [];
         if (errors.employeeId) errs.push('Please select a candidate employee.');
+        if (errors.employeeName) errs.push('Employee name is missing.');
+        if (errors.email) errs.push('Employee email is missing.');
         if (errors.position) errs.push('Please select a job position.');
         if (errors.district) errs.push('Please select an assigned district.');
         if (errors.mandal) errs.push('Please select an assigned mandal.');
         setStepErrors(errs);
+        alert('Please complete the following:\n• ' + errs.join('\n• '));
       }
     } else if (currentStep === 2) {
       const valid = await trigger(['joiningDate', 'salary.basic']);
@@ -267,6 +271,7 @@ export default function CreateJobOffer() {
         if (errors.joiningDate) errs.push('Please provide a valid joining date.');
         if (errors.salary?.basic) errs.push('Please provide a valid monthly salary.');
         setStepErrors(errs);
+        alert('Please complete the following:\n• ' + errs.join('\n• '));
       }
     }
   };

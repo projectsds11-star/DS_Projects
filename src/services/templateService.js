@@ -121,6 +121,47 @@ Warm regards,
 HR & Operations Team
 DS PROJECTS Pvt Ltd`,
   },
+  'District Co-ordinator': {
+    jobPosition: 'District Co-ordinator',
+    department: 'Field Operations',
+    defaultSalary: { basic: 35000, travel: 8000, incentive: 0, other: 0 },
+    probation: '3 Months',
+    noticePeriod: '30 Days',
+    jobDescription: `As a District Co-ordinator for DS PROJECTS, you will be the key operational driver at the district level. You will oversee grassroots team deployment, liaise with local district administration, coordinate daily surveys across all mandals, verify data submissions, and ensure timely completion of project deliverables.`,
+    responsibilities: [
+      'Lead and coordinate Mandal Co-ordinators and field survey teams across all assigned mandals in {{district}} district.',
+      'Supervise daily data collection, resolve field bottlenecks, and ensure 100% compliance with quality benchmarks.',
+      'Conduct weekly district review meetings and submit consolidated progress reports to the Project Management Unit.',
+      'Act as the primary point of contact for local government stakeholders and community leadership at the district level.',
+      'Maintain daily attendance logs and field movement records of team members.',
+    ],
+    emailSubject: `Employment Offer — District Co-ordinator — DS PROJECTS ({{employee_name}})`,
+    emailBody: `Dear {{employee_name}},
+
+Congratulations!
+
+We are pleased to extend this formal offer of employment for the position of District Co-ordinator at DS PROJECTS.
+
+Key Assignment Details:
+• Employee ID: {{employee_id}}
+• Designation: {{designation}}
+• Work Location: District {{district}}
+• Proposed Joining Date: {{joining_date}}
+• Monthly Gross Salary: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
+
+Please find attached your detailed Offer Letter and Job Description document.
+
+Next Steps:
+1. Review the attached Offer Letter.
+2. Sign in to the DS PROJECTS Employee Portal to activate your account: {{activation_link}}
+3. Complete your onboarding document verification.
+
+We look forward to welcoming you to the DS PROJECTS family.
+
+Warm regards,
+HR & Operations Team
+DS PROJECTS Pvt Ltd`,
+  },
   'Z-Assencer': {
     jobPosition: 'Z-Assencer',
     department: 'Quality & Assessment',
