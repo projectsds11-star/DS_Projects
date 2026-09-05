@@ -11,6 +11,7 @@ import EmployeeProtectedRoute from '../components/auth/EmployeeProtectedRoute';
 import AdminDashboard from '../pages/admin/Dashboard';
 import Employees from '../pages/admin/Employees';
 import AddEmployee from '../pages/admin/AddEmployee';
+import EmployeeDetail from '../pages/admin/EmployeeDetail';
 
 // Onboarding Module Pages
 import Onboarding from '../pages/admin/Onboarding';
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
       { path: 'employees', element: <Employees /> },
       { path: 'employees/add', element: <AddEmployee /> },
       { path: 'employees/edit/:id', element: <AddEmployee /> },
+      { path: 'employees/:id', element: <EmployeeDetail /> },
 
       // Onboarding routes
       { path: 'onboarding', element: <Onboarding /> },

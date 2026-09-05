@@ -1,305 +1,247 @@
-// Employee Service — Production Ready Connected to Supabase
+/**
+ * src/services/employeeService.js
+ * Employee service — reads via Supabase client, writes via Express backend.
+ * Sensitive operations (create/update/delete/status) go through /api/admin/employees.
+ */
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { liveDataService } from './liveDataService';
 import { AP_DISTRICT_MANDAL_MAP } from '../data/andhraPradeshMasterData';
 
-function formatId(n) {
-  return n < 1000 ? String(n).padStart(3, '0') : String(n);
+// ── Backend API URL ───────────────────────────────────────────────────────────
+// In dev, Vite proxies /api → http://localhost:5000
+// In production (Vercel), /api resolves to the same-domain serverless function
+const API_BASE = '/api/admin/employees';
+
+function getAdminToken() {
+  return localStorage.getItem('ds_admin_token') || '';
 }
 
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${getAdminToken()}`,
+  };
+}
+
+// ── READ OPERATIONS (Supabase client — RLS protected) ────────────────────────
+
 export const employeeService = {
-  /**
-   * Fetch all employees from Supabase, mapped to camelCase for the UI.
-   */
+  /** Fetch all non-deleted employees */
   async getEmployees() {
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('employees')
-          .select('*')
-          .neq('status', 'Draft')
-          .order('created_at', { ascending: false });
-
-        if (!error && data) {
-          return data.map(e => ({
-            employeeId: e.employee_id,
-            fullName: e.full_name,
-            email: e.email,
-            phone: e.phone,
-            designation: e.designation,
-            department: e.department,
-            district: e.district,
-            mandal: e.mandal,
-            qualification: e.qualification,
-            status: e.status,
-            onboardingStatus: e.onboarding_status,
-            joiningDate: e.joining_date,
-            photoUrl: e.photo_url,
-          }));
-        }
-      } catch (err) {
-        console.warn('getEmployees error:', err);
-      }
-    }
-    // fallback to liveDataService
-    const raw = await liveDataService.getEmployees();
-    return raw.map(e => ({
-      employeeId: e.employee_id,
-      fullName: e.full_name,
-      email: e.email,
-      phone: e.phone,
-      designation: e.designation,
-      department: e.department,
-      district: e.district,
-      mandal: e.mandal,
-      qualification: e.qualification,
-      status: e.status,
-      onboardingStatus: e.onboarding_status,
-      photoUrl: e.photo_url,
-    }));
-  },
-
-  /** Get a single employee by ID */
-  async getEmployeeById(employeeId) {
-    const raw = await liveDataService.getEmployeeById(employeeId);
-    if (!raw) return null;
-    
-    return {
-      employeeId: raw.employee_id,
-      fullName: raw.full_name,
-      email: raw.email,
-      phone: raw.phone,
-      gender: raw.gender,
-      dateOfBirth: raw.date_of_birth,
-      fatherName: raw.father_name,
-      bloodGroup: raw.blood_group,
-      maritalStatus: raw.marital_status,
-      state: 'Andhra Pradesh', // default since DB doesn't store it
-      district: raw.district,
-      mandal: raw.mandal,
-      houseNo: raw.address || raw.present_address, // Map full address to houseNo so it appears
-      highestQualification: raw.qualification,
-      designation: raw.designation,
-      department: raw.department,
-      status: raw.status,
-      onboardingStatus: raw.onboarding_status,
-      joiningDate: raw.joining_date,
-      photoUrl: raw.photo_url,
-      referenceName: raw.emergency_contact,
-      referenceMobile: raw.emergency_phone,
-      relationship: raw.emergency_contact_relation,
-      course: raw.course,
-      institution: raw.institution,
-      yearOfPassing: raw.year_of_passing,
-      aadhaar: raw.aadhaar_masked,
-      pan: raw.pan_masked,
-      accountHolderName: raw.full_name,
-      bankName: raw.bank_name,
-      accountNumber: raw.account_number_masked,
-      reEnterAccountNumber: raw.account_number_masked, // Make it match to pass validation
-      ifsc: raw.ifsc_code,
-      branchName: raw.branch_name,
-    };
-  },
-
-  /**
-   * Returns the next available Employee ID from Supabase.
-   */
-  async getNextEmployeeId() {
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('employees')
-          .select('employee_id')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!error && data && data.length > 0) {
-          const lastNum = parseInt(data[0].employee_id.replace('DS-', ''), 10) || 0;
-          return `DS-${formatId(lastNum + 1)}`;
-        }
-      } catch (err) {
-        console.warn('Supabase next-id query failed:', err);
-      }
-    }
-    const employees = await liveDataService.getEmployees();
-    return `DS-${formatId(employees.length + 1)}`;
-  },
-
-  /** Create a fully validated employee record in Supabase. */
-  async createEmployee(payload) {
-    const fullAddress = payload.houseNo 
-      ? `${payload.houseNo}, ${payload.street || ''}, ${payload.mandal || ''}, ${payload.district || ''} - ${payload.pincode || ''}`.trim()
-      : payload.presentAddress || payload.address || null;
-
-    const employeeData = {
-      employee_id: payload.employeeId,
-      full_name: payload.fullName,
-      email: payload.email,
-      phone: payload.phone,
-      gender: payload.gender || 'Male',
-      date_of_birth: payload.dateOfBirth || payload.dob || null,
-      father_name: payload.fatherName || null,
-      blood_group: payload.bloodGroup || null,
-      marital_status: payload.maritalStatus || 'Single',
-      district: payload.district || 'Nellore',
-      mandal: payload.mandal || 'Kavali',
-      qualification: payload.highestQualification || payload.qualification || 'Graduate',
-      designation: null,
-      department: null,
-      status: 'Onboarding',
-      onboarding_status: 'Pending Offer',
-      address: fullAddress,
-      permanent_address: payload.permanentAddress || fullAddress,
-      emergency_contact: payload.referenceName || payload.emergencyContactName || null,
-      emergency_phone: payload.referenceMobile || payload.emergencyContactNumber || null,
-      emergency_contact_relation: payload.relationship || null,
-      course: payload.course || null,
-      institution: payload.institution || null,
-      year_of_passing: payload.yearOfPassing || null,
-      aadhaar_masked: payload.aadhaar ? `•••• •••• ${payload.aadhaar.slice(-4)}` : null,
-      pan_masked: payload.pan ? `•••••${payload.pan.slice(-4)}` : null,
-      bank_name: payload.bankName || null,
-      account_number_masked: payload.accountNumber ? `•••• •••• ${payload.accountNumber.slice(-4)}` : null,
-      ifsc_code: payload.ifsc || null,
-      photo_url: payload.photoUrl || null,
-      branch_name: payload.branchName || null,
-      joining_date: payload.joiningDate || new Date().toISOString().slice(0, 10),
-    };
-
-    const res = await liveDataService.createEmployee(employeeData);
-
-    // Automatically dispatch official Welcome Email to the registered employee
-    if (payload.email) {
-      this.sendWelcomeEmail(employeeData).catch(err => console.warn('Welcome email error:', err));
-    }
-
-    return { success: true, data: { ...employeeData, ...res.data } };
-  },
-
-  /** Update an existing employee */
-  async updateEmployee(employeeId, payload) {
-    const fullAddress = payload.houseNo 
-      ? `${payload.houseNo}, ${payload.street || ''}, ${payload.mandal || ''}, ${payload.district || ''} - ${payload.pincode || ''}`.trim()
-      : payload.presentAddress || payload.address || null;
-
-    const updates = {
-      full_name: payload.fullName,
-      email: payload.email,
-      phone: payload.phone,
-      gender: payload.gender || 'Male',
-      date_of_birth: payload.dateOfBirth || payload.dob || null,
-      father_name: payload.fatherName || null,
-      blood_group: payload.bloodGroup || null,
-      marital_status: payload.maritalStatus || 'Single',
-      district: payload.district || 'Nellore',
-      mandal: payload.mandal || 'Kavali',
-      qualification: payload.highestQualification || payload.qualification || 'Graduate',
-      address: fullAddress,
-      permanent_address: payload.permanentAddress || fullAddress,
-      emergency_contact: payload.referenceName || payload.emergencyContactName || null,
-      emergency_phone: payload.referenceMobile || payload.emergencyContactNumber || null,
-      emergency_contact_relation: payload.relationship || null,
-      course: payload.course || null,
-      institution: payload.institution || null,
-      year_of_passing: payload.yearOfPassing || null,
-      aadhaar_masked: payload.aadhaar && !payload.aadhaar.includes('•') ? `•••• •••• ${payload.aadhaar.slice(-4)}` : undefined,
-      pan_masked: payload.pan && !payload.pan.includes('•') ? `•••••${payload.pan.slice(-4)}` : undefined,
-      bank_name: payload.bankName || null,
-      account_number_masked: payload.accountNumber && !payload.accountNumber.includes('•') ? `•••• •••• ${payload.accountNumber.slice(-4)}` : undefined,
-      ifsc_code: payload.ifsc || null,
-      branch_name: payload.branchName || null,
-    };
-    
-    // Only update photo_url if a new one was provided
-    if (payload.photoUrl) {
-      updates.photo_url = payload.photoUrl;
-    }
-
-    // Clean up undefined fields
-    Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
-
-    const res = await liveDataService.updateEmployee(employeeId, updates);
-    return { success: res.success, data: res.data };
-  },
-
-  /** Send official HTML Welcome Email to employee registered email address */
-  async sendWelcomeEmail(payload) {
+    if (!isSupabaseConfigured) return [];
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
-      const res = await fetch(`${apiUrl}/api/admin/send-welcome-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: payload.employeeId || payload.employee_id,
-          fullName: payload.fullName || payload.full_name,
-          email: payload.email,
-          phone: payload.phone,
-          designation: payload.designation,
-          district: payload.district,
-          mandal: payload.mandal,
-          joiningDate: payload.joiningDate || payload.joining_date,
-        }),
-      });
-      return await res.json();
-    } catch (e) {
-      console.warn('Welcome email dispatch error:', e);
-      return { success: false, error: e.message };
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return [];
+      return data.map(mapRow);
+    } catch {
+      return [];
     }
   },
 
-  /** Save an incomplete employee as Draft. */
-  async saveEmployeeDraft(payload) {
-    const draftData = {
-      employee_id: payload.employeeId,
-      full_name: payload.fullName || 'Draft Employee',
-      email: payload.email || `${payload.employeeId.toLowerCase()}@draft.dsprojects.com`,
-      phone: payload.phone || '0000000000',
-      district: payload.district || 'Nellore',
-      mandal: payload.mandal || '-',
-      status: 'Draft',
-      onboarding_status: 'Draft'
-    };
-    const res = await liveDataService.createEmployee(draftData);
-    return { success: true, data: res.data };
+  /** Fetch single employee by employee_id (DS-001) */
+  async getEmployeeById(employeeId) {
+    if (!isSupabaseConfigured) return null;
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .is('deleted_at', null)
+      .single();
+
+    if (error || !data) return null;
+    return mapRow(data);
   },
 
-  /** Upload candidate photo */
-  async uploadEmployeePhoto(file) {
-    return { success: true, url: URL.createObjectURL(file), path: `photos/${file.name}` };
+  /** Fetch single employee by UUID (for detail page) */
+  async getEmployeeByUUID(uuid) {
+    if (!isSupabaseConfigured) return null;
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('id', uuid)
+      .is('deleted_at', null)
+      .single();
+
+    if (error || !data) return null;
+    return mapRow(data);
   },
 
-  /** Upload any employee document */
-  async uploadEmployeeDocument(file, type) {
-    return { success: true, url: URL.createObjectURL(file), type, path: `documents/${type}/${file.name}` };
+  /** Preview of next employee ID — UI only, NOT used for actual creation */
+  async getNextEmployeeIdPreview() {
+    if (!isSupabaseConfigured) return 'DS-001';
+    try {
+      const { data, error } = await supabase.rpc('peek_next_employee_id');
+      if (!error && data) return data;
+    } catch {}
+    // Fallback: count based
+    try {
+      const { count } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null);
+      const n = (count || 0) + 1;
+      return `DS-${n < 1000 ? String(n).padStart(3, '0') : n}`;
+    } catch {}
+    return 'DS-???';
   },
 
-  /** Check if an email is already registered. */
-  async checkEmailAvailability(email) {
-    return { available: true };
-  },
+  // ── WRITE OPERATIONS (Express backend) ──────────────────────────────────────
 
-  /** Check if a phone number is already registered. */
-  async checkPhoneAvailability(phone) {
-    return { available: true };
+  /**
+   * Create a new employee.
+   * Sends multipart/form-data with files to backend.
+   * Backend handles: atomic ID, file upload, DB insert, welcome email.
+   */
+  async createEmployee(formData) {
+    // formData: plain JS object with files as File instances
+    const body = new FormData();
+
+    // Text fields
+    const textFields = [
+      'name', 'address', 'phone', 'email', 'qualification',
+      'course', 'university', 'year_of_passing',
+      'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
+      'reference_mobile', 'reference_person_name', 'reference_relationship',
+      'state_id', 'district_id', 'mandal_id',
+    ];
+    textFields.forEach(field => {
+      if (formData[field] != null) body.append(field, formData[field]);
+    });
+
+    // Files
+    if (formData.photo instanceof File) body.append('photo', formData.photo);
+    if (formData.passbook instanceof File) body.append('passbook', formData.passbook);
+    if (formData.aadhaarDocument instanceof File) body.append('aadhaarDocument', formData.aadhaarDocument);
+    if (formData.panDocument instanceof File) body.append('panDocument', formData.panDocument);
+
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: authHeaders(),
+      body,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.message || 'Failed to create employee.');
+    }
+    return json;
   },
 
   /**
-   * Generate employee username from full name + employee ID.
+   * Update an existing employee.
    */
-  generateUsername(fullName, employeeId) {
-    const number = (employeeId || '001').replace('DS-', '');
-    const normalized = (fullName || '')
-      .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[^a-z]/g, '');
-    return `${normalized || 'employee'}${number}@dsprojects`;
+  async updateEmployee(employeeId, formData) {
+    const body = new FormData();
+    const textFields = [
+      'name', 'address', 'phone', 'email', 'qualification',
+      'course', 'university', 'year_of_passing',
+      'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
+      'reference_mobile', 'reference_person_name', 'reference_relationship',
+      'state_id', 'district_id', 'mandal_id',
+    ];
+    textFields.forEach(field => {
+      if (formData[field] != null) body.append(field, formData[field]);
+    });
+    if (formData.photo instanceof File) body.append('photo', formData.photo);
+    if (formData.passbook instanceof File) body.append('passbook', formData.passbook);
+    if (formData.aadhaarDocument instanceof File) body.append('aadhaarDocument', formData.aadhaarDocument);
+    if (formData.panDocument instanceof File) body.append('panDocument', formData.panDocument);
+
+    const res = await fetch(`${API_BASE}/${employeeId}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body,
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to update employee.');
+    return json;
   },
 
-  /** Strip Aadhaar hyphens for backend storage. */
+  /**
+   * Toggle employee status.
+   */
+  async updateStatus(employeeId, status) {
+    const res = await fetch(`${API_BASE}/${employeeId}/status`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to update status.');
+    return json;
+  },
+
+  /**
+   * Soft delete employee.
+   */
+  async deleteEmployee(employeeId) {
+    const res = await fetch(`${API_BASE}/${employeeId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to delete employee.');
+    return json;
+  },
+
+  /**
+   * Get a signed (private) URL for an employee document.
+   */
+  async getSignedUrl(bucket, filePath) {
+    const params = new URLSearchParams({ bucket, filePath });
+    const res = await fetch(`${API_BASE}/signed-url?${params}`, {
+      headers: authHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to load document.');
+    return json.signedUrl;
+  },
+
+  /** Normalize Aadhaar (strip hyphens) before sending to API */
   normalizeAadhaar(formatted) {
     return (formatted || '').replace(/-/g, '');
   },
 };
 
+// ── Row mapper (DB → camelCase) ───────────────────────────────────────────────
+function mapRow(e) {
+  return {
+    id: e.id,
+    employeeId: e.employee_id,
+    name: e.name || e.full_name || '',
+    address: e.address || '',
+    phone: e.phone || '',
+    email: e.email || '',
+    photoPath: e.candidate_photo_path || null,
+    qualification: e.qualification || '',
+    course: e.course || '',
+    university: e.university || '',
+    yearOfPassing: e.year_of_passing || '',
+    aadhaar: e.aadhaar_number || '',
+    aadhaarDocumentPath: e.aadhaar_document_path || null,
+    pan: e.pan_number || '',
+    panDocumentPath: e.pan_document_path || null,
+    passbookPath: e.bank_passbook_path || null,
+    accountHolderName: e.account_holder_name || '',
+    bankName: e.bank_name || '',
+    accountNumber: e.account_number || '',
+    ifsc: e.ifsc_code || '',
+    branchName: e.branch_name || '',
+    referenceMobile: e.reference_mobile || '',
+    referenceName: e.reference_person_name || '',
+    relationship: e.reference_relationship || '',
+    stateId: e.state_id || '',
+    districtId: e.district_id || '',
+    mandalId: e.mandal_id || '',
+    status: e.status || 'active',
+    createdAt: e.created_at,
+    updatedAt: e.updated_at,
+  };
+}
+
+// Export DISTRICT_MANDAL_MAP for form use
 export const DISTRICT_MANDAL_MAP = AP_DISTRICT_MANDAL_MAP;

@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  MoreHorizontal, 
+import {
+  Search,
+  Plus,
+  Filter,
+  MoreHorizontal,
   MoreVertical,
-  Users, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  UserPlus, 
-  CheckCircle2, 
+  Users,
+  MapPin,
+  Phone,
+  Mail,
+  UserPlus,
+  CheckCircle2,
   XCircle,
-  Clock, 
-  FileText, 
+  Clock,
+  FileText,
   Send,
   Trash2,
   Edit,
@@ -29,8 +29,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { liveDataService } from '../../services/liveDataService';
-import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
+import { employeeService } from '../../services/employeeService';
 
 export default function Employees() {
   const navigate = useNavigate();
@@ -47,44 +46,14 @@ export default function Employees() {
     async function fetchEmployees() {
       setLoading(true);
       try {
-        let liveList = await liveDataService.getEmployees();
-        let offers = [];
-        
-        if (isSupabaseConfigured) {
-          try {
-            const { data } = await supabase.from('job_offers').select('*');
-            offers = data || [];
-          } catch (e) {
-            console.warn('Could not fetch offers for enrichment:', e);
-          }
-        }
-
-        const enriched = (liveList || []).map(emp => {
-          const empId = emp.employee_id || emp.employeeId || emp.id;
-          const matchingOffer = offers.find(o => 
-            (o.employee_id === empId || o.employeeId === empId) && 
-            (o.status === 'Offer Sent' || o.status === 'Offer Accepted' || o.status === 'Onboarding Completed')
-          );
-          
-          const hasCompletedOffer = !!matchingOffer;
-          
-          let currentStatus = emp.status;
-          if (!currentStatus) {
-            currentStatus = hasCompletedOffer ? 'Active' : 'Onboarding';
-          }
-          
-          return {
-            ...emp,
-            status: currentStatus,
-            hasOffer: hasCompletedOffer,
-            isCompletedOnboarding: currentStatus === 'Active' || hasCompletedOffer,
-            displayDesignation: hasCompletedOffer ? (matchingOffer?.position || emp.designation) : (emp.designation || 'Mandal Co-ordinator'),
-            displayDepartment: hasCompletedOffer ? (matchingOffer?.department || emp.department || 'Field Operations') : (emp.department || 'Field Operations'),
-            displayStatus: currentStatus
-          };
-        });
-
-        setEmployees(enriched);
+        const list = await employeeService.getEmployees();
+        const normalized = (list || []).map(emp => ({
+          ...emp,
+          displayStatus: emp.status
+            ? emp.status.charAt(0).toUpperCase() + emp.status.slice(1).toLowerCase()
+            : 'Active',
+        }));
+        setEmployees(normalized);
       } catch (err) {
         console.error('Error fetching employees:', err);
       } finally {
@@ -100,29 +69,33 @@ export default function Employees() {
   };
 
   const handleUpdateStatus = async (emp, newStatus) => {
-    const empId = emp.employee_id || emp.employeeId || emp.id;
+    const empId = emp.employeeId;
     setUpdatingId(empId);
     setActiveMenu(null);
     try {
-      await liveDataService.updateEmployee(empId, { status: newStatus });
-      setEmployees(prev => prev.map(e => {
-        const currentId = e.employee_id || e.employeeId || e.id;
-        if (currentId === empId) {
-          return {
-            ...e,
-            status: newStatus,
-            displayStatus: newStatus,
-            isCompletedOnboarding: newStatus === 'Active' || e.hasOffer
-          };
-        }
-        return e;
-      }));
-      showToast(`${emp.full_name || emp.name} marked as ${newStatus}!`);
+      await employeeService.updateStatus(empId, newStatus.toLowerCase());
+      setEmployees(prev => prev.map(e =>
+        e.employeeId === empId
+          ? { ...e, status: newStatus.toLowerCase(), displayStatus: newStatus }
+          : e
+      ));
+      showToast(`${emp.name} marked as ${newStatus}!`);
     } catch (err) {
-      console.error('Failed to update status:', err);
-      showToast('Failed to update employee status.');
+      showToast(err.message || 'Failed to update employee status.');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleDelete = async (emp) => {
+    if (!window.confirm(`Permanently remove ${emp.name} (${emp.employeeId})? This action cannot be undone.`)) return;
+    setActiveMenu(null);
+    try {
+      await employeeService.deleteEmployee(emp.employeeId);
+      setEmployees(prev => prev.filter(e => e.employeeId !== emp.employeeId));
+      showToast(`${emp.name} removed.`);
+    } catch (err) {
+      showToast(err.message || 'Failed to delete employee.');
     }
   };
 
@@ -152,22 +125,24 @@ export default function Employees() {
     });
   };
 
-  const districts = ['All', ...new Set(employees.map(e => e.district).filter(Boolean))];
+  const districts = ['All', ...new Set(employees.map(e => e.districtId).filter(Boolean))];
 
   const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = (emp.full_name || emp.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (emp.employee_id || emp.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (emp.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (emp.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const q = searchTerm.toLowerCase();
+    const matchesSearch = !q ||
+      (emp.name || '').toLowerCase().includes(q) ||
+      (emp.employeeId || '').toLowerCase().includes(q) ||
+      (emp.email || '').toLowerCase().includes(q) ||
+      (emp.phone || '').toLowerCase().includes(q);
+
     const matchesStatus = statusFilter === 'All' || emp.displayStatus === statusFilter;
-    const matchesDistrict = districtFilter === 'All' || emp.district === districtFilter;
+    const matchesDistrict = districtFilter === 'All' || emp.districtId === districtFilter;
 
     return matchesSearch && matchesStatus && matchesDistrict;
   });
 
   const getStatusBadge = (emp) => {
-    const isUpdating = updatingId === (emp.employee_id || emp.employeeId || emp.id);
+    const isUpdating = updatingId === emp.employeeId;
 
     if (isUpdating) {
       return (
@@ -226,8 +201,8 @@ export default function Employees() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button 
-            onClick={() => navigate('/admin/employees/add')} 
+          <Button
+            onClick={() => navigate('/admin/employees/add')}
             className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
             icon={UserPlus}
           >
@@ -256,9 +231,8 @@ export default function Employees() {
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  statusFilter === st ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${statusFilter === st ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 {st}
               </button>
@@ -289,138 +263,88 @@ export default function Employees() {
                 <tr>
                   <th className="px-6 py-4">Employee</th>
                   <th className="px-6 py-4">Contact Info</th>
-                  <th className="px-6 py-4">Designation & Role</th>
+                  <th className="px-6 py-4">Qualification</th>
                   <th className="px-6 py-4">Location</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredEmployees.map((emp) => {
-                  const empId = emp.employee_id || emp.employeeId || emp.id;
-
-                  return (
-                    <tr key={empId} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {emp.photoUrl ? (
-                            <img 
-                              src={emp.photoUrl} 
-                              alt={emp.full_name || emp.name} 
-                              className={`w-10 h-10 rounded-xl object-cover shrink-0 shadow-xs ${
-                                emp.displayStatus === 'Inactive' ? 'opacity-50 grayscale' : ''
-                              }`} 
-                            />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
-                              emp.displayStatus === 'Inactive' 
-                                ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70' 
-                                : 'bg-gradient-to-tr from-[#E63946] to-[#FF6B6B]'
-                            }`}>
-                              {(emp.full_name || emp.name || 'E').charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold text-slate-900 flex items-center gap-2">
-                              <span>{emp.full_name || emp.name}</span>
-                              {emp.displayStatus === 'Inactive' && (
-                                <span className="text-[10px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded font-bold">
-                                  Disabled
-                                </span>
-                              )}
-                            </div>
-                            <div className="font-mono text-xs text-[#E63946] font-semibold">{empId}</div>
-                          </div>
+                {filteredEmployees.map((emp) => (
+                  <tr
+                    key={emp.employeeId}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/admin/employees/${emp.employeeId}`)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${emp.displayStatus === 'Inactive'
+                            ? 'bg-gradient-to-tr from-slate-500 to-slate-400 opacity-70'
+                            : 'bg-gradient-to-tr from-[#E63946] to-[#FF6B6B]'
+                          }`}>
+                          {(emp.name || 'E').charAt(0).toUpperCase()}
                         </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="text-slate-800 font-medium">{emp.phone || '-'}</div>
-                        <div className="text-xs text-slate-400">{emp.email || '-'}</div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        {emp.displayDesignation && emp.displayStatus !== 'Onboarding' ? (
-                          <div>
-                            <div className="font-bold text-slate-800">{emp.displayDesignation}</div>
-                            <div className="text-xs text-slate-500">{emp.displayDepartment || 'Field Operations'}</div>
+                        <div>
+                          <div className="font-bold text-slate-900 flex items-center gap-2">
+                            <span>{emp.name}</span>
+                            {emp.displayStatus === 'Inactive' && (
+                              <span className="text-[10px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded font-bold">Disabled</span>
+                            )}
                           </div>
-                        ) : (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-700 text-xs font-semibold">
-                              <Clock size={12} className="text-amber-500 shrink-0" />
-                              Pending Onboarding
-                            </span>
-                            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Assigned via Job Offer</p>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-800 flex items-center gap-1">
-                          <MapPin size={13} className="text-rose-500" />
-                          {emp.district || '-'}
+                          <div className="font-mono text-xs text-[#E63946] font-semibold">{emp.employeeId}</div>
                         </div>
-                        <div className="text-xs text-slate-500 pl-4">{emp.mandal || '-'}</div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Interactive Status Selector Column */}
-                      <td className="px-6 py-4">
+                    <td className="px-6 py-4">
+                      <div className="text-slate-800 font-medium">{emp.phone || '-'}</div>
+                      <div className="text-xs text-slate-400">{emp.email || '-'}</div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-800">{emp.qualification || '-'}</div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-800 flex items-center gap-1">
+                        <MapPin size={13} className="text-rose-500" />
+                        {emp.districtId || '-'}
+                      </div>
+                      <div className="text-xs text-slate-500 pl-4">{emp.mandalId || '-'}</div>
+                    </td>
+
+                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => openStatusMenu(e, emp)}
+                        className="group flex items-center gap-1 hover:opacity-85 transition-opacity cursor-pointer focus:outline-none"
+                        title="Click to change status"
+                      >
+                        {getStatusBadge(emp)}
+                        <ChevronDown size={12} className="text-slate-400 group-hover:text-slate-600 ml-0.5" />
+                      </button>
+                    </td>
+
+                    <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => navigate(`/admin/employees/edit/${emp.employeeId}`)}
+                          className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <Edit size={12} /> Edit
+                        </button>
                         <button
                           type="button"
-                          onClick={(e) => openStatusMenu(e, emp)}
-                          className="group flex items-center gap-1 hover:opacity-85 transition-opacity cursor-pointer focus:outline-none"
-                          title="Click to change status"
+                          onClick={(e) => openActionMenu(e, emp)}
+                          className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors cursor-pointer focus:outline-none"
+                          title="More actions"
                         >
-                          {getStatusBadge(emp)}
-                          <ChevronDown size={12} className="text-slate-400 group-hover:text-slate-600 ml-0.5" />
+                          <MoreVertical size={14} />
                         </button>
-                      </td>
-
-                      {/* Actions Column */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Primary Action Button */}
-                          {emp.displayStatus === 'Active' ? (
-                            <button
-                              onClick={() => navigate('/admin/work')}
-                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                            >
-                              <FileText size={12} />
-                              Assign Task
-                            </button>
-                          ) : emp.displayStatus === 'Inactive' ? (
-                            <button
-                              onClick={() => handleUpdateStatus(emp, 'Active')}
-                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                            >
-                              <UserCheck size={12} />
-                              Reactivate
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => navigate(`/admin/onboarding/create?candidateId=${empId}`)}
-                              className="px-3 py-1.5 text-xs font-bold text-[#E63946] bg-[#D8F5FA] hover:bg-[#D8F5FA] rounded-xl border border-[#D8F5FA] transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                            >
-                              <Send size={12} />
-                              Issue Offer
-                            </button>
-                          )}
-
-                          {/* More Options Dropdown Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => openActionMenu(e, emp)}
-                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors cursor-pointer focus:outline-none"
-                            title="More actions"
-                          >
-                            <MoreVertical size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           ) : (
@@ -428,8 +352,8 @@ export default function Employees() {
               <Users className="h-12 w-12 text-slate-300 mx-auto" />
               <p className="font-bold text-sm text-slate-700">No matching employees found</p>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                {employees.length === 0 
-                  ? 'Your database is currently empty. Add your first employee using the button above.' 
+                {employees.length === 0
+                  ? 'Your database is currently empty. Add your first employee using the button above.'
                   : 'Try adjusting your search query or filter settings.'}
               </p>
               {employees.length === 0 && (
@@ -444,8 +368,8 @@ export default function Employees() {
 
       {/* Floating Action / Status Overlay Menu (Fixed to viewport - never clipped by table overflow) */}
       {activeMenu && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-slate-900/10" 
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/10"
           onClick={() => setActiveMenu(null)}
         >
           {activeMenu.type === 'action' ? (
@@ -502,40 +426,31 @@ export default function Employees() {
 
               <button
                 type="button"
-                onClick={() => {
-                  const empId = activeMenu.emp.employee_id || activeMenu.emp.employeeId || activeMenu.emp.id;
-                  setActiveMenu(null);
-                  navigate(`/admin/employees/edit/${empId}`);
-                }}
+                onClick={() => { setActiveMenu(null); navigate(`/admin/employees/${activeMenu.emp.employeeId}`); }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <AlertCircle size={14} className="text-[#00B4D8]" />
+                <span>View Profile</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setActiveMenu(null); navigate(`/admin/employees/edit/${activeMenu.emp.employeeId}`); }}
                 className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <Edit size={14} className="text-[#00B4D8]" />
                 <span>Edit Employee</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveMenu(null);
-                  navigate('/admin/work');
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                <FileText size={14} className="text-[#E63946]" />
-                <span>Dispatch Task</span>
-              </button>
+              <div className="my-1.5 border-t border-slate-100" />
 
               <button
                 type="button"
-                onClick={() => {
-                  const empId = activeMenu.emp.employee_id || activeMenu.emp.employeeId || activeMenu.emp.id;
-                  setActiveMenu(null);
-                  navigate(`/admin/onboarding/create?candidateId=${empId}`);
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                onClick={() => handleDelete(activeMenu.emp)}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Send size={14} className="text-[#E63946]" />
-                <span>Issue Offer Letter</span>
+                <Trash2 size={14} className="text-rose-600" />
+                <span>Delete Employee</span>
               </button>
             </div>
           ) : (
@@ -554,10 +469,9 @@ export default function Employees() {
 
               <button
                 type="button"
-                onClick={() => handleUpdateStatus(activeMenu.emp, 'Active')}
-                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer ${
-                  activeMenu.emp.displayStatus === 'Active' ? 'text-emerald-700 bg-emerald-50/50' : 'text-slate-700'
-                }`}
+                onClick={() => handleUpdateStatus(activeMenu.emp, 'active')}
+                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer ${activeMenu.emp.displayStatus === 'Active' ? 'text-emerald-700 bg-emerald-50/50' : 'text-slate-700'
+                  }`}
               >
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -568,30 +482,15 @@ export default function Employees() {
 
               <button
                 type="button"
-                onClick={() => handleUpdateStatus(activeMenu.emp, 'Inactive')}
-                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer ${
-                  activeMenu.emp.displayStatus === 'Inactive' ? 'text-rose-700 bg-rose-50/50' : 'text-slate-700'
-                }`}
+                onClick={() => handleUpdateStatus(activeMenu.emp, 'inactive')}
+                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer ${activeMenu.emp.displayStatus === 'Inactive' ? 'text-rose-700 bg-rose-50/50' : 'text-slate-700'
+                  }`}
               >
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
                   Inactive
                 </span>
                 {activeMenu.emp.displayStatus === 'Inactive' && <Check size={14} className="text-rose-600" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleUpdateStatus(activeMenu.emp, 'Onboarding')}
-                className={`w-full text-left px-3.5 py-2 text-xs font-bold flex items-center justify-between hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer ${
-                  activeMenu.emp.displayStatus === 'Onboarding' ? 'text-amber-700 bg-amber-50/50' : 'text-slate-700'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  Onboarding
-                </span>
-                {activeMenu.emp.displayStatus === 'Onboarding' && <Check size={14} className="text-amber-600" />}
               </button>
             </div>
           )}

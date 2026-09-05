@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-navy)] shadow-sm',
-        secondary: 'bg-[var(--color-lavender)] text-[var(--color-navy)] hover:bg-gray-300',
-        outline: 'border border-[var(--color-border)] bg-transparent hover:bg-gray-100 text-[var(--color-text-primary)]',
-        ghost: 'hover:bg-gray-100 hover:text-[var(--color-text-primary)] text-[var(--color-text-secondary)]',
-        danger: 'bg-[var(--color-error)] text-white hover:bg-red-700 shadow-sm',
-        success: 'bg-[var(--color-success)] text-white hover:bg-green-700 shadow-sm',
+        default: 'bg-[var(--color-primary)] text-white hover:bg-red-700 shadow-sm border border-transparent',
+        secondary: 'bg-[var(--color-secondary-light)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary-medium)] hover:text-white border border-transparent',
+        outline: 'border border-gray-300 bg-transparent hover:bg-gray-50 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] text-gray-700',
+        ghost: 'hover:bg-gray-100 hover:text-[var(--color-text-primary)] text-[var(--color-text-secondary)] border border-transparent',
+        danger: 'bg-[var(--color-error)] text-white hover:bg-red-700 shadow-sm border border-transparent',
+        success: 'bg-[var(--color-success)] text-white hover:bg-green-700 shadow-sm border border-transparent',
       },
       size: {
         default: 'h-10 px-4 py-2',

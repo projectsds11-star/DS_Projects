@@ -154,11 +154,10 @@ DS PROJECTS HR Team`,
     noticePeriod: '15 Days',
     jobDescription: `As a Facilitator, you will be in direct contact with community members and households in {{mandal}} mandal, facilitating registrations, conducting surveys, distributing project materials, and assisting citizens with program access.`,
     responsibilities: [
-      'Visit designated village clusters daily and engage households in project programs.',
-      'Accurately fill citizen questionnaires and upload data using the mobile application.',
-      'Assist Mandal Co-ordinators in community awareness sessions and camps.',
-      'Submit daily work completion counts before 6:00 PM.',
+      'Facilitate community registrations and program awareness.',
+      'Assist citizens with accessing the project benefits and services.',
     ],
+    termsAndConditions: [],
     emailSubject: `Employment Offer — Facilitator — DS PROJECTS ({{employee_name}})`,
     emailBody: `Dear {{employee_name}},
 
@@ -171,48 +170,66 @@ Please check the attached offer document and activate your employee portal crede
 Warm regards,
 HR Team, DS PROJECTS`,
   },
-  'District Co-ordinator': {
-    jobPosition: 'District Co-ordinator',
-    department: 'Project Coordination',
-    defaultSalary: { basic: 30000, travel: 5000, incentive: 0, other: 0 },
-    probation: '6 Months',
-    noticePeriod: '60 Days',
-    jobDescription: `The District Co-ordinator heads project implementation for the entire {{district}} district. You will manage all Mandal Co-ordinators, oversee field logistics, interface with district authorities, and ensure target achievement.`,
+  'Field Data Executive': {
+    jobPosition: 'Field Data Executive',
+    department: 'MSME Sustainable (ZED) Certification & Consultancy Division',
+    pdfTitle: 'APPOINTMENT LETTER FOR THE POST OF "MSME ZED CERTIFICATION FIELD DATA EXECUTIVE"',
+    defaultSalary: { basic: 15000, travel: 5000, incentive: 0, other: 2000 },
+    probation: '3 to 6 Months',
+    noticePeriod: '30 Days',
+    jobDescription: `With reference to your application, interview, and background evaluation, the management at DS Projects is pleased to formally appoint you as MSME ZED Certification Field Data Executive. In this role, you will be responsible for district-level field operations, enterprise data collection, process monitoring, and business growth under the Ministry of MSME's Sustainable (ZED - Zero Defect Zero Effect) Certification Program.`,
     responsibilities: [
-      'Manage end-to-end project operations and team performance across all mandals in {{district}}.',
-      'Serve as key liaison between Head Office leadership and district administration.',
-      'Monitor district-wide KPIs, budgets, attendance, and data submission velocity.',
-      'Organize district review meetings and address operational escalations promptly.',
+      'District Performance & Monitoring: Conduct field visits to micro, small, and medium industrial units across the assigned district to monitor performance, evaluate manufacturing processes, and verify operational setups.',
+      'ZED Data Collection & Evidence Upload: Collect authentic process data, quality parameters, safety compliance records, and geo-tagged site photographs required for ZED Bronze, Silver, and Gold level certifications.',
+      'MSME Awareness & Business Expansion: Actively engage with industrial units, trade associations, and local enterprise hubs to promote the ZED Scheme benefits, guide units through the ZED Pledge, and grow DS Projects\' client footprint.',
+      'Portal Facilitation & Onboarding: Assist MSME unit representatives with Udyam registration validation, document upload, and self-assessment navigation on the official ZED portal (zed.msme.gov.in).',
+      'Reporting & Audit Compliance: Maintain daily field activity reports (DAR), track district target progression, and submit verified audit dossiers to the Operations Lead.',
     ],
-    emailSubject: `Employment Offer — District Co-ordinator — DS PROJECTS ({{employee_name}})`,
+    termsAndConditions: [
+      { id: 1, title: 'MSME ZED COMPLIANCE RULES & OPERATIONAL GUIDELINES', text: 'Authenticity & Zero-Tolerance Policy: All collected field data, photographs, and document uploads must be 100% genuine and captured directly from the registered industrial unit address. Any submission of duplicate, fraudulent, or altered records will result in immediate termination and legal action.' },
+      { id: 2, title: '', text: 'Professional Standard & Representation: As a representative of DS Projects working on Ministry of MSME initiatives, you must maintain a professional dress code, display official identification, and follow proper workplace decorum during factory/unit visits.' },
+      { id: 3, title: '', text: 'Co-ordination with MSME Representatives: All field assessments and document collection must occur strictly in the presence of the authorized MSME unit representative.' },
+      { id: 4, title: '', text: 'Working Hours & Field Reporting: Standard working hours are 9:30 AM to 6:00 PM (Monday to Saturday). Daily movement logs and field assessment sheets must be updated on the corporate portal by 7:00 PM every working day.' },
+      { id: 5, title: '', text: 'Confidentiality Agreement: You shall strictly protect the proprietary process data, financial information, and technical documentation of candidate MSMEs. Data leakage to third parties is strictly prohibited.' },
+      { id: 6, title: '', text: 'Probation & Notice Period: You will serve a probation period of 3 to 6 months. Resignation or termination requires a 15-day notice period during probation and a 30-day notice period post-confirmation.' },
+    ],
+    emailSubject: `Employment Offer — Field Data Executive — DS PROJECTS ({{employee_name}})`,
     emailBody: `Dear {{employee_name}},
 
-Congratulations!
+Congratulations! Welcome to DS PROJECTS.
 
-On behalf of the leadership team at DS PROJECTS, we take pleasure in offering you the strategic position of District Co-ordinator for {{district}} District.
+We are happy to offer you the position of Field Data Executive assigned to {{district}} District.
 
-Please find your official appointment offer attached. Complete your account activation via {{activation_link}}.
+Please check the attached offer document and activate your employee portal credentials using this link: {{activation_link}}.
 
-Sincerely,
-Managing Director & HR Directorate
-DS PROJECTS`,
+Warm regards,
+HR Team, DS PROJECTS`,
   },
   'Office Staff': {
     jobPosition: 'Office Staff',
-    department: 'Administration & HR',
-    defaultSalary: { basic: 14000, travel: 1000, incentive: 2000, other: 1000 },
-    probation: '3 Months',
+    department: 'UDYAM REGISTRATION NO: UDYAM-AP-13-0077732',
+    pdfTitle: 'APPOINTMENT LETTER FOR STAFF POSITION AT DS PROJECTS',
+    defaultSalary: { basic: 15000, travel: 0, incentive: 0, other: 2000 },
+    probation: '3 to 6 Months',
     noticePeriod: '30 Days',
-    jobDescription: `Office Staff support district headquarters administrative workflows, record keeping, documentation verification, employee query resolution, and logistical coordination.`,
+    jobDescription: `With reference to your application and subsequent employment assessment, management at DS Projects is pleased to offer you employment for the position of {{designation}} at our office in Ongole, Andhra Pradesh. This appointment is subject to your acceptance of the corporate rules, policies, and compensation structure detailed below.`,
     responsibilities: [
-      'Manage office registers, documentation archives, and employee physical dossiers.',
-      'Assist the HR and accounts team in payroll data collation and document audits.',
-      'Coordinate office procurement, incoming correspondence, and staff supplies.',
+      'Working Hours & Punctuality: Regular office working hours are from 9:30 AM to 6:00 PM (Monday through Saturday). Staff members must maintain strict punctuality and record attendance daily via official logs/biometrics.',
+      'Supervisor: Responsible for team monitoring, task distribution, operational execution, and reporting to corporate management.',
+      'Computer Operator: Responsible for data entry, office documentation, system management, and digital record maintenance.',
+      'Telecaller: Responsible for calling clients/enterprises, project communications, lead generation, and follow-ups.',
+      'Attender: Responsible for office maintenance, document movement, pantry support, and general routine operational assistance.',
+    ],
+    termsAndConditions: [
+      { id: 1, title: 'CORPORATE RULES & EMPLOYMENT GUIDELINES', text: 'Code of Conduct & Workplace Discipline: You are expected to maintain professional integrity, respectful behavior toward colleagues/clients, and strict compliance with management directives at all times.' },
+      { id: 2, title: '', text: 'Confidentiality & Data Protection: You shall maintain total confidentiality regarding company documents, client lists, project credentials, and financial information. Unauthorized sharing of corporate data is strictly prohibited and subject to legal action.' },
+      { id: 3, title: '', text: 'Leave Policy: Leaves must be requested and approved in advance by management. Unauthorized absence for more than 3 consecutive days will lead to disciplinary action.' },
+      { id: 4, title: '', text: 'Probation & Notice Period: You will be on a probation period of 3 to 6 months. Termination or resignation during probation requires 15 days\' written notice or salary in lieu thereof. Post confirmation, a 30-day notice period is required.' },
     ],
     emailSubject: `Employment Offer — Office Staff — DS PROJECTS ({{employee_name}})`,
     emailBody: `Dear {{employee_name}},
 
-Congratulations! We are glad to extend an offer for the position of Office Staff at our {{district}} Office.
+Congratulations! We are glad to extend an offer for the position of {{designation}} at our {{district}} Office.
 
 Please review your offer details attached and complete your employee account onboarding.
 

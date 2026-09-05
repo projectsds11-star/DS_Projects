@@ -101,7 +101,8 @@ export default function CreateJobOffer() {
       email: '',
       phone: '',
       position: 'Mandal Co-ordinator',
-      department: 'Field Operations',
+      department: MASTER_TEMPLATES['Mandal Co-ordinator']?.department || 'Field Operations',
+      pdfTitle: MASTER_TEMPLATES['Mandal Co-ordinator']?.pdfTitle || 'LETTER OF APPOINTMENT',
       district: 'Nellore',
       mandal: 'Kavali',
       joiningDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
@@ -118,9 +119,9 @@ export default function CreateJobOffer() {
       },
       jobDescription: MASTER_TEMPLATES['Mandal Co-ordinator']?.jobDescription || '',
       responsibilities: MASTER_TEMPLATES['Mandal Co-ordinator']?.responsibilities || [],
-      termsAndConditions: DEFAULT_TERMS,
-      emailSubject: 'Employment Offer Letter — Mandal Co-ordinator — DS PROJECTS',
-      emailBody: '',
+      termsAndConditions: MASTER_TEMPLATES['Mandal Co-ordinator']?.termsAndConditions || [],
+      emailSubject: MASTER_TEMPLATES['Mandal Co-ordinator']?.emailSubject || '',
+      emailBody: MASTER_TEMPLATES['Mandal Co-ordinator']?.emailBody || '',
     },
   });
 
@@ -185,8 +186,10 @@ export default function CreateJobOffer() {
     const tpl = MASTER_TEMPLATES[pos];
     if (tpl) {
       setValue('department', tpl.department);
+      setValue('pdfTitle', tpl.pdfTitle);
       setValue('jobDescription', tpl.jobDescription);
-      setValue('responsibilities', [...tpl.responsibilities]);
+      setValue('responsibilities', tpl.responsibilities);
+      setValue('termsAndConditions', tpl.termsAndConditions || []);
       setValue('probation', tpl.probation);
       setValue('noticePeriod', tpl.noticePeriod);
       if (tpl.defaultSalary) {
@@ -195,9 +198,9 @@ export default function CreateJobOffer() {
         setValue('salary.incentive', tpl.defaultSalary.incentive);
         setValue('salary.other', tpl.defaultSalary.other);
       }
+      setValue('emailSubject', tpl.emailSubject || '');
+      setValue('emailBody', tpl.emailBody || '');
     }
-    setValue('emailSubject', `Employment Offer Letter — ${pos} — DS PROJECTS`);
-    refreshEmailBody(watchedValues.employeeName, pos, watchedValues.district, watchedValues.mandal, watchedValues.joiningDate);
   };
 
   // 4. Refresh Email Body

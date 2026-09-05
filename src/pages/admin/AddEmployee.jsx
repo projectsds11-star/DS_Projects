@@ -1,680 +1,894 @@
-import React, { useEffect, useRef, useState } from 'react';
+/**
+ * src/pages/admin/AddEmployee.jsx
+ * Add / Edit Employee — Production-grade form with 5 sections + Preview flow.
+ *
+ * Flow: Form → Preview → Create → Success
+ * Edit mode: loads real DB data, submits to PUT endpoint.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link, useParams } from 'react-router-dom';
-import { ChevronRight, Save, Check, ArrowLeft, Eye, EyeOff, User, ShieldAlert } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { cn } from '../../utils/cn';
-import { employeeSchema } from '../../validators/employeeSchema';
-import { employeeService, DISTRICT_MANDAL_MAP } from '../../services/employeeService';
-import { Button } from '../../components/ui/Button';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft, Eye, UserPlus, CheckCircle, AlertCircle,
+  RefreshCw, MapPin, User, ShieldCheck, Landmark, Users, X
+} from 'lucide-react';
+
+import { employeeSchema, employeeEditSchema } from '../../validators/employeeSchema';
+import { employeeService } from '../../services/employeeService';
+import { locationService } from '../../services/locationService';
+
 import FormSection, { FormField, FormGrid } from '../../components/employee/FormSection';
 import PhotoUploader from '../../components/employee/PhotoUploader';
 import DocumentUploader from '../../components/employee/DocumentUploader';
-import ConfirmationModal from '../../components/employee/ConfirmationModal';
+import { Button } from '../../components/ui/Button';
 import SuccessModal from '../../components/employee/SuccessModal';
 
-import { storageService } from '../../services/supabaseClient';
+// ─── Helper ────────────────────────────────────────────────────────────────────
+const cn = (...cls) => cls.filter(Boolean).join(' ');
 
-// ─── Shared input class ────────────────────────────────────────────
-const INPUT_BASE = 'flex h-11 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] transition disabled:bg-gray-50 disabled:cursor-not-allowed';
-const INPUT_ERROR = 'border-[var(--color-error)] focus:ring-[var(--color-error)]';
-const SELECT_BASE = `${INPUT_BASE} cursor-pointer`;
-
-// ─── Toast ────────────────────────────────────────────────────────
-function Toast({ message, type = 'success', onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3000);
-    return () => clearTimeout(t);
-  }, [onDone]);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 24 }}
-      className={cn(
-        'fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white',
-        type === 'success' ? 'bg-green-600' : type === 'draft' ? 'bg-[var(--color-primary)]' : 'bg-red-600'
-      )}
-    >
-      {type === 'success' && <Check className="h-4 w-4" />}
-      {message}
-    </motion.div>
+function inputCls(hasError) {
+  return cn(
+    'w-full rounded-lg border px-3 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400',
+    'focus:ring-2 focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)]',
+    hasError
+      ? 'border-[var(--color-error)] bg-red-50/30'
+      : 'border-gray-300 bg-white hover:border-gray-400'
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────
-export default function AddEmployee() {
-  const { id } = useParams();
-  const isEditMode = !!id;
-  
-  const [employeeId, setEmployeeId] = useState(id || 'DS-001'); // placeholder, overwritten by service if creating
-  const idFetched = useRef(false); // guard against React StrictMode double-invoke
-  const [photo, setPhoto] = useState(null);
-  const [documents, setDocuments] = useState({
-    aadhaarDoc: null, panDoc: null, passbook: null,
-    qualCert: null, resume: null, otherDoc: null,
-  });
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [isLoading, setIsLoading] = useState(isEditMode);
-  const [createdEmployee, setCreatedEmployee] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [showAccNo, setShowAccNo] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('');
+// ─── Aadhaar auto-format ───────────────────────────────────────────────────────
+function formatAadhaar(raw) {
+  const digits = raw.replace(/\D/g, '').slice(0, 12);
+  const parts = [digits.slice(0, 4), digits.slice(4, 8), digits.slice(8, 12)].filter(Boolean);
+  return parts.join('-');
+}
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: { status: 'Active' },
-  });
-
-  const watchedAccountNo = watch('accountNumber', '');
-  const watchedReEnter = watch('reEnterAccountNumber', '');
-  const watchedName = watch('fullName', '');
-  const accountsMatch = watchedAccountNo && watchedReEnter && watchedAccountNo === watchedReEnter;
-  const accountsMismatch = watchedAccountNo && watchedReEnter && watchedAccountNo !== watchedReEnter;
-
-  // Load next employee ID on mount — or load existing employee data if edit mode
-  useEffect(() => {
-    if (idFetched.current) return;
-    idFetched.current = true;
-    
-    if (isEditMode) {
-      employeeService.getEmployeeById(id).then(emp => {
-        if (emp) {
-          reset(emp);
-          setEmployeeId(emp.employeeId);
-          if (emp.photoUrl) {
-            setPhoto({ preview: emp.photoUrl });
-          }
-          if (emp.district) {
-            setSelectedDistrict(emp.district);
-          }
-        }
-        setIsLoading(false);
-      });
-    } else {
-      employeeService.getNextEmployeeId().then(setEmployeeId);
-    }
-  }, [id, isEditMode, reset]);
-
-  // Warn on unsaved changes
-  useEffect(() => {
-    const handleUnload = (e) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [isDirty]);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  // ── Aadhaar auto-format ────────────────────────────────────────
-  const handleAadhaarChange = (e) => {
-    const raw = e.target.value.replace(/\D/g, '').slice(0, 12);
-    setValue('aadhaar', raw, { shouldValidate: true });
-    e.target.value = raw.replace(/(\d{4})(?=\d)/g, '$1-');
-  };
-
-  const formatAadhaarDisplay = (raw = '') =>
-    raw.replace(/(\d{4})(?=\d)/g, '$1-');
-
-  // ── PAN auto-uppercase ─────────────────────────────────────────
-  const handlePanChange = (e) => {
-    const upper = e.target.value.toUpperCase().slice(0, 10);
-    e.target.value = upper;
-    setValue('pan', upper, { shouldValidate: true });
-  };
-
-  // ── IFSC auto-uppercase ────────────────────────────────────────
-  const handleIfscChange = (e) => {
-    const upper = e.target.value.toUpperCase().slice(0, 11);
-    e.target.value = upper;
-    setValue('ifsc', upper, { shouldValidate: true });
-  };
-
-  // ── Save Draft ─────────────────────────────────────────────────
-  const handleSaveDraft = async () => {
-    setIsSavingDraft(true);
-    try {
-      const values = getValues();
-      await employeeService.saveEmployeeDraft({ ...values, employeeId, status: 'Draft' });
-      showToast('Employee draft saved.', 'draft');
-    } catch {
-      showToast('Could not save draft. Please try again.', 'error');
-    } finally {
-      setIsSavingDraft(false);
-    }
-  };
-
-  // ── Submit (validate + show confirm) ──────────────────────────
-  const onSubmit = () => {
-    setShowConfirm(true);
-  };
-
-  // ── Confirm & Create ───────────────────────────────────────────
-  const handleConfirmCreate = async () => {
-    setIsSubmitting(true);
-    try {
-      const values = getValues();
-      const username = employeeService.generateUsername(values.fullName, employeeId);
-      
-      // Upload Photo if present (and it's a new file, not just a preview URL)
-      let photoUrl = null;
-      if (photo?.file) {
-        photoUrl = await storageService.uploadEmployeePhoto(photo.file, employeeId);
-      } else if (photo?.preview && !photo.preview.startsWith('blob:')) {
-        photoUrl = photo.preview;
-      }
-
-      let result, emp;
-      if (isEditMode) {
-        result = await employeeService.updateEmployee(employeeId, { ...values, photoUrl });
-        emp = { ...result.data, employeeId, photoUrl };
-      } else {
-        result = await employeeService.createEmployee({ ...values, employeeId, username, photoUrl });
-        emp = { ...result.data, employeeId, username, photoUrl };
-      }
-      
-      setCreatedEmployee(emp);
-      setShowConfirm(false);
-      setShowSuccess(true);
-    } catch {
-      showToast(`Unable to ${isEditMode ? 'update' : 'create'} employee. Please try again.`, 'error');
-      setShowConfirm(false);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const username = employeeService.generateUsername(watchedName, employeeId);
-
-  const mandals = selectedDistrict ? (DISTRICT_MANDAL_MAP[selectedDistrict] || []) : [];
-
-  // ── Reusable input builder ─────────────────────────────────────
-  const field = (name, placeholder, type = 'text', extra = {}) => (
-    <input
-      id={name}
-      type={type}
-      placeholder={placeholder}
-      className={cn(INPUT_BASE, errors[name] && INPUT_ERROR)}
-      autoComplete={extra.autoComplete}
-      maxLength={extra.maxLength}
-      disabled={extra.disabled}
-      {...register(name)}
-      {...(extra.onChange ? { onChange: extra.onChange } : {})}
-    />
-  );
-
-  const selectField = (name, options, placeholder = 'Select…', extra = {}) => (
-    <select
-      id={name}
-      className={cn(SELECT_BASE, errors[name] && INPUT_ERROR)}
-      disabled={extra.disabled}
-      {...register(name)}
-      {...(extra.onChange ? { onChange: extra.onChange } : {})}
-    >
-      <option value="">{placeholder}</option>
-      {options.map(opt =>
-        typeof opt === 'string'
-          ? <option key={opt} value={opt}>{opt}</option>
-          : <option key={opt.value} value={opt.value}>{opt.label}</option>
-      )}
-    </select>
-  );
-
+// ─── Preview card ──────────────────────────────────────────────────────────────
+function PreviewRow({ label, value, mono }) {
   return (
-    <div className="space-y-6 pb-32">
-
-      {/* ── Page Header ─────────────────────────────────────── */}
-      <div className="flex items-start gap-3">
-        <button onClick={() => navigate('/admin/employees')}
-          className="mt-1 p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 shrink-0" aria-label="Back">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <nav className="flex items-center gap-1 text-xs text-gray-400 mb-1">
-            <Link to="/admin/employees" className="hover:text-[var(--color-primary)] transition-colors">Directory</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-gray-600 font-medium">{isEditMode ? 'Edit Employee' : 'Add Employee'}</span>
-          </nav>
-          <h1 className="text-xl font-bold text-[var(--color-navy)]">{isEditMode ? 'Edit Employee' : 'Add New Employee'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{isEditMode ? 'Update existing employee information.' : 'Register a new employee and maintain their complete information.'}</p>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="py-20 text-center">
-          <div className="w-8 h-8 border-4 border-slate-200 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500 font-medium">Loading employee details...</p>
-        </div>
-      ) : (
-        <>
-          {/* ── ID Banner ───────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl px-2 py-4"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[var(--color-secondary-light)] rounded-xl flex items-center justify-center">
-                <User className="h-6 w-6 text-[var(--color-secondary)]" />
-              </div>
-              <div>
-                <p className="text-xs text-[var(--color-secondary)] font-bold uppercase tracking-wider">{isEditMode ? 'Edit Employee' : 'New Employee'}</p>
-                <p className="text-gray-900 font-semibold text-lg mt-0.5">Register Employee Record</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-[var(--color-secondary)] font-bold">Employee ID</p>
-              <p className="text-2xl font-mono font-bold text-gray-900">{employeeId}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Auto-generated by system</p>
-            </div>
-          </motion.div>
-
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="p-6 md:p-8 space-y-12">
-              {/* ── SECTION 01 – IDENTIFICATION ─────────────────── */}
-              <FormSection number={1} title="Employee Identification" description="System-assigned ID and employment status.">
-                <FormGrid>
-                  <FormField label="Employee ID" helper="Automatically generated — cannot be changed.">
-                    <div className="relative">
-                      <input readOnly value={employeeId}
-                        className="flex h-11 w-full rounded-lg border border-[var(--color-border)] bg-gray-50 px-3 py-2 text-sm font-mono font-semibold text-[var(--color-primary)] cursor-not-allowed" />
-              </div>
-            </FormField>
-            <FormField label="Employee Status" error={errors.status?.message}>
-              {selectField('status', ['Draft', 'Onboarding', 'Active', 'Inactive'])}
-            </FormField>
-          </FormGrid>
-        </FormSection>
-
-        {/* ── SECTION 02 – PERSONAL INFORMATION ───────────── */}
-        <div className="mt-5">
-          <FormSection number={2} title="Personal Information" description="Candidate's basic personal and contact details.">
-            <div className="space-y-6">
-              {/* Photo */}
-              <PhotoUploader value={photo} onChange={setPhoto} />
-
-              <div className="border-t border-gray-100" />
-
-              <FormGrid>
-                <FormField label="Full Name" required error={errors.fullName?.message} colSpan={2}>
-                  {field('fullName', 'Enter candidate full name')}
-                </FormField>
-
-                <FormField label="Date of Birth" error={errors.dateOfBirth?.message}>
-                  <input type="date" id="dateOfBirth"
-                    className={cn(INPUT_BASE, errors.dateOfBirth && INPUT_ERROR)}
-                    {...register('dateOfBirth')} />
-                </FormField>
-
-                <FormField label="Gender" error={errors.gender?.message}>
-                  {selectField('gender', ['Male', 'Female', 'Other', 'Prefer not to say'])}
-                </FormField>
-
-                <FormField label="Phone Number" required error={errors.phone?.message}
-                  helper="10-digit Indian mobile number without country code.">
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-[var(--color-border)] bg-gray-50 text-gray-500 text-sm font-medium">+91</span>
-                    <input id="phone" type="tel" maxLength={10} placeholder="9876543210"
-                      className={cn(INPUT_BASE, 'rounded-l-none', errors.phone && INPUT_ERROR)}
-                      {...register('phone')} />
-                  </div>
-                </FormField>
-
-                <FormField label="Email Address" required error={errors.email?.message}>
-                  {field('email', 'candidate@example.com', 'email', { autoComplete: 'email' })}
-                </FormField>
-              </FormGrid>
-            </div>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 03 – ADDRESS ────────────────────────── */}
-        <div className="mt-5">
-          <FormSection number={3} title="Address Details" description="Candidate's residential address information.">
-            <FormGrid>
-              <FormField label="House / Door No." error={errors.houseNo?.message}>
-                {field('houseNo', 'e.g. 12-4/A')}
-              </FormField>
-
-              <FormField label="Street / Village" error={errors.street?.message}>
-                {field('street', 'e.g. Gandhi Nagar')}
-              </FormField>
-
-              <FormField label="State" error={errors.state?.message}>
-                {selectField('state', ['Andhra Pradesh', 'Telangana', 'Karnataka', 'Tamil Nadu', 'Other'])}
-              </FormField>
-
-              <FormField label="District" error={errors.district?.message}>
-                {selectField(
-                  'district',
-                  Object.keys(DISTRICT_MANDAL_MAP),
-                  'Select District',
-                  {
-                    onChange: (e) => {
-                      setSelectedDistrict(e.target.value);
-                      setValue('mandal', '');
-                      setValue('district', e.target.value);
-                    }
-                  }
-                )}
-              </FormField>
-
-              <FormField label="Mandal" error={errors.mandal?.message}
-                helper={!selectedDistrict ? 'Please select a district first.' : undefined}>
-                <select id="mandal"
-                  className={cn(SELECT_BASE, errors.mandal && INPUT_ERROR, !selectedDistrict && 'text-gray-300')}
-                  disabled={!selectedDistrict}
-                  {...register('mandal')}
-                >
-                  <option value="">{selectedDistrict ? 'Select Mandal' : 'Select district first'}</option>
-                  {mandals.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </FormField>
-
-              <FormField label="Pincode" error={errors.pincode?.message}
-                helper="Enter 6-digit pincode.">
-                {field('pincode', '524001', 'text', { maxLength: 6 })}
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 04 – QUALIFICATION ──────────────────── */}
-        <div className="mt-5">
-          <FormSection number={4} title="Qualification Details" description="Educational background of the candidate.">
-            <FormGrid>
-              <FormField label="Highest Qualification" required error={errors.highestQualification?.message}>
-                {selectField('highestQualification',
-                  ['10th', 'Intermediate', 'ITI', 'Diploma', 'B.Tech / B.E', 'Degree', 'Post Graduation', 'MBA', 'MCA', 'Other'],
-                  'Select Qualification'
-                )}
-              </FormField>
-
-              <FormField label="Course / Degree" error={errors.course?.message}>
-                {field('course', 'e.g. B.Sc Agriculture')}
-              </FormField>
-
-              <FormField label="Institution / College" error={errors.institution?.message}>
-                {field('institution', 'e.g. ANGRAU Hyderabad')}
-              </FormField>
-
-              <FormField label="Year of Passing" error={errors.yearOfPassing?.message}>
-                <input id="yearOfPassing" type="number" min="1990" max={new Date().getFullYear()}
-                  placeholder={String(new Date().getFullYear())}
-                  className={cn(INPUT_BASE, errors.yearOfPassing && INPUT_ERROR)}
-                  {...register('yearOfPassing')} />
-              </FormField>
-
-              <FormField label="Qualification Certificate" colSpan={2} helper="Optional — can be uploaded later.">
-                <DocumentUploader label=""
-                  value={documents.qualCert}
-                  onChange={v => setDocuments(d => ({ ...d, qualCert: v }))}
-                />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 05 – GOVERNMENT IDs ──────────────────── */}
-        <div className="mt-5">
-          <FormSection number={5} title="Government ID Details" description="Aadhaar and PAN information for compliance.">
-            <div className="space-y-6">
-              <div className="flex items-start gap-2 p-3 bg-[#D8F5FA] border border-[#D8F5FA] rounded-lg">
-                <ShieldAlert className="h-4 w-4 text-[#00B4D8] shrink-0 mt-0.5" />
-                <p className="text-xs text-[#E63946]">Aadhaar and PAN information is securely stored and encrypted. This data is used only for compliance and verification purposes.</p>
-              </div>
-
-              <FormGrid>
-                {/* Aadhaar */}
-                <FormField label="Aadhaar Number" required error={errors.aadhaar?.message}
-                  helper="Enter 12-digit Aadhaar number. Hyphens are added automatically.">
-                  <input id="aadhaar" type="text" inputMode="numeric" maxLength={14}
-                    placeholder="1234-5678-9012"
-                    defaultValue={formatAadhaarDisplay(getValues('aadhaar'))}
-                    onChange={handleAadhaarChange}
-                    className={cn(INPUT_BASE, 'font-mono tracking-widest', errors.aadhaar && INPUT_ERROR)} />
-                </FormField>
-
-                {/* PAN */}
-                <FormField label="PAN Number" required error={errors.pan?.message}
-                  helper="Auto-formatted to uppercase. e.g. ABCDE1234F">
-                  <input id="pan" type="text" maxLength={10} placeholder="ABCDE1234F"
-                    onChange={handlePanChange}
-                    className={cn(INPUT_BASE, 'font-mono uppercase tracking-widest', errors.pan && INPUT_ERROR)}
-                    {...register('pan')} />
-                </FormField>
-
-                {/* Aadhaar Document */}
-                <FormField label="Aadhaar Document" colSpan={1} helper="Optional — upload later if unavailable.">
-                  <DocumentUploader label=""
-                    value={documents.aadhaarDoc}
-                    onChange={v => setDocuments(d => ({ ...d, aadhaarDoc: v }))}
-                  />
-                </FormField>
-
-                {/* PAN Document */}
-                <FormField label="PAN Document" colSpan={1} helper="Optional — upload later if unavailable.">
-                  <DocumentUploader label=""
-                    value={documents.panDoc}
-                    onChange={v => setDocuments(d => ({ ...d, panDoc: v }))}
-                  />
-                </FormField>
-              </FormGrid>
-            </div>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 06 – BANK DETAILS ──────────────────── */}
-        <div className="mt-5">
-          <FormSection number={6} title="Bank Details" description="Salary disbursement account information.">
-            <FormGrid>
-              <FormField label="Account Holder Name" required error={errors.accountHolderName?.message}>
-                {field('accountHolderName', 'As per bank records')}
-              </FormField>
-
-              <FormField label="Bank Name" required error={errors.bankName?.message}>
-                {field('bankName', 'e.g. State Bank of India')}
-              </FormField>
-
-              {/* Account Number */}
-              <FormField label="Account Number" required error={errors.accountNumber?.message}>
-                <div className="relative">
-                  <input id="accountNumber"
-                    type={showAccNo ? 'text' : 'password'}
-                    placeholder="Enter account number"
-                    className={cn(INPUT_BASE, 'pr-10', errors.accountNumber && INPUT_ERROR)}
-                    {...register('accountNumber')} />
-                  <button type="button" tabIndex={-1}
-                    onClick={() => setShowAccNo(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showAccNo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </FormField>
-
-              {/* Re-enter Account Number */}
-              <FormField label="Re-enter Account Number" required error={errors.reEnterAccountNumber?.message}>
-                <div className="relative">
-                  <input id="reEnterAccountNumber"
-                    type="text"
-                    placeholder="Re-enter to verify"
-                    className={cn(INPUT_BASE, 'pr-10',
-                      errors.reEnterAccountNumber && INPUT_ERROR,
-                      accountsMatch && 'border-green-400 focus:ring-green-400'
-                    )}
-                    {...register('reEnterAccountNumber')} />
-                  {accountsMatch && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                  )}
-                </div>
-                {accountsMatch && (
-                  <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5" /> Account numbers match
-                  </p>
-                )}
-              </FormField>
-
-              {/* IFSC */}
-              <FormField label="IFSC Code" required error={errors.ifsc?.message}
-                helper="e.g. SBIN0001234 — auto-formatted to uppercase.">
-                <input id="ifsc" type="text" maxLength={11} placeholder="SBIN0001234"
-                  onChange={handleIfscChange}
-                  className={cn(INPUT_BASE, 'font-mono uppercase tracking-wider', errors.ifsc && INPUT_ERROR)}
-                  {...register('ifsc')} />
-              </FormField>
-
-              <FormField label="Branch Name" error={errors.branchName?.message}>
-                {field('branchName', 'e.g. Nellore Main Branch')}
-              </FormField>
-
-              {/* Passbook Upload */}
-              <FormField label="Bank Passbook" colSpan={2} helper="Optional — upload later if unavailable.">
-                <DocumentUploader label=""
-                  value={documents.passbook}
-                  onChange={v => setDocuments(d => ({ ...d, passbook: v }))}
-                />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 07 – REFERENCE / EMERGENCY ──────────── */}
-        <div className="mt-5">
-          <FormSection number={7} title="Reference / Emergency Contact" description="A trusted contact for emergencies and reference.">
-            <FormGrid>
-              <FormField label="Reference Name" required error={errors.referenceName?.message}>
-                {field('referenceName', 'Enter reference person name')}
-              </FormField>
-
-              <FormField label="Reference Mobile" required error={errors.referenceMobile?.message}>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-[var(--color-border)] bg-gray-50 text-gray-500 text-sm font-medium">+91</span>
-                  <input id="referenceMobile" type="tel" maxLength={10} placeholder="9876543210"
-                    className={cn(INPUT_BASE, 'rounded-l-none', errors.referenceMobile && INPUT_ERROR)}
-                    {...register('referenceMobile')} />
-                </div>
-              </FormField>
-
-              <FormField label="Relationship" required error={errors.relationship?.message}>
-                {selectField('relationship',
-                  ['Father', 'Mother', 'Brother', 'Sister', 'Spouse', 'Relative', 'Friend', 'Guardian', 'Other'],
-                  'Select Relationship'
-                )}
-              </FormField>
-
-              <FormField label="Reference Address" error={errors.referenceAddress?.message} colSpan={2}>
-                <textarea id="referenceAddress" rows={3} placeholder="Enter reference person's full address"
-                  className={cn('flex w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] transition resize-none', errors.referenceAddress && INPUT_ERROR)}
-                  {...register('referenceAddress')} />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 08 – DOCUMENTS ──────────────────────── */}
-        <div className="mt-5">
-          <FormSection number={8} title="Employee Documents" description="All document uploads are optional. You can upload them later during onboarding.">
-            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-              <span className="text-xs text-amber-700 font-medium">ℹ️ All documents below are optional — the employee profile can be saved without uploads.</span>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <DocumentUploader label="Resume / CV (Optional)" value={documents.resume}
-                onChange={v => setDocuments(d => ({ ...d, resume: v }))} />
-              <DocumentUploader label="Other Documents (Optional)" value={documents.otherDoc}
-                onChange={v => setDocuments(d => ({ ...d, otherDoc: v }))} />
-            </div>
-          </FormSection>
-        </div>
-
-        {/* ── SECTION 09 – ACCOUNT PREVIEW ───────────────── */}
-        <div className="mt-5">
-          <FormSection number={9} title="Account Preview" description="Auto-generated employee login credentials.">
-            <div className="bg-gray-50 rounded-xl border border-[var(--color-border)] p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Employee Account</p>
-              <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                <PreviewItem label="Employee ID" value={employeeId} mono />
-                <PreviewItem label="Employee Name" value={watchedName || '—'} />
-                <PreviewItem label="Email" value={watch('email') || '—'} />
-                <PreviewItem label="Username" value={watchedName ? username : '—'} mono />
-              </div>
-              <p className="text-xs text-gray-400 mt-4 leading-relaxed">
-                Username is automatically generated from the employee's name and ID. The employee will receive an activation email to set their password.
-              </p>
-            </div>
-          </FormSection>
-        </div>
-        </div>
-      </form>
-
-      {/* ── FLOATING FOOTER ─────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[var(--color-border)] shadow-[0_-2px_16px_rgba(0,0,0,0.07)] z-30">
-        <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
-          <Button type="button" variant="outline" onClick={() => navigate('/admin/employees')}>Cancel</Button>
-          {!isEditMode && <Button type="button" variant="outline" icon={Save} isLoading={isSavingDraft} onClick={handleSaveDraft}>Save as Draft</Button>}
-          <Button type="button" onClick={handleSubmit(onSubmit)}>{isEditMode ? 'Update Employee' : 'Create Employee'}</Button>
-        </div>
-      </div>
-      </>
-      )}
-
-      {/* ── MODALS ──────────────────────────────────────── */}
-      <ConfirmationModal
-        open={showConfirm}
-        onClose={() => !isSubmitting && setShowConfirm(false)}
-        onConfirm={handleConfirmCreate}
-        isSubmitting={isSubmitting}
-        title={isEditMode ? "Update Employee?" : "Create Employee?"}
-        message={isEditMode 
-          ? `You are about to update the record for ${getValues('fullName')}. Are you sure?` 
-          : `You are about to create a new employee record for ${getValues('fullName')}. Are you sure all details are correct?`
-        }
-        confirmText={isEditMode ? "Yes, Update" : "Yes, Create"}
-        employee={{ fullName: watchedName, employeeId, email: watch('email'), phone: watch('phone'), status: watch('status') }}
-      />
-      <SuccessModal
-        open={showSuccess}
-        title={isEditMode ? "Employee Updated Successfully!" : "Employee Created Successfully!"}
-        message={isEditMode
-          ? `${createdEmployee?.full_name || createdEmployee?.fullName} has been updated in the system.`
-          : `${createdEmployee?.full_name || createdEmployee?.fullName} has been added to the system.`
-        }
-        employee={createdEmployee}
-        onViewEmployee={() => navigate('/admin/employees')}
-        onCreateOffer={!isEditMode ? () => navigate('/admin/offers') : undefined}
-        onClose={() => { setShowSuccess(false); navigate('/admin/employees'); }}
-      />
-
-      {/* ── TOAST ───────────────────────────────────────── */}
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />
-      )}
+    <div className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+      <span className="text-xs text-gray-500 shrink-0 w-36">{label}</span>
+      <span className={cn('text-sm font-medium text-gray-800 text-right break-all', mono && 'font-mono')}>{value || '—'}</span>
     </div>
   );
 }
 
-function PreviewItem({ label, value, mono }) {
+function PreviewSection({ title, icon: Icon, children }) {
   return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-gray-400 font-medium">{label}</p>
-      <p className={cn('text-gray-800 font-medium', mono && 'font-mono text-[var(--color-primary)]')}>{value}</p>
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="flex items-center gap-2.5 px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <Icon className="h-4 w-4 text-[var(--color-primary)]" />
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      </div>
+      <div className="px-4 py-1">{children}</div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function AddEmployee() {
+  const navigate = useNavigate();
+  const { id: editId } = useParams(); // employee_id when editing (DS-001)
+  const isEdit = Boolean(editId);
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [step, setStep] = useState('form'); // 'form' | 'preview' | 'submitting' | 'success'
+  const [previewId, setPreviewId] = useState('DS-...');
+  const [districts, setDistricts] = useState([]);
+  const [mandals, setMandals] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingMandals, setLoadingMandals] = useState(false);
+  const [createdEmployee, setCreatedEmployee] = useState(null);
+  const [serverError, setServerError] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(isEdit);
+
+  // File state (managed outside RHF because File objects are not serializable)
+  const [photo, setPhoto] = useState(null);     // { file, preview } | null
+  const [passbook, setPassbook] = useState(null); // { file, preview, name, size, type } | null
+  const [aadhaarDocument, setAadhaarDocument] = useState(null);
+  const [panDocument, setPanDocument] = useState(null);
+  const [photoError, setPhotoError] = useState('');
+  const [passbookError, setPassbookError] = useState('');
+  const [aadhaarDocumentError, setAadhaarDocumentError] = useState('');
+  const [panDocumentError, setPanDocumentError] = useState('');
+
+  // ── React Hook Form ────────────────────────────────────────────────────────
+  const schema = isEdit ? employeeEditSchema : employeeSchema;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    getValues,
+    trigger,
+    reset,
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: '', address: '', phone: '', email: '', qualification: '',
+      course: '', university: '', year_of_passing: '',
+      photo: null, aadhaar: '', aadhaarDocument: null, pan: '', panDocument: null,
+      passbook: null, accountHolderName: '', bankName: '', accountNumber: '', reEnterAccountNumber: '', ifsc: '', branchName: '',
+      referenceMobile: '', referenceName: '', relationship: '',
+      stateId: '', districtId: '', mandalId: '',
+    },
+  });
+
+  const watchDistrict = watch('districtId');
+  const watchAccountNumber = watch('accountNumber');
+  const watchReEnter = watch('reEnterAccountNumber');
+
+  // ── Account match indicator ─────────────────────────────────────────────────
+  const accountsMatch =
+    watchAccountNumber && watchReEnter &&
+    watchAccountNumber.trim() === watchReEnter.trim();
+  const accountsMismatch =
+    watchAccountNumber && watchReEnter &&
+    watchAccountNumber.trim() !== watchReEnter.trim();
+
+  // ── Load districts on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    setLoadingDistricts(true);
+    locationService.getDistricts().then(list => {
+      setDistricts(list);
+      setLoadingDistricts(false);
+    });
+  }, []);
+
+  // ── Load preview ID ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isEdit) {
+      employeeService.getNextEmployeeIdPreview().then(id => setPreviewId(id));
+    }
+  }, [isEdit]);
+
+  // ── Load mandals when district changes ─────────────────────────────────────
+  useEffect(() => {
+    if (!watchDistrict) { setMandals([]); return; }
+    setLoadingMandals(true);
+    locationService.getMandalsByDistrict(watchDistrict).then(list => {
+      setMandals(list);
+      setLoadingMandals(false);
+    });
+  }, [watchDistrict]);
+
+  // ── Load employee for edit mode ────────────────────────────────────────────
+  useEffect(() => {
+    if (!isEdit) return;
+    (async () => {
+      setLoadingEdit(true);
+      const emp = await employeeService.getEmployeeById(editId);
+      if (!emp) { navigate('/admin/employees'); return; }
+
+      setPreviewId(emp.employeeId);
+
+      // Load district's mandals before resetting form
+      if (emp.districtId) {
+        const mList = await locationService.getMandalsByDistrict(emp.districtId);
+        setMandals(mList);
+      }
+
+      reset({
+        name: emp.name,
+        address: emp.address,
+        phone: emp.phone,
+        email: emp.email,
+        qualification: emp.qualification,
+        course: emp.course,
+        university: emp.university,
+        year_of_passing: emp.yearOfPassing,
+        photo: null,
+        aadhaar: formatAadhaar(emp.aadhaar || ''),
+        aadhaarDocument: null,
+        pan: emp.pan,
+        panDocument: null,
+        passbook: null,
+        accountHolderName: emp.accountHolderName,
+        bankName: emp.bankName,
+        accountNumber: emp.accountNumber,
+        reEnterAccountNumber: emp.accountNumber,
+        ifsc: emp.ifsc,
+        branchName: emp.branchName,
+        referenceMobile: emp.referenceMobile,
+        referenceName: emp.referenceName,
+        relationship: emp.relationship,
+        stateId: emp.stateId,
+        districtId: emp.districtId,
+        mandalId: emp.mandalId,
+      });
+
+      // Existing files shown as "already uploaded" — not re-required
+      if (emp.photoPath) setPhoto({ preview: null, file: null, existingPath: emp.photoPath });
+      if (emp.passbookPath) setPassbook({ preview: null, file: null, existingPath: emp.passbookPath, name: 'Existing passbook' });
+
+      setLoadingEdit(false);
+    })();
+  }, [isEdit, editId]);
+
+  // ── Sync file state into RHF values (for validation) ──────────────────────
+  useEffect(() => {
+    setValue('photo', photo, { shouldValidate: false });
+    if (photo) setPhotoError('');
+  }, [photo, setValue]);
+
+  useEffect(() => {
+    setValue('passbook', passbook, { shouldValidate: false });
+    if (passbook) setPassbookError('');
+  }, [passbook, setValue]);
+
+  useEffect(() => {
+    setValue('aadhaarDocument', aadhaarDocument, { shouldValidate: false });
+    if (aadhaarDocument) setAadhaarDocumentError('');
+  }, [aadhaarDocument, setValue]);
+
+  useEffect(() => {
+    setValue('panDocument', panDocument, { shouldValidate: false });
+    if (panDocument) setPanDocumentError('');
+  }, [panDocument, setValue]);
+
+  // ── Aadhaar formatter ──────────────────────────────────────────────────────
+  const handleAadhaarChange = useCallback((e) => {
+    const formatted = formatAadhaar(e.target.value);
+    setValue('aadhaar', formatted, { shouldValidate: true });
+    e.target.value = formatted;
+  }, [setValue]);
+
+  // ── PREVIEW click — validate all fields first ──────────────────────────────
+  const handlePreview = async () => {
+    setServerError('');
+
+    // Validate files manually for visual state
+    let validFiles = true;
+    if (!isEdit && !photo?.file) {
+      setPhotoError('Candidate photo is required.');
+      validFiles = false;
+    }
+    if (!isEdit && !passbook?.file) {
+      setPassbookError('Bank passbook is required.');
+      validFiles = false;
+    }
+    if (!isEdit && !aadhaarDocument?.file) {
+      setAadhaarDocumentError('Aadhaar document is required.');
+      validFiles = false;
+    }
+    if (!isEdit && !panDocument?.file) {
+      setPanDocumentError('PAN document is required.');
+      validFiles = false;
+    }
+
+    // Trigger full RHF validation
+    const isFormValid = await trigger();
+
+    if (!isFormValid || !validFiles) {
+      // Small delay to allow DOM to update with error states
+      setTimeout(() => {
+        const firstErr = document.querySelector('[data-error="true"]');
+        if (firstErr) {
+          firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstErr.focus?.();
+        } else if (!validFiles) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+      return;
+    }
+
+    setStep('preview');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ── SUBMIT — actual employee creation / update ─────────────────────────────
+  const handleSubmit_ = async () => {
+    setStep('submitting');
+    setServerError('');
+
+    const values = getValues();
+
+    const payload = {
+      name: values.name.trim(),
+      address: values.address.trim(),
+      phone: values.phone.replace(/\s/g, ''),
+      email: values.email.trim().toLowerCase(),
+      qualification: values.qualification.trim(),
+      course: values.course.trim(),
+      university: values.university.trim(),
+      year_of_passing: values.year_of_passing.trim(),
+      aadhaar_number: values.aadhaar.replace(/-/g, ''),
+      pan_number: values.pan.toUpperCase(),
+      account_holder_name: values.accountHolderName.trim(),
+      bank_name: values.bankName.trim(),
+      account_number: values.accountNumber.trim(),
+      ifsc_code: values.ifsc.toUpperCase(),
+      branch_name: values.branchName.trim(),
+      reference_mobile: values.referenceMobile.trim(),
+      reference_person_name: values.referenceName.trim(),
+      reference_relationship: values.relationship.trim(),
+      state_id: values.stateId,
+      district_id: values.districtId,
+      mandal_id: values.mandalId,
+    };
+
+    // Attach files
+    if (photo?.file) payload.photo = photo.file;
+    if (passbook?.file) payload.passbook = passbook.file;
+    if (aadhaarDocument?.file) payload.aadhaarDocument = aadhaarDocument.file;
+    if (panDocument?.file) payload.panDocument = panDocument.file;
+
+    try {
+      let result;
+      if (isEdit) {
+        result = await employeeService.updateEmployee(editId, payload);
+        setCreatedEmployee({ employeeId: editId, name: payload.name, email: payload.email, emailStatus: 'N/A' });
+      } else {
+        result = await employeeService.createEmployee(payload);
+        setCreatedEmployee({
+          employeeId: result.data?.employee_id,
+          name: result.data?.name,
+          email: result.data?.email,
+          emailStatus: result.emailStatus,
+        });
+      }
+      setStep('success');
+    } catch (err) {
+      setServerError(err.message || 'An unexpected error occurred. Please try again.');
+      setStep('preview');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // ── Loading skeleton ────────────────────────────────────────────────────────
+  if (loadingEdit) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+          <p className="text-sm">Loading employee data…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const values = getValues();
+
+  // ── PREVIEW SCREEN ──────────────────────────────────────────────────────────
+  if (step === 'preview') {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setStep('form'); window.scrollTo({ top: 0 }); }}
+              className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Review Employee Details</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Please verify all information before creating.</p>
+            </div>
+          </div>
+          <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full font-medium">
+            Expected ID: {previewId}
+          </span>
+        </div>
+
+        {/* Server error */}
+        <AnimatePresence>
+          {serverError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4"
+            >
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{serverError}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Preview Sections */}
+        <div className="space-y-4">
+          <PreviewSection title="Employee Information" icon={User}>
+            <div className="flex items-start gap-4 py-3">
+              {photo?.preview ? (
+                <img src={photo.preview} alt="Photo" className="w-16 h-16 rounded-xl object-cover border-2 border-[var(--color-primary)] shrink-0" />
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
+                  <User className="h-7 w-7 text-[var(--color-primary)]" />
+                </div>
+              )}
+              <div className="flex-1">
+                <PreviewRow label="Full Name" value={values.name} />
+                <PreviewRow label="Address" value={values.address} />
+                <PreviewRow label="Phone" value={`+91 ${values.phone}`} />
+                <PreviewRow label="Email" value={values.email} />
+                <PreviewRow label="Qualification" value={values.qualification} />
+              </div>
+            </div>
+          </PreviewSection>
+
+          <PreviewSection title="Identity Information" icon={ShieldCheck}>
+            <PreviewRow label="Aadhaar" value={`${values.aadhaar?.slice(0,4)}-****-${values.aadhaar?.slice(-4)}`} mono />
+            <PreviewRow label="PAN" value={values.pan} mono />
+          </PreviewSection>
+
+          <PreviewSection title="Bank Information" icon={Landmark}>
+            <PreviewRow
+              label="Bank Passbook"
+              value={passbook?.name || (passbook?.existingPath ? 'Existing document' : '—')}
+            />
+            <PreviewRow label="Account Number" value={`${'•'.repeat(Math.max(0, (values.accountNumber?.length || 0) - 4))}${values.accountNumber?.slice(-4)}`} mono />
+            <PreviewRow label="IFSC Code" value={values.ifsc} mono />
+          </PreviewSection>
+
+          <PreviewSection title="Reference Information" icon={Users}>
+            <PreviewRow label="Reference Mobile" value={`+91 ${values.referenceMobile}`} />
+            <PreviewRow label="Reference Person" value={values.referenceName} />
+            <PreviewRow label="Relationship" value={values.relationship} />
+          </PreviewSection>
+
+          <PreviewSection title="Location" icon={MapPin}>
+            <PreviewRow label="State" value="Andhra Pradesh" />
+            <PreviewRow label="District" value={values.districtId} />
+            <PreviewRow label="Mandal" value={values.mandalId} />
+          </PreviewSection>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => { setStep('form'); window.scrollTo({ top: 0 }); }}
+            className="flex-1"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to Edit
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit_}
+            className="flex-1"
+          >
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            {isEdit ? 'Save Changes' : 'Create Employee'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── SUBMITTING SCREEN ──────────────────────────────────────────────────────
+  if (step === 'submitting') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <div className="w-14 h-14 rounded-full border-4 border-[var(--color-primary)] border-t-transparent animate-spin" />
+        <p className="text-base font-semibold text-gray-700">
+          {isEdit ? 'Saving changes…' : 'Creating Employee…'}
+        </p>
+        <p className="text-xs text-gray-400">Please wait. Do not close or refresh this page.</p>
+      </div>
+    );
+  }
+
+  // ── SUCCESS SCREEN ─────────────────────────────────────────────────────────
+  if (step === 'success') {
+    return (
+      <SuccessModal
+        open
+        isEdit={isEdit}
+        employee={createdEmployee}
+        onViewEmployee={() => navigate(`/admin/employees/${createdEmployee?.employeeId}`)}
+        onClose={() => navigate('/admin/employees')}
+      />
+    );
+  }
+
+  // ── FORM SCREEN ─────────────────────────────────────────────────────────────
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      {/* Page header */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate('/admin/employees')}
+          className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">
+            {isEdit ? `Edit Employee — ${editId}` : 'Add New Employee'}
+          </h1>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {isEdit ? 'Update employee information below.' : 'Fill in all required fields. Review before submitting.'}
+          </p>
+        </div>
+        {!isEdit && (
+          <span className="ml-auto text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full font-medium whitespace-nowrap">
+            Expected ID: {previewId}
+          </span>
+        )}
+      </div>
+
+      {/* ── SECTION 1: Employee Information ────────────────────────────────── */}
+      <FormSection number={1} title="Employee Information" description="Basic identity and contact details.">
+        {/* Photo */}
+        <div className="mb-6">
+          <PhotoUploader
+            value={photo}
+            onChange={setPhoto}
+            error={photoError}
+          />
+        </div>
+
+        <FormGrid cols={2}>
+          <FormField label="Full Name" required error={errors.name?.message}>
+            <input
+              {...register('name')}
+              className={inputCls(!!errors.name)}
+              placeholder="e.g. Ravi Kumar"
+              data-error={!!errors.name}
+              autoComplete="off"
+            />
+          </FormField>
+
+          <FormField label="Phone Number" required error={errors.phone?.message}>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">+91</span>
+              <input
+                {...register('phone')}
+                className={cn(inputCls(!!errors.phone), 'pl-11')}
+                placeholder="9876543210"
+                maxLength={10}
+                data-error={!!errors.phone}
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Email Address" required error={errors.email?.message} colSpan={2}>
+            <input
+              {...register('email')}
+              type="email"
+              className={inputCls(!!errors.email)}
+              placeholder="employee@example.com"
+              data-error={!!errors.email}
+            />
+          </FormField>
+          
+          <FormField label="Address" required error={errors.address?.message} colSpan={2}>
+            <textarea
+              {...register('address')}
+              className={cn(inputCls(!!errors.address), 'min-h-[80px] py-3')}
+              placeholder="Full residential address"
+              data-error={!!errors.address}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── SECTION 2: Qualification Details ────────────────────────────────── */}
+      <FormSection number={2} title="Qualification Details" description="Educational background details.">
+        <FormGrid cols={2}>
+          <FormField label="Highest Qualification" required error={errors.qualification?.message} colSpan={2}>
+            <input
+              {...register('qualification')}
+              className={inputCls(!!errors.qualification)}
+              placeholder="e.g. Graduation, Post Graduation"
+              data-error={!!errors.qualification}
+            />
+          </FormField>
+          <FormField label="Course / Degree" required error={errors.course?.message}>
+            <input
+              {...register('course')}
+              className={inputCls(!!errors.course)}
+              placeholder="e.g. B.Com"
+              data-error={!!errors.course}
+            />
+          </FormField>
+          <FormField label="University / Board" required error={errors.university?.message}>
+            <input
+              {...register('university')}
+              className={inputCls(!!errors.university)}
+              placeholder="e.g. Sri Venkateswara University"
+              data-error={!!errors.university}
+            />
+          </FormField>
+          <FormField label="Year of Passing" required error={errors.year_of_passing?.message}>
+            <input
+              {...register('year_of_passing')}
+              className={inputCls(!!errors.year_of_passing)}
+              placeholder="e.g. 2024"
+              maxLength={4}
+              inputMode="numeric"
+              data-error={!!errors.year_of_passing}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── SECTION 3: Identity Information ────────────────────────────────── */}
+      <FormSection number={3} title="Identity Information" description="Government-issued identity documents.">
+        <FormGrid cols={2}>
+          <FormField
+            label="Aadhaar Number"
+            required
+            error={errors.aadhaar?.message}
+            helper="Formatted automatically: 1234-5678-9012"
+          >
+            <input
+              {...register('aadhaar')}
+              className={inputCls(!!errors.aadhaar)}
+              placeholder="1234-5678-9012"
+              maxLength={14}
+              inputMode="numeric"
+              onChange={handleAadhaarChange}
+              data-error={!!errors.aadhaar}
+            />
+          </FormField>
+
+          <div className="mb-5">
+            <DocumentUploader
+              label="Aadhaar Document"
+              required
+              value={aadhaarDocument}
+              onChange={setAadhaarDocument}
+              error={aadhaarDocumentError}
+              accepted={['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+              acceptedLabel="PDF, JPG, PNG"
+            />
+          </div>
+
+          <FormField
+            label="PAN Number"
+            required
+            error={errors.pan?.message}
+            helper="10-character PAN e.g. ABCDE1234F"
+          >
+            <input
+              {...register('pan')}
+              className={inputCls(!!errors.pan)}
+              placeholder="ABCDE1234F"
+              maxLength={10}
+              onChange={e => { e.target.value = e.target.value.toUpperCase(); register('pan').onChange(e); }}
+              data-error={!!errors.pan}
+            />
+          </FormField>
+
+          <div className="mb-5">
+            <DocumentUploader
+              label="PAN Document"
+              required
+              value={panDocument}
+              onChange={setPanDocument}
+              error={panDocumentError}
+              accepted={['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+              acceptedLabel="PDF, JPG, PNG"
+            />
+          </div>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── SECTION 4: Bank Information ─────────────────────────────────────── */}
+      <FormSection number={4} title="Bank Information" description="Bank account details for salary processing.">
+        {/* Passbook */}
+        <div className="mb-5">
+          <DocumentUploader
+            label="Bank Passbook / Statement"
+            required
+            value={passbook}
+            onChange={setPassbook}
+            error={passbookError}
+            accepted={['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+            acceptedLabel="PDF, JPG, PNG, WEBP"
+          />
+        </div>
+
+        <FormGrid cols={2}>
+          <FormField label="Account Holder Name" required error={errors.accountHolderName?.message}>
+            <input
+              {...register('accountHolderName')}
+              className={inputCls(!!errors.accountHolderName)}
+              placeholder="Enter account holder name"
+              data-error={!!errors.accountHolderName}
+            />
+          </FormField>
+
+          <FormField label="Bank Name" required error={errors.bankName?.message}>
+            <input
+              {...register('bankName')}
+              className={inputCls(!!errors.bankName)}
+              placeholder="e.g. SBI"
+              data-error={!!errors.bankName}
+            />
+          </FormField>
+
+          <FormField label="Account Number" required error={errors.accountNumber?.message}>
+            <input
+              {...register('accountNumber')}
+              className={inputCls(!!errors.accountNumber)}
+              placeholder="Enter account number"
+              inputMode="numeric"
+              maxLength={18}
+              data-error={!!errors.accountNumber}
+            />
+          </FormField>
+
+          <FormField label="Re-enter Account Number" required error={errors.reEnterAccountNumber?.message}>
+            <div className="relative">
+              <input
+                {...register('reEnterAccountNumber')}
+                className={cn(
+                  inputCls(!!errors.reEnterAccountNumber || accountsMismatch),
+                  accountsMatch && !errors.reEnterAccountNumber && 'border-green-400 bg-green-50/20',
+                )}
+                placeholder="Confirm account number"
+                inputMode="numeric"
+                maxLength={18}
+                data-error={!!errors.reEnterAccountNumber}
+                onPaste={e => e.preventDefault()}
+              />
+              {accountsMatch && (
+                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+              )}
+              {accountsMismatch && (
+                <X className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+              )}
+            </div>
+            {accountsMatch && !errors.reEnterAccountNumber && (
+              <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" /> Account numbers match
+              </p>
+            )}
+            {accountsMismatch && !errors.reEnterAccountNumber && (
+              <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                <X className="h-3 w-3" /> Account numbers do not match
+              </p>
+            )}
+          </FormField>
+
+          <FormField
+            label="IFSC Code"
+            required
+            error={errors.ifsc?.message}
+            helper="e.g. SBIN0001234"
+          >
+            <input
+              {...register('ifsc')}
+              className={inputCls(!!errors.ifsc)}
+              placeholder="SBIN0001234"
+              maxLength={11}
+              onChange={e => { e.target.value = e.target.value.toUpperCase(); register('ifsc').onChange(e); }}
+              data-error={!!errors.ifsc}
+            />
+          </FormField>
+          
+          <FormField label="Branch Name" required error={errors.branchName?.message}>
+            <input
+              {...register('branchName')}
+              className={inputCls(!!errors.branchName)}
+              placeholder="e.g. Main Branch"
+              data-error={!!errors.branchName}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── SECTION 4: Reference Information ───────────────────────────────── */}
+      <FormSection number={4} title="Reference Information" description="Emergency contact and guarantor details.">
+        <FormGrid cols={2}>
+          <FormField label="Reference Person Name" required error={errors.referenceName?.message}>
+            <input
+              {...register('referenceName')}
+              className={inputCls(!!errors.referenceName)}
+              placeholder="e.g. Suresh Kumar"
+              data-error={!!errors.referenceName}
+            />
+          </FormField>
+
+          <FormField label="Reference Mobile" required error={errors.referenceMobile?.message}>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">+91</span>
+              <input
+                {...register('referenceMobile')}
+                className={cn(inputCls(!!errors.referenceMobile), 'pl-11')}
+                placeholder="9876543210"
+                maxLength={10}
+                data-error={!!errors.referenceMobile}
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Relationship" required error={errors.relationship?.message} colSpan={2}>
+            <select
+              {...register('relationship')}
+              className={inputCls(!!errors.relationship)}
+              data-error={!!errors.relationship}
+            >
+              <option value="">Select relationship</option>
+              {['Father','Mother','Brother','Sister','Spouse','Son','Daughter','Friend','Colleague','Uncle','Aunt','Guardian'].map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── SECTION 5: Location ─────────────────────────────────────────────── */}
+      <FormSection number={5} title="Location" description="Deployment location in Andhra Pradesh.">
+        <FormGrid cols={2}>
+          {/* State — fixed */}
+          <FormField label="State" required>
+            <input
+              value="Andhra Pradesh"
+              readOnly
+              className={cn(inputCls(false), 'bg-gray-50 cursor-not-allowed text-gray-600')}
+            />
+            <input type="hidden" {...register('stateId')} value="AP-STATE-01" />
+          </FormField>
+
+          {/* District */}
+          <FormField label="District" required error={errors.districtId?.message}>
+            <select
+              {...register('districtId')}
+              className={inputCls(!!errors.districtId)}
+              onChange={e => {
+                setValue('districtId', e.target.value, { shouldValidate: true });
+                setValue('mandalId', '', { shouldValidate: false });
+                setMandals([]);
+              }}
+              data-error={!!errors.districtId}
+              disabled={loadingDistricts}
+            >
+              <option value="">{loadingDistricts ? 'Loading…' : 'Select district'}</option>
+              {districts.map(d => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
+            </select>
+          </FormField>
+
+          {/* Mandal */}
+          <FormField label="Mandal" required error={errors.mandalId?.message} colSpan={2}>
+            <select
+              {...register('mandalId')}
+              className={inputCls(!!errors.mandalId)}
+              disabled={!watchDistrict || loadingMandals}
+              data-error={!!errors.mandalId}
+            >
+              <option value="">
+                {!watchDistrict ? 'Select a district first' : loadingMandals ? 'Loading…' : 'Select mandal'}
+              </option>
+              {mandals.map(m => (
+                <option key={m.id} value={m.name}>{m.name}</option>
+              ))}
+            </select>
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {/* ── Footer Buttons ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200 pb-8">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate('/admin/employees')}
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={handlePreview}
+          className="flex-1"
+        >
+          <Eye className="h-4 w-4 mr-1.5" />
+          Preview &amp; Review
+        </Button>
+      </div>
     </div>
   );
 }
