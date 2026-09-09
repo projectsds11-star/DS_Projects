@@ -170,13 +170,37 @@ export const createEmployee = async (req, res) => {
     return res.status(409).json({ success: false, message: 'An employee with this email already exists.' });
   }
 
-  // ── 4. Generate atomic Employee ID ────────────────────────────────────────
-  const { data: idData, error: idError } = await supabaseAdmin.rpc('generate_employee_id');
-  if (idError || !idData) {
-    console.error('[createEmployee] ID generation error:', idError);
-    return res.status(500).json({ success: false, message: 'Failed to generate Employee ID. Please try again.' });
+  // ── 4. Generate Employee ID (synced with actual DB records) ───────────────
+  let employeeId = null;
+  try {
+    const { data: allEmps, error: fetchIdErr } = await supabaseAdmin
+      .from('employees')
+      .select('employee_id');
+
+    if (!fetchIdErr && allEmps) {
+      let maxNum = 0;
+      allEmps.forEach(e => {
+        const match = (e.employee_id || '').match(/^DS-(\d+)$/i);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (!isNaN(n) && n > maxNum) maxNum = n;
+        }
+      });
+      const nextNum = maxNum + 1;
+      employeeId = `DS-${nextNum < 1000 ? String(nextNum).padStart(3, '0') : nextNum}`;
+    }
+  } catch (idCalcErr) {
+    console.warn('[createEmployee] ID calc fallback:', idCalcErr.message);
   }
-  const employeeId = idData;
+
+  if (!employeeId) {
+    const { data: idData, error: idError } = await supabaseAdmin.rpc('generate_employee_id');
+    if (idError || !idData) {
+      console.error('[createEmployee] ID generation error:', idError);
+      return res.status(500).json({ success: false, message: 'Failed to generate Employee ID. Please try again.' });
+    }
+    employeeId = idData;
+  }
 
   // ── 5. File uploads ───────────────────────────────────────────────────────
   let photoPath = null;

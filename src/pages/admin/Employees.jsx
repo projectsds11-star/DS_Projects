@@ -37,15 +37,20 @@ function EmployeeAvatar({ emp }) {
 
   useEffect(() => {
     let isMounted = true;
-    if (emp.photoPath) {
-      employeeService.getSignedUrl('employee-photos', emp.photoPath)
-        .then(url => {
-          if (isMounted) setImgUrl(url);
-        })
-        .catch(() => {});
+    const path = emp.photoPath || emp.candidate_photo_path || emp.photo_path || emp.photo;
+    if (path) {
+      if (typeof path === 'string' && (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:'))) {
+        setImgUrl(path);
+      } else {
+        employeeService.getSignedUrl('employee-photos', path)
+          .then(url => {
+            if (isMounted && url) setImgUrl(url);
+          })
+          .catch(() => {});
+      }
     }
     return () => { isMounted = false; };
-  }, [emp.photoPath]);
+  }, [emp.photoPath, emp.candidate_photo_path, emp.photo_path, emp.photo]);
 
   if (imgUrl) {
     return (

@@ -45,16 +45,16 @@ export default function DistrictSelect({
   const filteredDistricts = districts.filter(d =>
     !search ||
     d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.headquarters.toLowerCase().includes(search.toLowerCase()) ||
-    d.code.toLowerCase().includes(search.toLowerCase())
+    (d.headquarters && d.headquarters.toLowerCase().includes(search.toLowerCase())) ||
+    (d.code && d.code.toLowerCase().includes(search.toLowerCase()))
   );
 
   const selectedObj = districts.find(d => d.name === value || d.id === value);
 
   return (
-    <div className={cn('space-y-1.5', className)} ref={containerRef}>
+    <div className={cn('space-y-1.5 text-left', className)} ref={containerRef}>
       {label && (
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+        <label className="block text-xs font-bold text-slate-700 tracking-wide">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -67,49 +67,59 @@ export default function DistrictSelect({
           disabled={disabled || loading}
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'flex h-11 w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm text-left transition',
-            error ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--color-border)] focus:ring-2 focus:ring-[var(--color-primary)]',
-            disabled && 'bg-gray-50 text-gray-400 cursor-not-allowed',
-            isOpen && 'ring-2 ring-[var(--color-primary)] border-transparent shadow-sm'
+            'flex h-11 w-full items-center justify-between rounded-xl border bg-white px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer',
+            error
+              ? 'border-red-400 ring-2 ring-red-100 bg-red-50/20'
+              : 'border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+            disabled && 'bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 shadow-none',
+            isOpen && 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
           )}
         >
-          <div className="flex items-center gap-2 truncate">
-            <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2.5 truncate">
+            <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
             {loading ? (
-              <span className="text-gray-400 text-xs flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Loading 28 districts...
+              <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading districts...
               </span>
             ) : selectedObj ? (
-              <span className="font-medium text-gray-900 truncate">
-                {selectedObj.name} <span className="text-xs text-gray-400 font-normal">({selectedObj.mandalCount} mandals)</span>
+              <span className="font-semibold text-slate-900 truncate text-xs sm:text-sm">
+                {selectedObj.name}
+                <span className="text-xs text-slate-400 font-normal ml-1.5">
+                  ({selectedObj.mandalCount || (selectedObj.mandals ? selectedObj.mandals.length : 0)} Mandals)
+                </span>
               </span>
             ) : (
-              <span className="text-gray-400 text-xs">{placeholder}</span>
+              <span className="text-slate-400 text-xs font-normal">{placeholder}</span>
             )}
           </div>
-          <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform shrink-0', isOpen && 'rotate-180')} />
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2',
+              isOpen && 'rotate-180 text-blue-600'
+            )}
+          />
         </button>
 
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu Popup */}
         {isOpen && !disabled && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl bg-white border border-[var(--color-border)] shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-            {/* Search Input */}
-            <div className="p-2 border-b border-[var(--color-border)] bg-gray-50/70">
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            {/* Search Input Bar */}
+            <div className="p-2.5 border-b border-slate-100 bg-slate-50/80">
               <div className="relative">
-                <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search district or headquarters..."
+                  placeholder="Search district name or HQ..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 w-full pl-8 pr-7 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="h-8.5 w-full pl-8.5 pr-8 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                   autoFocus
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -117,37 +127,50 @@ export default function DistrictSelect({
               </div>
             </div>
 
-            {/* List */}
-            <div className="max-h-56 overflow-y-auto p-1 divide-y divide-gray-50">
+            {/* District List */}
+            <div className="max-h-60 overflow-y-auto p-1.5 divide-y divide-slate-50">
               {filteredDistricts.map((d) => {
                 const isSelected = d.name === value || d.id === value;
+                const mCount = d.mandalCount || (d.mandals ? d.mandals.length : 0);
                 return (
                   <div
-                    key={d.id}
+                    key={d.id || d.name}
                     onClick={() => {
                       onChange(d.name, d);
                       setIsOpen(false);
                       setSearch('');
                     }}
                     className={cn(
-                      'flex items-center justify-between px-3 py-2 text-xs rounded-lg cursor-pointer transition-colors',
-                      isSelected ? 'bg-blue-50 text-[var(--color-primary)] font-bold' : 'hover:bg-gray-100 text-gray-800'
+                      'flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-colors select-none',
+                      isSelected
+                        ? 'bg-blue-50 text-blue-700 font-bold'
+                        : 'hover:bg-slate-100 text-slate-700'
                     )}
                   >
-                    <div>
-                      <p className="font-semibold leading-tight">{d.name}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        HQ: {d.headquarters} · {d.mandalCount} Mandals
-                      </p>
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="truncate font-medium">{d.name}</span>
+                      {d.headquarters && d.headquarters !== d.name && (
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          (HQ: {d.headquarters})
+                        </span>
+                      )}
                     </div>
-                    {isSelected && <Check className="h-3.5 w-3.5 text-[var(--color-primary)] shrink-0" />}
+
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                        {mCount} Mandals
+                      </span>
+                      {isSelected && (
+                        <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                      )}
+                    </div>
                   </div>
                 );
               })}
 
               {filteredDistricts.length === 0 && (
-                <div className="p-4 text-center text-xs text-gray-400">
-                  No district matching "{search}"
+                <div className="py-6 text-center text-xs text-slate-400">
+                  No district found matching "{search}"
                 </div>
               )}
             </div>
@@ -156,9 +179,9 @@ export default function DistrictSelect({
       </div>
 
       {error ? (
-        <p className="text-xs text-red-500">{error}</p>
+        <p className="text-xs text-red-500 font-medium">{error}</p>
       ) : helper ? (
-        <p className="text-xs text-gray-400">{helper}</p>
+        <p className="text-xs text-slate-400">{helper}</p>
       ) : null}
     </div>
   );

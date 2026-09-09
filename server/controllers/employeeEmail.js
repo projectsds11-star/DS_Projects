@@ -149,7 +149,7 @@ export const sendWelcomeEmail = async (req, res) => {
 
 /**
  * EMAIL 2: Onboarding & Job Offer Completion Email (Sent after Onboarding is completed)
- * Contains Admin wishes, CTC breakdown, and auto-generated system credentials.
+ * Contains Admin wishes, CTC breakdown, attached PDF, and auto-generated system credentials.
  */
 export const sendOnboardingCompletionEmail = async (req, res) => {
   const {
@@ -178,22 +178,52 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
   const locDistrict = district || 'Nellore';
   const locMandal = mandal || 'Kavali';
   const empId = employeeId || 'DS-001';
-  const portalUrl = process.env.VITE_APP_URL || 'https://ds-projects-eta.vercel.app/employee/login';
+  const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+  const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
 
-  // System auto-generated credentials
-  const systemUsername = username || empId;
-  const systemPassword = password || `DS@${empId.replace(/[^a-zA-Z0-9]/g, '')}!2026`;
+  // System auto-generated credentials as per structure
+  const cleanEmpId = empId.replace(/[^a-zA-Z0-9]/g, '');
+  const idNumber = empId.replace(/[^0-9]/g, '') || '001';
+  const normalizedName = candidateName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '') || 'candidate';
+  const corporateUsername = username || `${normalizedName}${idNumber}@dsprojects`;
+  const systemPassword = password || `DS@${idNumber}!2026`;
 
   // Salary / CTC formatted accurately
   const basicNum = Number(salary?.basic) || 25000;
   const travelNum = Number(salary?.travel) || 5000;
-  const monthlyTotalNum = Number(salary?.monthlyTotal) || (basicNum + travelNum);
+  const incentiveNum = Number(salary?.incentive) || 0;
+  const otherNum = Number(salary?.other) || 0;
+  const monthlyTotalNum = Number(salary?.monthlyTotal) || (basicNum + travelNum + incentiveNum + otherNum);
   const annualCtcNum = Number(salary?.annualCtc) || (monthlyTotalNum * 12);
 
   const basic = basicNum.toLocaleString('en-IN');
   const travel = travelNum.toLocaleString('en-IN');
+  const incentive = incentiveNum.toLocaleString('en-IN');
+  const other = otherNum.toLocaleString('en-IN');
   const monthlyTotal = monthlyTotalNum.toLocaleString('en-IN');
   const annualCtc = annualCtcNum.toLocaleString('en-IN');
+
+  // Generate PDF Buffer
+  let pdfBuffer = null;
+  try {
+    pdfBuffer = await generateOfferLetterPDF({
+      employeeName: candidateName,
+      employeeId: empId,
+      offerNumber: `DS/OFF/2026/${cleanEmpId}`,
+      position: role,
+      district: locDistrict,
+      mandal: locMandal,
+      joiningDate: joiningDate || new Date().toISOString().slice(0, 10),
+      basic_salary: basicNum,
+      travel_allowance: travelNum,
+      incentive: incentiveNum,
+      other_allowance: otherNum,
+      monthly_total: monthlyTotalNum,
+      annual_ctc: annualCtcNum,
+    });
+  } catch (pdfErr) {
+    console.warn('PDF generation notice in employeeEmail:', pdfErr);
+  }
 
   const customMessageHtml = emailBody
     ? `<div style="background-color: #f1f5f9; border-left: 4px solid #2563eb; padding: 14px 16px; border-radius: 6px; margin: 18px 0; font-size: 13px; color: #1e293b; white-space: pre-line;">${emailBody}</div>`
@@ -239,6 +269,10 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
                   <td style="color: #0f172a; font-weight: 600;">${role}</td>
                 </tr>
                 <tr>
+                  <td style="color: #64748b; font-weight: bold;">Official Employee ID:</td>
+                  <td style="color: #1e3a8a; font-weight: bold; font-family: monospace; font-size: 14px;">${empId}</td>
+                </tr>
+                <tr>
                   <td style="color: #64748b; font-weight: bold;">Assigned Deployment:</td>
                   <td style="color: #0f172a; font-weight: 600;">${locMandal} Mandal, ${locDistrict} District</td>
                 </tr>
@@ -248,59 +282,83 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
                 </tr>
               </table>
 
+              <!-- Attached PDF Notice -->
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #065f46;">
+                📄 <strong>Official Appointment Letter Attached:</strong> Your signed Offer & Appointment Letter PDF is attached to this email. Please download, review, and retain it for your records.
+              </div>
+
               <!-- CTC Breakdown Box -->
               <h3 style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 20px 0 8px 0;">Salary & Compensation Breakdown (CTC):</h3>
               <table width="100%" cellspacing="0" cellpadding="8" style="background-color: #ffffff; border-radius: 8px; margin-bottom: 20px; border: 1px solid #cbd5e1; font-size: 13px;">
                 <tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">
                   <th align="left" style="padding: 8px; color: #475569;">Component</th>
+                  <th align="left" style="padding: 8px; color: #475569;">Terms / Category</th>
                   <th align="right" style="padding: 8px; color: #475569;">Monthly (₹)</th>
                 </tr>
                 <tr>
-                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155;">Basic Salary</td>
-                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${basic}</td>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 600;">Basic Monthly Salary</td>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 12px;">Fixed Monthly Component</td>
+                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${basicNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
+                ${travelNum > 0 ? `
                 <tr>
-                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155;">Travel & Field Allowance</td>
-                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${travel}</td>
-                </tr>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 600;">${(role || '').toLowerCase().includes('district') ? 'District Work Allowance' : 'Field Work Allowance'}</td>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 12px;">Field Work & Mobility Allowance</td>
+                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${travelNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>` : ''}
+                ${otherNum > 0 ? `
                 <tr>
-                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155;">Performance Incentive</td>
-                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${incentive}</td>
-                </tr>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 600;">Statutory Contributions (ESI & PF)</td>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 12px;">Employer & Employee Statutory Coverage</td>
+                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${otherNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>` : ''}
+                ${incentiveNum > 0 ? `
                 <tr>
-                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155;">Special / Other Allowance</td>
-                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${other}</td>
-                </tr>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 600;">Performance Incentive</td>
+                  <td style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 12px;">Project Target Metric</td>
+                  <td align="right" style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #0f172a;">₹${incentiveNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>` : ''}
                 <tr style="background-color: #eff6ff; font-weight: bold;">
-                  <td style="color: #1e3a8a;">Total Monthly Gross</td>
-                  <td align="right" style="color: #1e3a8a; font-size: 14px;">₹${monthlyTotal}</td>
+                  <td colspan="2" style="color: #1e3a8a;">TOTAL MONTHLY REMUNERATION (CTC)</td>
+                  <td align="right" style="color: #1e3a8a; font-size: 14px;">₹${monthlyTotalNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 <tr style="background-color: #1e3a8a; color: #ffffff; font-weight: bold;">
-                  <td style="color: #ffffff; padding: 10px 8px;">Annual CTC</td>
-                  <td align="right" style="color: #ffffff; padding: 10px 8px; font-size: 15px;">₹${annualCtc}</td>
+                  <td colspan="2" style="color: #ffffff; padding: 10px 8px;">ANNUAL COST TO COMPANY (CTC)</td>
+                  <td align="right" style="color: #ffffff; padding: 10px 8px; font-size: 15px;">₹${annualCtcNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               </table>
 
-              <!-- Auto-generated Credentials Box (System generated, non-editable by admin) -->
+              <!-- Auto-generated Credentials Box with Explicit Corporate Username & Password -->
               <div style="background-color: #fefce8; border: 1.5px solid #fde047; border-radius: 10px; padding: 18px 20px; margin: 25px 0;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #854d0e;">🔐 Employee Portal Login Credentials</h3>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #854d0e;">🔐 Employee Portal Access Credentials</h3>
                 <p style="font-size: 12px; color: #713f12; margin: 0 0 12px 0;">
-                  These system credentials have been automatically generated. Use them to log into the Employee Portal:
+                  Use these credentials to log into your official Employee Portal dashboard:
                 </p>
-                <table width="100%" cellspacing="0" cellpadding="4" style="font-size: 13px;">
-                  <tr>
-                    <td width="35%" style="color: #854d0e; font-weight: bold;">Portal URL:</td>
+                <table width="100%" cellspacing="0" cellpadding="7" style="font-size: 13px; background-color: #ffffff; border-radius: 8px; border: 1px solid #fef08a;">
+                  <tr style="border-bottom: 1px solid #fef3c7;">
+                    <td width="38%" style="color: #854d0e; font-weight: bold;">Portal URL:</td>
                     <td><a href="${portalUrl}" style="color: #2563eb; text-decoration: underline; font-weight: bold;">${portalUrl}</a></td>
                   </tr>
-                  <tr>
-                    <td style="color: #854d0e; font-weight: bold;">Username / ID:</td>
-                    <td style="color: #0f172a; font-family: monospace; font-size: 14px; font-weight: bold;">${systemUsername}</td>
+                  <tr style="border-bottom: 1px solid #fef3c7;">
+                    <td style="color: #854d0e; font-weight: bold;">Official Employee ID:</td>
+                    <td style="color: #0f172a; font-family: monospace; font-size: 14px; font-weight: bold;">${empId}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #fef3c7;">
+                    <td style="color: #854d0e; font-weight: bold;">Login User ID / Username:</td>
+                    <td style="color: #1e3a8a; font-family: monospace; font-size: 14px; font-weight: bold;">${corporateUsername}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #fef3c7;">
+                    <td style="color: #854d0e; font-weight: bold;">Registered Login Email:</td>
+                    <td style="color: #0f172a; font-weight: 600;">${email}</td>
                   </tr>
                   <tr>
                     <td style="color: #854d0e; font-weight: bold;">Temporary Password:</td>
-                    <td style="color: #b91c1c; font-family: monospace; font-size: 14px; font-weight: bold;">${systemPassword}</td>
+                    <td style="color: #b91c1c; font-family: monospace; font-size: 15px; font-weight: bold;">${systemPassword}</td>
                   </tr>
                 </table>
+                <p style="font-size: 11px; color: #a16207; margin: 10px 0 0 0;">
+                  💡 <em>You can log into the portal using your <strong>Username (${corporateUsername})</strong>, <strong>Employee ID (${empId})</strong>, or <strong>Email (${email})</strong>.</em>
+                </p>
               </div>
 
               <!-- CTA -->
@@ -321,7 +379,7 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
               <p style="margin-top: 25px; margin-bottom: 0;">
                 Warm regards,<br>
                 <strong>Management & Administration</strong><br>
-                <strong>DS Projects Private Limited</strong>
+                <strong>DS PROJECTS PRIVATE LIMITED</strong>
               </p>
             </td>
           </tr>
@@ -342,19 +400,32 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
 `;
 
   try {
-    const transporter = getTransporter();
-    const info = await transporter.sendMail({
+    const mailOptions = {
       from: `"DS Projects Administration" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
       to: email,
-      subject: emailSubject || `📜 Employment Offer, CTC Details & Portal Credentials — DS Projects (${empId})`,
+      subject: emailSubject || `📜 Official Appointment Letter & Portal Login Credentials — DS Projects (${empId})`,
       html: htmlContent,
-    });
+    };
 
-    console.log(`✅ Onboarding & Credentials Email (Email 2) sent to ${email} (ID: ${info.messageId})`);
+    if (pdfBuffer) {
+      const safeFilename = `Offer_Letter_${(empId).replace(/[^a-zA-Z0-9_-]/g, '')}_${(candidateName).replace(/\s+/g, '_')}.pdf`;
+      mailOptions.attachments = [
+        {
+          filename: safeFilename,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        }
+      ];
+    }
+
+    const transporter = getTransporter();
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log(`✅ Onboarding & Credentials Email with PDF attachment sent to ${email} (ID: ${info.messageId})`);
 
     return res.status(200).json({
       success: true,
-      message: `Onboarding completion email with credentials sent to ${email}`,
+      message: `Onboarding completion email with credentials and attached PDF sent to ${email}`,
       messageId: info.messageId,
     });
   } catch (error) {

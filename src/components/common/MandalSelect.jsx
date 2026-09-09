@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, ChevronDown, Check, Loader2, MapPin, X, AlertCircle } from 'lucide-react';
+import { Search, ChevronDown, Check, Loader2, MapPin, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { locationService } from '../../services/locationService';
 
@@ -60,15 +60,15 @@ export default function MandalSelect({
   const filteredMandals = mandals.filter(m =>
     !search ||
     m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.code.toLowerCase().includes(search.toLowerCase())
+    (m.code && m.code.toLowerCase().includes(search.toLowerCase()))
   );
 
   const selectedObj = mandals.find(m => m.name === value || m.id === value);
 
   return (
-    <div className={cn('space-y-1.5', className)} ref={containerRef}>
+    <div className={cn('space-y-1.5 text-left', className)} ref={containerRef}>
       {label && (
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+        <label className="block text-xs font-bold text-slate-700 tracking-wide">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -80,53 +80,63 @@ export default function MandalSelect({
           disabled={isControlDisabled}
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'flex h-11 w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm text-left transition',
-            error ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--color-border)] focus:ring-2 focus:ring-[var(--color-primary)]',
-            isControlDisabled && 'bg-gray-50 text-gray-400 cursor-not-allowed border-dashed',
-            isOpen && 'ring-2 ring-[var(--color-primary)] border-transparent shadow-sm'
+            'flex h-11 w-full items-center justify-between rounded-xl border bg-white px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer',
+            error
+              ? 'border-red-400 ring-2 ring-red-100 bg-red-50/20'
+              : 'border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+            isControlDisabled && 'bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 border-dashed shadow-none',
+            isOpen && 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
           )}
         >
-          <div className="flex items-center gap-2 truncate">
-            <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2.5 truncate">
+            <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
             {!district ? (
-              <span className="text-gray-400 text-xs">Select District First</span>
+              <span className="text-slate-400 text-xs">Select District First</span>
             ) : loading ? (
-              <span className="text-gray-400 text-xs flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Loading mandals...
+              <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading mandals...
               </span>
             ) : selectedObj ? (
-              <span className="font-medium text-gray-900 truncate">
-                {selectedObj.name} <span className="text-xs text-gray-400 font-mono">({selectedObj.code})</span>
+              <span className="font-semibold text-slate-900 truncate text-xs sm:text-sm">
+                {selectedObj.name}
+                <span className="text-xs text-slate-400 font-mono font-normal ml-1.5">
+                  ({selectedObj.code})
+                </span>
               </span>
             ) : (
-              <span className="text-gray-400 text-xs">
+              <span className="text-slate-400 text-xs font-normal">
                 {placeholder} ({mandals.length} available)
               </span>
             )}
           </div>
-          <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform shrink-0', isOpen && 'rotate-180')} />
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2',
+              isOpen && 'rotate-180 text-blue-600'
+            )}
+          />
         </button>
 
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu Popup */}
         {isOpen && !isControlDisabled && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl bg-white border border-[var(--color-border)] shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-            {/* Search Input */}
-            <div className="p-2 border-b border-[var(--color-border)] bg-gray-50/70">
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            {/* Search Input Bar */}
+            <div className="p-2.5 border-b border-slate-100 bg-slate-50/80">
               <div className="relative">
-                <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder={`Search ${mandals.length} mandals in ${district}...`}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 w-full pl-8 pr-7 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="h-8.5 w-full pl-8.5 pr-8 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                   autoFocus
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -134,35 +144,41 @@ export default function MandalSelect({
               </div>
             </div>
 
-            {/* List */}
-            <div className="max-h-56 overflow-y-auto p-1 divide-y divide-gray-50">
+            {/* Mandal List */}
+            <div className="max-h-60 overflow-y-auto p-1.5 divide-y divide-slate-50">
               {filteredMandals.map((m) => {
                 const isSelected = m.name === value || m.id === value;
                 return (
                   <div
-                    key={m.id}
+                    key={m.id || m.name}
                     onClick={() => {
                       onChange(m.name, m);
                       setIsOpen(false);
                       setSearch('');
                     }}
                     className={cn(
-                      'flex items-center justify-between px-3 py-2 text-xs rounded-lg cursor-pointer transition-colors',
-                      isSelected ? 'bg-blue-50 text-[var(--color-primary)] font-bold' : 'hover:bg-gray-100 text-gray-800'
+                      'flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-colors select-none',
+                      isSelected
+                        ? 'bg-blue-50 text-blue-700 font-bold'
+                        : 'hover:bg-slate-100 text-slate-700'
                     )}
                   >
-                    <div>
-                      <p className="font-semibold">{m.name}</p>
-                      <p className="text-[10px] font-mono text-gray-400">{m.code}</p>
+                    <span className="font-medium truncate">{m.name}</span>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                        {m.code}
+                      </span>
+                      {isSelected && (
+                        <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                      )}
                     </div>
-                    {isSelected && <Check className="h-3.5 w-3.5 text-[var(--color-primary)] shrink-0" />}
                   </div>
                 );
               })}
 
               {filteredMandals.length === 0 && (
-                <div className="p-4 text-center text-xs text-gray-400">
-                  No mandal matching "{search}" in {district}
+                <div className="py-6 text-center text-xs text-slate-400">
+                  No mandal found matching "{search}" in {district}
                 </div>
               )}
             </div>
@@ -171,11 +187,11 @@ export default function MandalSelect({
       </div>
 
       {error ? (
-        <p className="text-xs text-red-500">{error}</p>
+        <p className="text-xs text-red-500 font-medium">{error}</p>
       ) : !district ? (
-        <p className="text-xs text-gray-400">Please choose a district to enable mandal options.</p>
+        <p className="text-xs text-slate-400">Please choose a district first.</p>
       ) : helper ? (
-        <p className="text-xs text-gray-400">{helper}</p>
+        <p className="text-xs text-slate-400">{helper}</p>
       ) : null}
     </div>
   );

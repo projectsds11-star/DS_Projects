@@ -23,6 +23,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import StatusBadge from '../../components/onboarding/StatusBadge';
+import EmployeeAvatar from '../../components/common/EmployeeAvatar';
 import OnboardingTimeline from '../../components/onboarding/OnboardingTimeline';
 import OfferDocumentPreview from '../../components/onboarding/OfferDocumentPreview';
 import { onboardingService, offerService } from '../../services/onboardingService';
@@ -204,9 +205,7 @@ export default function OnboardingDetail() {
             <Card>
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-lg text-[var(--color-navy)]">
-                    {candidateName.charAt(0)}
-                  </div>
+                  <EmployeeAvatar emp={employee} name={candidateName} size="lg" shape="circle" />
                   <div>
                     <h3 className="font-bold text-sm text-gray-900">{candidateName}</h3>
                     <p className="text-xs font-mono font-bold text-[var(--color-primary)]">{candidateId}</p>

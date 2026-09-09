@@ -27,6 +27,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.37.0",
     "nodemailer": "^6.9.14",
+    "pdfkit": "^0.20.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.87.0",

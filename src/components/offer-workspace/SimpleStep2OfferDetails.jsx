@@ -31,9 +31,15 @@ export default function SimpleStep2OfferDetails({
   const fileInputRef = useRef(null);
   const employeeName = watch('employeeName') || selectedEmployee?.fullName || 'Candidate';
   const employeeEmail = watch('email') || selectedEmployee?.email || 'email@example.com';
-  const basicSalary = watch('salary.basic') ?? 25000;
-  const monthlyAllowance = watch('salary.travel') ?? 5000;
-  const totalMonthlyGross = (Number(basicSalary) || 0) + (Number(monthlyAllowance) || 0);
+  const position = watch('position') || 'District Co-ordinator';
+  const isDistrictRole = position.toLowerCase().includes('district');
+
+  const basicSalary = Number(watch('salary.basic')) || 0;
+  const monthlyAllowance = Number(watch('salary.travel')) || 0;
+  const statutoryContribution = Number(watch('salary.other')) || 0;
+  const incentiveAmount = Number(watch('salary.incentive')) || 0;
+
+  const totalMonthlyGross = basicSalary + monthlyAllowance + statutoryContribution + incentiveAmount;
   const annualCtc = totalMonthlyGross * 12;
 
   const handleFileChange = (e) => {
@@ -184,14 +190,19 @@ export default function SimpleStep2OfferDetails({
 
       {/* ── 2. Simple Terms & Compensation Form ─────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-5">
-        <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-            <IndianRupee className="h-4 w-4 text-emerald-600" />
-            2. Appointment Terms & Monthly Compensation
-          </h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Specify joining date and remuneration components for {employeeName}.
-          </p>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+              <IndianRupee className="h-4 w-4 text-emerald-600" />
+              2. Appointment Terms & Monthly Remuneration (CTC)
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Structured salary package for <strong>{position}</strong> ({employeeName}).
+            </p>
+          </div>
+          <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            ₹{totalMonthlyGross.toLocaleString('en-IN')} / Mo
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -223,52 +234,93 @@ export default function SimpleStep2OfferDetails({
               <option value="Probationary">Probationary (3 Months)</option>
             </select>
           </div>
+        </div>
 
-          {/* Basic / Fixed Monthly Salary */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Basic / Fixed Salary (₹) *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
-              <input
-                type="number"
-                placeholder="25000"
-                {...register('salary.basic', { valueAsNumber: true })}
-                className={cn(INPUT_CLASS, 'pl-8 font-semibold text-slate-900')}
-              />
+        {/* 3 Component Breakdown Fields */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            Monthly Compensation Breakdown Schedule
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* Component 1: Basic Monthly Salary */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-900">
+                  Basic Monthly Salary *
+                </label>
+                <p className="text-[10px] text-slate-500">Fixed Monthly Component</p>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
+                <input
+                  type="number"
+                  placeholder="25000"
+                  {...register('salary.basic', { valueAsNumber: true })}
+                  className={cn(INPUT_CLASS, 'pl-7 h-10 font-bold text-slate-900')}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Monthly Allowance */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Monthly Allowance (₹)
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
-              <input
-                type="number"
-                placeholder="5000"
-                {...register('salary.travel', { valueAsNumber: true })}
-                className={cn(INPUT_CLASS, 'pl-8 font-semibold text-slate-900')}
-              />
+            {/* Component 2: Work / Mobility Allowance */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-900">
+                  {isDistrictRole ? 'District Work Allowance' : 'Field Work Allowance'}
+                </label>
+                <p className="text-[10px] text-slate-500">Field Work & Mobility Allowance</p>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
+                <input
+                  type="number"
+                  placeholder="5000"
+                  {...register('salary.travel', { valueAsNumber: true })}
+                  className={cn(INPUT_CLASS, 'pl-7 h-10 font-bold text-slate-900')}
+                />
+              </div>
+            </div>
+
+            {/* Component 3: Statutory Contributions (ESI & PF) */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-900">
+                  Statutory Contributions
+                </label>
+                <p className="text-[10px] text-slate-500">ESI & PF Statutory Coverage</p>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">₹</span>
+                <input
+                  type="number"
+                  placeholder="1500"
+                  {...register('salary.other', { valueAsNumber: true })}
+                  className={cn(INPUT_CLASS, 'pl-7 h-10 font-bold text-slate-900')}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Live Remuneration Summary Box */}
-        <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between">
+        <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Total Monthly Gross Remuneration</span>
-            <p className="text-base sm:text-lg font-bold font-mono text-emerald-900 mt-0.5">
-              ₹{totalMonthlyGross.toLocaleString('en-IN')} <span className="text-xs font-normal text-emerald-700">/ month</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Total Monthly Remuneration (CTC)</span>
+            <p className="text-lg sm:text-xl font-bold font-mono text-emerald-950 mt-0.5 flex items-baseline gap-1">
+              <span>₹{totalMonthlyGross.toLocaleString('en-IN')}</span>
+              <span className="text-xs font-normal text-emerald-700">/ month</span>
+            </p>
+            <p className="text-[11px] text-emerald-700 mt-0.5">
+              Basic: ₹{basicSalary.toLocaleString('en-IN')} + Allowance: ₹{monthlyAllowance.toLocaleString('en-IN')} + Statutory: ₹{statutoryContribution.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 w-full sm:w-auto">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Annual Cost to Company (CTC)</span>
-            <p className="text-base sm:text-lg font-bold font-mono text-emerald-900 mt-0.5">
+            <p className="text-lg sm:text-xl font-bold font-mono text-emerald-950 mt-0.5">
               ₹{annualCtc.toLocaleString('en-IN')} <span className="text-xs font-normal text-emerald-700">/ year</span>
+            </p>
+            <p className="text-[11px] text-emerald-600 font-mono">
+              (₹{(annualCtc / 100000).toFixed(2)} Lakhs Per Annum)
             </p>
           </div>
         </div>

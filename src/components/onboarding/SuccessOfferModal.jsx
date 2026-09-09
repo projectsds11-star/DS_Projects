@@ -21,7 +21,9 @@ export default function SuccessOfferModal({
   const employeeName = targetOffer.employee_name || targetOffer.employeeName || 'Candidate';
   const employeeId = targetOffer.employee_id || targetOffer.employeeId || 'DS-001';
   const email = targetOffer.email || 'employee@dsprojects.in';
-  const username = targetOffer.username || targetOffer.employee_id || targetOffer.employeeId || 'portal_user';
+  const normalizedName = employeeName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '') || 'candidate';
+  const idNumber = employeeId.replace(/[^0-9]/g, '') || '001';
+  const username = targetOffer.username || `${normalizedName}${idNumber}@dsprojects`;
   const position = targetOffer.position || 'Mandal Co-ordinator';
   const status = targetOffer.status || 'Offer Sent';
   const offerNumber = targetOffer.offer_number || targetOffer.offerNumber || 'DS/OFF/2026/001';

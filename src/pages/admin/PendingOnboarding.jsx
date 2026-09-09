@@ -4,6 +4,7 @@ import { Search, ArrowRight, UserPlus, Clock, ArrowLeft, ChevronRight } from 'lu
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import StatusBadge from '../../components/onboarding/StatusBadge';
+import EmployeeAvatar from '../../components/common/EmployeeAvatar';
 import { onboardingService } from '../../services/onboardingService';
 
 export default function PendingOnboarding() {
@@ -97,9 +98,7 @@ export default function PendingOnboarding() {
             <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-sm text-[var(--color-navy)] shrink-0">
-                    {emp.fullName.charAt(0)}
-                  </div>
+                  <EmployeeAvatar emp={emp} size="md" shape="circle" />
                   <div>
                     <h3 className="font-bold text-sm text-gray-900 leading-tight">{emp.fullName}</h3>
                     <p className="text-xs font-mono font-bold text-[var(--color-primary)]">{emp.employeeId}</p>

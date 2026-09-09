@@ -19,6 +19,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import StatusBadge from '../../components/onboarding/StatusBadge';
+import EmployeeAvatar from '../../components/common/EmployeeAvatar';
 import { onboardingService, offerService } from '../../services/onboardingService';
 import { cn } from '../../utils/cn';
 
@@ -130,23 +131,23 @@ export default function Onboarding() {
         ))}
       </div>
 
-      {/* ── KPI Metric Cards ─────────────────────────────────── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      {/* ── KPI Metrics Bar ───────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: 'Total In Pipeline', val: kpis.total, icon: Users, color: 'blue' },
-          { label: 'Pending Offers', val: kpis.pending, icon: Clock, color: 'amber' },
-          { label: 'Offers Sent', val: kpis.sent, icon: Send, color: 'sky' },
-          { label: 'Offers Accepted', val: kpis.accepted, icon: CheckCircle2, color: 'emerald' },
-          { label: 'Completed', val: kpis.completed, icon: Layers, color: 'green' },
-          { label: 'Email Failed', val: kpis.failed, icon: AlertCircle, color: 'rose' },
-        ].map((kpi) => {
+          { label: 'Total In Pipeline', val: kpis.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Pending Offer', val: kpis.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Offer Drafts', val: kpis.drafted, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Offers Sent', val: kpis.sent, icon: Send, color: 'text-sky-600', bg: 'bg-sky-50' },
+          { label: 'Offers Accepted', val: kpis.accepted, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Completed', val: kpis.completed, icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50' },
+        ].map((kpi, i) => {
           const Icon = kpi.icon;
           return (
-            <Card key={kpi.label} className="border border-[var(--color-border)] shadow-xs">
-              <CardContent className="p-4">
+            <Card key={i} className="border border-[var(--color-border)] shadow-xs">
+              <CardContent className="p-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-gray-500">{kpi.label}</span>
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-${kpi.color}-50 text-${kpi.color}-600`}>
+                  <div className={`p-1.5 rounded-md ${kpi.bg} ${kpi.color}`}>
                     <Icon className="h-3.5 w-3.5" />
                   </div>
                 </div>
@@ -225,9 +226,7 @@ export default function Onboarding() {
                 <tr key={emp.employeeId} className="hover:bg-[#D8F5FA]/20 transition-colors">
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-xs text-[var(--color-navy)] shrink-0">
-                        {emp.fullName.charAt(0)}
-                      </div>
+                      <EmployeeAvatar emp={emp} size="sm" shape="circle" />
                       <div>
                         <p className="font-bold text-gray-900">{emp.fullName}</p>
                         <p className="text-[11px] text-gray-400">{emp.qualification || 'Graduate'}</p>

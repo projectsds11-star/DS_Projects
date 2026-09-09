@@ -39,12 +39,25 @@ export default function EmployeeLogin() {
       const input = data.username.trim();
       let emp = null;
 
+      // Extract numeric ID if corporate username format e.g. balajis001@dsprojects, ds-001, or 001
+      const digitsMatch = input.match(/\d+/);
+      const extractedEmpId = digitsMatch ? `DS-${digitsMatch[0].padStart(3, '0')}` : null;
+      const cleanEmpId = digitsMatch ? `DS${digitsMatch[0].padStart(3, '0')}` : null;
+
       if (isSupabaseConfigured) {
         try {
+          const orConditions = [
+            `employee_id.ilike.%${input}%`,
+            `email.ilike.%${input}%`,
+            `phone.ilike.%${input}%`,
+          ];
+          if (extractedEmpId) orConditions.push(`employee_id.ilike.%${extractedEmpId}%`);
+          if (cleanEmpId) orConditions.push(`employee_id.ilike.%${cleanEmpId}%`);
+
           const { data: dbEmp } = await supabase
             .from('employees')
             .select('*')
-            .or(`employee_id.ilike.%${input}%,email.ilike.%${input}%,phone.ilike.%${input}%`)
+            .or(orConditions.join(','))
             .limit(1)
             .maybeSingle();
           if (dbEmp) emp = dbEmp;
@@ -56,11 +69,24 @@ export default function EmployeeLogin() {
       if (!emp) {
         // Fallback to local liveDataService
         const liveList = await liveDataService.getEmployees();
-        emp = liveList.find(e => 
-          (e.employee_id && e.employee_id.toLowerCase() === input.toLowerCase()) ||
-          (e.email && e.email.toLowerCase() === input.toLowerCase()) ||
-          (e.phone && e.phone === input)
-        );
+        emp = liveList.find(e => {
+          const normInput = input.toLowerCase();
+          const eId = (e.employee_id || '').toLowerCase();
+          const eEmail = (e.email || '').toLowerCase();
+          const ePhone = (e.phone || '');
+          const eName = (e.full_name || e.employee_name || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '');
+          const eNum = (e.employee_id || '').replace(/[^0-9]/g, '');
+          const eCorpUser = `${eName}${eNum}@dsprojects`.toLowerCase();
+
+          return (
+            eId === normInput ||
+            eEmail === normInput ||
+            ePhone === input ||
+            (extractedEmpId && eId === extractedEmpId.toLowerCase()) ||
+            (cleanEmpId && eId === cleanEmpId.toLowerCase()) ||
+            eCorpUser === normInput
+          );
+        });
       }
 
       // Check Inactive status restriction

@@ -69,23 +69,35 @@ export const employeeService = {
     return mapRow(data);
   },
 
-  /** Preview of next employee ID — UI only, NOT used for actual creation */
+  /** Preview of next employee ID — UI preview dynamically synced with existing database records */
   async getNextEmployeeIdPreview() {
     if (!isSupabaseConfigured) return 'DS-001';
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('employee_id')
+        .is('deleted_at', null);
+
+      if (!error && data) {
+        let maxNum = 0;
+        data.forEach(row => {
+          const match = (row.employee_id || '').match(/^DS-(\d+)$/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        });
+        const nextNum = maxNum + 1;
+        return `DS-${nextNum < 1000 ? String(nextNum).padStart(3, '0') : nextNum}`;
+      }
+    } catch {}
+
+    // Fallback: peek_next_employee_id
     try {
       const { data, error } = await supabase.rpc('peek_next_employee_id');
       if (!error && data) return data;
     } catch {}
-    // Fallback: count based
-    try {
-      const { count } = await supabase
-        .from('employees')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null);
-      const n = (count || 0) + 1;
-      return `DS-${n < 1000 ? String(n).padStart(3, '0') : n}`;
-    } catch {}
-    return 'DS-???';
+    return 'DS-001';
   },
 
   // ── WRITE OPERATIONS (Express backend) ──────────────────────────────────────
@@ -213,6 +225,7 @@ function mapRow(e) {
     id: e.id,
     employeeId: e.employee_id,
     name: e.name || e.full_name || '',
+    fullName: e.full_name || e.name || '',
     address: e.address || '',
     phone: e.phone || '',
     email: e.email || '',
@@ -237,6 +250,8 @@ function mapRow(e) {
     stateId: e.state_id || '',
     districtId: e.district_id || '',
     mandalId: e.mandal_id || '',
+    district: e.district_id || '',
+    mandal: e.mandal_id || '',
     status: e.status || 'active',
     createdAt: e.created_at,
     updatedAt: e.updated_at,

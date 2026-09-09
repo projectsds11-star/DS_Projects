@@ -124,7 +124,15 @@ DS PROJECTS Pvt Ltd`,
   'District Co-ordinator': {
     jobPosition: 'District Co-ordinator',
     department: 'Field Operations',
-    defaultSalary: { basic: 35000, travel: 8000, incentive: 0, other: 0 },
+    pdfTitle: 'APPOINTMENT FOR THE POST OF DISTRICT COORDINATOR',
+    defaultSalary: { basic: 25000, travel: 5000, incentive: 0, other: 1500 },
+    salaryBreakdown: [
+      { header: 'Basic Monthly Salary', details: 'Fixed Monthly Component', amount: 25000 },
+      { header: 'District Work Allowance', details: 'Field Work & Mobility Allowance', amount: 5000 },
+      { header: 'Statutory Contributions (ESI & PF)', details: 'Employer & Employee Statutory Coverage', amount: 1500 },
+    ],
+    monthlyTotal: 31500,
+    annualCtc: 378000,
     probation: '3 Months',
     noticePeriod: '30 Days',
     jobDescription: `As a District Co-ordinator for DS PROJECTS, you will be the key operational driver at the district level. You will oversee grassroots team deployment, liaise with local district administration, coordinate daily surveys across all mandals, verify data submissions, and ensure timely completion of project deliverables.`,
@@ -147,7 +155,13 @@ Key Assignment Details:
 • Designation: {{designation}}
 • Work Location: District {{district}}
 • Proposed Joining Date: {{joining_date}}
-• Monthly Gross Salary: {{monthly_salary}} (Annual CTC: {{annual_ctc}})
+• Monthly Gross Remuneration: ₹31,500.00 (Annual CTC: ₹3,78,000.00)
+
+Compensation Breakdown:
+1. Basic Monthly Salary: ₹25,000.00 (Fixed Monthly Component)
+2. District Work Allowance: ₹5,000.00 (Field Work & Mobility Allowance)
+3. Statutory Contributions (ESI & PF): ₹1,500.00 (Employer & Employee Statutory Coverage)
+Total Monthly CTC: ₹31,500.00 | Annual CTC: ₹3,78,000.00
 
 Please find attached your detailed Offer Letter and Job Description document.
 
@@ -279,6 +293,12 @@ Administration & HR Team
 DS PROJECTS`,
   },
 };
+
+// Aliases for variations
+MASTER_TEMPLATES['District Coordinator'] = MASTER_TEMPLATES['District Co-ordinator'];
+MASTER_TEMPLATES['Mandal Coordinator'] = MASTER_TEMPLATES['Mandal Co-ordinator'];
+MASTER_TEMPLATES['Facilitator'] = MASTER_TEMPLATES['Facilator'];
+
 
 /**
  * Interpolate dynamic placeholders like {{employee_name}}, {{designation}}, etc.

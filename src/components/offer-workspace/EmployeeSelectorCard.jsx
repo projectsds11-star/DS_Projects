@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Check, X, Shield, Phone, Mail, GraduationCap } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import StatusBadge from '../onboarding/StatusBadge';
+import EmployeeAvatar from '../common/EmployeeAvatar';
 
 export default function EmployeeSelectorCard({
   employees = [],
@@ -101,9 +102,7 @@ export default function EmployeeSelectorCard({
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-lavender)] flex items-center justify-center font-bold text-xs text-[var(--color-navy)] shrink-0">
-                        {(emp.name || emp.fullName || 'U').charAt(0)}
-                      </div>
+                      <EmployeeAvatar emp={emp} size="sm" shape="circle" />
                       <div className="min-w-0">
                         <p className="font-bold truncate leading-tight">{emp.name || emp.fullName}</p>
                         <p className="text-[11px] font-mono text-gray-400 truncate mt-0.5">
@@ -132,9 +131,7 @@ export default function EmployeeSelectorCard({
       {selectedEmployee && (
         <div className="bg-gray-50/90 rounded-xl p-4 border border-gray-200 space-y-3 text-xs">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-            <div className="w-11 h-11 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
-              {(selectedEmployee.name || selectedEmployee.fullName || 'U').charAt(0)}
-            </div>
+            <EmployeeAvatar emp={selectedEmployee} size="md" shape="circle" />
             <div className="min-w-0 flex-1">
               <h4 className="font-bold text-gray-900 text-sm truncate">{selectedEmployee.name || selectedEmployee.fullName}</h4>
               <p className="text-xs font-mono font-bold text-[var(--color-primary)]">

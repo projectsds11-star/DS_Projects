@@ -269,18 +269,20 @@ export default function OfferDocumentPreview({ offerData = {} }) {
                     <td className="p-2 text-right font-mono">{formatINR((salary.basic || 0) * 12)}</td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-gray-50/50">
-                    <td className="p-2">Travel & Field Allowance</td>
+                    <td className="p-2">{position?.toLowerCase().includes('district') ? 'District Work Allowance' : 'Travel & Field Allowance'}</td>
                     <td className="p-2 text-right font-mono">{formatINR(salary.travel || 0)}</td>
                     <td className="p-2 text-right font-mono">{formatINR((salary.travel || 0) * 12)}</td>
                   </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="p-2">Performance & Output Incentive</td>
-                    <td className="p-2 text-right font-mono">{formatINR(salary.incentive || 0)}</td>
-                    <td className="p-2 text-right font-mono">{formatINR((salary.incentive || 0) * 12)}</td>
-                  </tr>
+                  {Number(salary.incentive) > 0 && (
+                    <tr className="border-b border-gray-200">
+                      <td className="p-2">Performance & Output Incentive</td>
+                      <td className="p-2 text-right font-mono">{formatINR(salary.incentive || 0)}</td>
+                      <td className="p-2 text-right font-mono">{formatINR((salary.incentive || 0) * 12)}</td>
+                    </tr>
+                  )}
                   {Number(salary.other) > 0 && (
                     <tr className="border-b border-gray-200 bg-gray-50/50">
-                      <td className="p-2">Special / Other Allowances</td>
+                      <td className="p-2">Statutory Contributions (ESI & PF)</td>
                       <td className="p-2 text-right font-mono">{formatINR(salary.other || 0)}</td>
                       <td className="p-2 text-right font-mono">{formatINR((salary.other || 0) * 12)}</td>
                     </tr>

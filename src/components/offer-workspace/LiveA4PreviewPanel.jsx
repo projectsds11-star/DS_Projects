@@ -290,8 +290,10 @@ export default function LiveA4PreviewPanel({
                   </tr>
                   {travel > 0 && (
                     <tr>
-                      <td className="p-2 border border-gray-300 font-bold">Allowance</td>
-                      <td className="p-2 border border-gray-300 text-gray-600">Field Mobility & Travel Allowance</td>
+                      <td className="p-2 border border-gray-300 font-bold">
+                        {position.toLowerCase().includes('district') ? 'District Work Allowance' : 'Field Work Allowance'}
+                      </td>
+                      <td className="p-2 border border-gray-300 text-gray-600">Field Work & Mobility Allowance</td>
                       <td className="p-2 border border-gray-300 text-right font-mono font-bold text-gray-800">{formatINR(travel)}</td>
                     </tr>
                   )}

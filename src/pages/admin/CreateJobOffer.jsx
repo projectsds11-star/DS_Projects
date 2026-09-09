@@ -43,7 +43,7 @@ import SuccessOfferModal from '../../components/onboarding/SuccessOfferModal';
 
 // Services & Validators
 import { offerSchema } from '../../validators/offerSchema';
-import { onboardingService } from '../../services/onboardingService';
+import { onboardingService, offerService } from '../../services/onboardingService';
 import { employeeService } from '../../services/employeeService';
 import {
   MASTER_TEMPLATES,
@@ -60,7 +60,7 @@ const WIZARD_STEPS = [
 export default function CreateJobOffer() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const candidateParamId = searchParams.get('candidateId');
+  const candidateParamId = searchParams.get('employeeId') || searchParams.get('candidateId');
 
   const [currentStep, setCurrentStep] = useState(1);
   const [employees, setEmployees] = useState([]);
@@ -169,8 +169,10 @@ export default function CreateJobOffer() {
     setValue('email', emp.email);
     setValue('phone', emp.phone);
 
-    if (emp.district) setValue('district', emp.district);
-    if (emp.mandal) setValue('mandal', emp.mandal);
+    const dist = emp.district || emp.districtId || 'Nellore';
+    const mnd = emp.mandal || emp.mandalId || 'Kavali';
+    setValue('district', dist);
+    setValue('mandal', mnd);
 
     const activeOffer = await onboardingService.checkExistingOffer(emp.employeeId);
     if (activeOffer) {
@@ -178,7 +180,7 @@ export default function CreateJobOffer() {
       setShowDuplicateModal(true);
     }
 
-    refreshEmailBody(empName, watchedValues.position, watchedValues.district, watchedValues.mandal, watchedValues.joiningDate);
+    refreshEmailBody(empName, watchedValues.position, dist, mnd, watchedValues.joiningDate);
   };
 
   // 3. Job Position Selection
@@ -233,7 +235,7 @@ export default function CreateJobOffer() {
         status: 'Draft',
         documentMode,
       };
-      await onboardingService.createOffer(draftPayload);
+      await offerService.createOffer(draftPayload);
       setIsAutosaving(false);
       setAutosaveStatus('Draft saved successfully');
     } catch (e) {
@@ -319,7 +321,7 @@ export default function CreateJobOffer() {
       await new Promise(r => setTimeout(r, 500));
       setSendingStage(5); // Dispatching SMTP Email
 
-      const res = await onboardingService.createOffer({
+      const res = await offerService.createOffer({
         ...watchedValues,
         action: 'send',
         status: 'Offer Sent',
@@ -342,16 +344,7 @@ export default function CreateJobOffer() {
     } catch (err) {
       console.error('Dispatch error:', err);
       setShowSendingModal(false);
-      const fallbackOffer = {
-        employee_name: watchedValues.employeeName,
-        employee_id: watchedValues.employeeId,
-        email: watchedValues.email,
-        position: watchedValues.position,
-        offer_number: `DS/OFF/2026/${(watchedValues.employeeId || '001').replace(/[^0-9]/g, '')}`,
-        status: 'Offer Sent',
-      };
-      setCompletedOffer(fallbackOffer);
-      setShowSuccessModal(true);
+      alert('Failed to dispatch job offer: ' + (err.message || 'Please check network connection and try again.'));
     }
   };
 
@@ -547,12 +540,12 @@ export default function CreateJobOffer() {
               </div>
 
               <div>
-                <span className="text-[10px] text-gray-500 uppercase font-semibold">Monthly Remuneration</span>
+                <span className="text-[10px] text-gray-500 uppercase font-semibold">Monthly Remuneration (CTC)</span>
                 <p className="font-bold font-mono text-emerald-600">
-                  {formatINR((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0))} / Mo
+                  {formatINR((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0))} / Mo
                 </p>
                 <p className="text-[10px] font-mono text-gray-500">
-                  {formatINR(((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0)) * 12)} CTC / yr
+                  {formatINR(((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0)) * 12)} CTC / yr
                 </p>
               </div>
             </div>
