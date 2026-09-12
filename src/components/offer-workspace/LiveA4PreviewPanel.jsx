@@ -18,9 +18,22 @@ export default function LiveA4PreviewPanel({
   offerData = {},
   onOpenFullscreen,
 }) {
-  const [zoom, setZoom] = useState(85);
+  const [zoom, setZoom] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      const availWidth = Math.min(window.innerWidth - 32, 380);
+      return Math.max(25, Math.min(85, Math.floor((availWidth / 794) * 100)));
+    }
+    return 85;
+  });
   const [copied, setCopied] = useState(false);
   const docRef = useRef(null);
+
+  const resetToFit = () => {
+    if (typeof window !== 'undefined') {
+      const availWidth = window.innerWidth < 640 ? Math.min(window.innerWidth - 32, 380) : 680;
+      setZoom(Math.max(25, Math.min(100, Math.floor((availWidth / 794) * 100))));
+    }
+  };
 
   const {
     employeeName = 'Rahul Kumar',
@@ -98,30 +111,37 @@ export default function LiveA4PreviewPanel({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--color-border)] shadow-xs flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-xs flex flex-col h-full overflow-hidden">
       {/* Panel Toolbar */}
-      <div className="p-3 border-b border-[var(--color-border)] bg-gray-50/80 flex items-center justify-between gap-2">
+      <div className="p-2.5 sm:p-3 border-b border-[var(--color-border)] bg-gray-50/80 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-[var(--color-primary)]" />
-          <span className="text-xs font-bold text-[var(--color-navy)]">Live A4 Document Preview</span>
+          <FileText className="h-4 w-4 text-[var(--color-primary)] shrink-0" />
+          <span className="text-xs font-bold text-[var(--color-navy)] truncate">Live A4 Document Preview</span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           {/* Zoom controls */}
-          <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 text-xs">
+          <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 text-xs shadow-2xs">
             <button
               type="button"
-              onClick={() => setZoom(z => Math.max(z - 10, 50))}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600"
+              onClick={() => setZoom(z => Math.max(z - 5, 25))}
+              className="p-1 hover:bg-gray-100 rounded text-gray-600 cursor-pointer"
               title="Zoom out"
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <span className="px-1.5 font-mono text-[10px] text-gray-600">{zoom}%</span>
             <button
               type="button"
-              onClick={() => setZoom(z => Math.min(z + 10, 130))}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600"
+              onClick={resetToFit}
+              className="px-1.5 font-mono text-[10px] text-gray-700 hover:text-blue-600 font-bold cursor-pointer"
+              title="Click to auto-fit screen"
+            >
+              {zoom}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(z => Math.min(z + 5, 140))}
+              className="p-1 hover:bg-gray-100 rounded text-gray-600 cursor-pointer"
               title="Zoom in"
             >
               <ZoomIn className="h-3.5 w-3.5" />
@@ -131,7 +151,7 @@ export default function LiveA4PreviewPanel({
           <button
             type="button"
             onClick={handleCopy}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 cursor-pointer"
             title="Copy Text"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
@@ -140,7 +160,7 @@ export default function LiveA4PreviewPanel({
           <button
             type="button"
             onClick={handlePrint}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 cursor-pointer"
             title="Print Document"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -149,7 +169,7 @@ export default function LiveA4PreviewPanel({
           <button
             type="button"
             onClick={handleDownload}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 cursor-pointer"
             title="Download PDF/HTML"
           >
             <Download className="h-3.5 w-3.5" />
@@ -159,7 +179,7 @@ export default function LiveA4PreviewPanel({
             <button
               type="button"
               onClick={onOpenFullscreen}
-              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"
+              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 cursor-pointer"
               title="Expand Fullscreen"
             >
               <Maximize2 className="h-3.5 w-3.5" />
@@ -169,13 +189,25 @@ export default function LiveA4PreviewPanel({
       </div>
 
       {/* A4 Scroll Area */}
-      <div className="flex-1 bg-gray-200/70 p-4 sm:p-6 overflow-y-auto overflow-x-hidden flex justify-center">
+      <div className="flex-1 bg-gray-200/70 p-2 sm:p-6 overflow-auto flex justify-center items-start min-h-0">
         <div
-          ref={docRef}
-          style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
-          className="bg-white text-gray-900 shadow-xl transition-transform duration-150 font-sans leading-relaxed text-[11px] w-[794px] min-h-[1123px] shrink-0 print:shadow-none print:m-0 print:border-none relative"
+          style={{
+            width: `${794 * (zoom / 100)}px`,
+            minHeight: `${1123 * (zoom / 100)}px`,
+          }}
+          className="relative transition-all duration-150 shrink-0"
         >
-          {/* Official Letterhead Banner */}
+          <div
+            ref={docRef}
+            style={{
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: 'top left',
+              width: '794px',
+              minHeight: '1123px',
+            }}
+            className="bg-white text-gray-900 shadow-xl font-sans leading-relaxed text-[11px] absolute top-0 left-0 print:shadow-none print:m-0 print:border-none"
+          >
+            {/* Official Letterhead Banner */}
           <div className="bg-[#2b3c8f] text-white p-6 pb-5 flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold tracking-wide mb-2">DS PROJECTS</h1>
@@ -368,6 +400,7 @@ export default function LiveA4PreviewPanel({
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
