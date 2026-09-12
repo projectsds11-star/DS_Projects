@@ -586,10 +586,53 @@ export const resetEmployeePassword = async (req, res) => {
       employeePasswordStore.set(employeeId.toUpperCase(), newPassword);
     }
 
+    // ── Supabase Database SQL Updates for Password Saving ─────────────────────
+    // 1. Update employees table
+    try {
+      await supabase
+        .from('employees')
+        .update({ password: newPassword, updated_at: new Date().toISOString() })
+        .eq('email', formattedEmail);
+
+      if (employeeId) {
+        await supabase
+          .from('employees')
+          .update({ password: newPassword, updated_at: new Date().toISOString() })
+          .eq('employee_id', employeeId.toUpperCase());
+      }
+    } catch (dbErr) {
+      console.warn('[Employee Auth] Supabase employees password column update note:', dbErr.message);
+    }
+
+    // 2. Update job_offers table
+    try {
+      await supabase
+        .from('job_offers')
+        .update({ password: newPassword, updated_at: new Date().toISOString() })
+        .eq('email', formattedEmail);
+    } catch (offerErr) {
+      console.warn('[Employee Auth] Supabase job_offers password update note:', offerErr.message);
+    }
+
+    // 3. Upsert into employee_credentials table
+    try {
+      await supabase
+        .from('employee_credentials')
+        .upsert({
+          email: formattedEmail,
+          employee_id: employeeId ? employeeId.toUpperCase() : '',
+          password: newPassword,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'email' });
+    } catch (credErr) {
+      // Table may not exist yet
+    }
+
     // Clear OTP
     employeeOtpStore.delete(formattedEmail);
     if (employeeId) employeeOtpStore.delete(employeeId.toLowerCase());
     await supabase.from('admin_otps').delete().eq('email', formattedEmail);
+
 
     // Send confirmation email
     try {
