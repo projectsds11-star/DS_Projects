@@ -874,13 +874,19 @@ export default function CreateJobOffer() {
           setShowSuccessModal(false);
           navigate('/admin/onboarding');
         }}
+        onViewOffer={() => {
+          setShowSuccessModal(false);
+          const targetId = completedOffer?.id || completedOffer?.offer_number || completedOffer?.employee_id || completedOffer?.employeeId || watchedValues.employeeId;
+          navigate(`/admin/onboarding/${targetId}`);
+        }}
         onBackToOnboarding={() => {
           setShowSuccessModal(false);
           navigate('/admin/onboarding');
         }}
         onViewEmployee={() => {
           setShowSuccessModal(false);
-          navigate('/admin/employees');
+          const empId = completedOffer?.employee_id || completedOffer?.employeeId || watchedValues.employeeId;
+          navigate(empId ? `/admin/employees/${empId}` : '/admin/employees');
         }}
         offer={completedOffer}
       />

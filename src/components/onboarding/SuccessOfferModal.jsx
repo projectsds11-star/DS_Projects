@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, FileText, ArrowRight, User, LayoutDashboard, Copy, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -12,6 +13,7 @@ export default function SuccessOfferModal({
   onViewEmployee,
   onBackToOnboarding,
 }) {
+  const navigate = useNavigate();
   const [copied, setCopied] = React.useState(false);
   const isModalOpen = open ?? isOpen;
 
@@ -32,6 +34,31 @@ export default function SuccessOfferModal({
     navigator.clipboard.writeText(username);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleViewOffer = () => {
+    if (onViewOffer) {
+      onViewOffer(targetOffer);
+    } else {
+      const targetId = targetOffer?.id || targetOffer?.offer_number || targetOffer?.employee_id || employeeId;
+      navigate(`/admin/onboarding/${targetId}`);
+    }
+  };
+
+  const handleViewEmployee = () => {
+    if (onViewEmployee) {
+      onViewEmployee(targetOffer);
+    } else {
+      navigate(employeeId ? `/admin/employees/${employeeId}` : '/admin/employees');
+    }
+  };
+
+  const handleBackToOnboarding = () => {
+    if (onBackToOnboarding) {
+      onBackToOnboarding();
+    } else {
+      navigate('/admin/onboarding');
+    }
   };
 
   return (
@@ -128,28 +155,31 @@ export default function SuccessOfferModal({
             {/* Action Buttons */}
             <div className="flex flex-col gap-2 pt-2">
               <Button
-                className="w-full justify-center"
+                type="button"
+                className="w-full justify-center font-bold text-xs h-10 bg-[#E63946] hover:bg-[#d62839] cursor-pointer"
                 icon={FileText}
-                onClick={onViewOffer}
+                onClick={handleViewOffer}
               >
                 View Offer Document
               </Button>
               <div className="grid grid-cols-2 gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  className="justify-center"
+                  className="justify-center font-bold text-xs h-9 cursor-pointer"
                   icon={User}
-                  onClick={onViewEmployee}
+                  onClick={handleViewEmployee}
                 >
                   View Employee
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  className="justify-center"
+                  className="justify-center font-bold text-xs h-9 cursor-pointer"
                   icon={LayoutDashboard}
-                  onClick={onBackToOnboarding}
+                  onClick={handleBackToOnboarding}
                 >
                   Onboarding Hub
                 </Button>
