@@ -101,15 +101,17 @@ export default function Notifications() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-            <span>Notifications & Broadcast Hub</span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+              Notifications & Broadcast Hub
+            </h1>
             {unreadCount > 0 && (
-              <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-2xs border border-blue-200/50">
                 {unreadCount} Unread
               </span>
             )}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">Send operational bulletins and emergency alerts to field personnel.</p>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Send operational bulletins and emergency alerts to field personnel.</p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -74,13 +74,15 @@ export default function Reports() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-            <span>Executive Reports & Analytics</span>
-            <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+              Executive Reports & Analytics
+            </h1>
+            <span className="inline-flex items-center text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-2xs border border-blue-200/50">
               Live Feed
             </span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">Cross-district workforce output, field presence, and completion metrics.</p>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Cross-district workforce output, field presence, and completion metrics.</p>
         </div>
 
         <div className="flex items-center gap-2.5">

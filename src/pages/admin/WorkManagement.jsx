@@ -257,13 +257,15 @@ export default function WorkManagement() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-            <span>Daily Work Operations</span>
-            <span className="text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+              Daily Work Operations
+            </h1>
+            <span className="inline-flex items-center text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-2xs border border-blue-200/50">
               {tasks.length} Dispatched
             </span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">Dispatch field survey tasks, track live progress, and verify field reports.</p>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Dispatch field survey tasks, track live progress, and verify field reports.</p>
         </div>
 
         <div className="flex items-center gap-2">
