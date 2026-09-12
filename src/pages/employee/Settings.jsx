@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Label } from '../../components/ui/Label';
+import { employeeAuthService } from '../../services/employeeAuthService';
+
 
 export default function EmployeeSettings() {
   const [activeTab, setActiveTab] = useState('password');
@@ -52,17 +54,37 @@ export default function EmployeeSettings() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    if (!newPass || newPass !== confirmPass) {
+    if (!newPass || newPass.length < 8) {
+      showToast('New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPass !== confirmPass) {
       showToast('Passwords do not match. Please verify.');
       return;
     }
-    showToast('Password updated securely!');
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
+
+    try {
+      const empId = localStorage.getItem('ds_current_employee_id') || 'DS-001';
+      const sessionStr = localStorage.getItem('ds_employee_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+
+      await employeeAuthService.resetPassword({
+        employeeId: empId,
+        email: session?.email || session?.username || `${empId}@dsprojects`,
+        newPassword: newPass,
+      });
+
+      showToast('Password updated securely! New password is now active.');
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+    } catch (err) {
+      showToast('Failed to update password. Please try again.');
+    }
   };
+
 
   const calculatePasswordStrength = (pass) => {
     if (!pass) return { score: 0, label: 'None', color: 'bg-slate-200' };

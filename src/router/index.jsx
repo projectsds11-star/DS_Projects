@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AdminLogin from '../pages/auth/AdminLogin';
 import EmployeeLogin from '../pages/auth/EmployeeLogin';
+import EmployeeForgotPassword from '../pages/auth/EmployeeForgotPassword';
 import AccountActivation from '../pages/auth/AccountActivation';
 import AdminLayout from '../layouts/AdminLayout';
 import EmployeeLayout from '../layouts/EmployeeLayout';
@@ -51,9 +52,14 @@ const router = createBrowserRouter([
     element: <EmployeeLogin />,
   },
   {
+    path: '/employee/forgot-password',
+    element: <EmployeeForgotPassword />,
+  },
+  {
     path: '/activate-account',
     element: <AccountActivation />,
   },
+
 
   // ── Admin Portal (ALL routes protected) ──────────────────────
   {
