@@ -310,11 +310,20 @@ export const liveDataService = {
   },
 
   async punchCheckIn(employeeId, locationName = 'Field Office', coordinates = null) {
-    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
     const records = await this.getAttendance(employeeId);
     
-    // Check if a record already exists for today
-    const existingToday = records.find(r => r.punch_date === todayStr);
+    // Check if a record already exists for today using robust date comparison
+    const existingToday = records.find(r => {
+      if (r.created_at) {
+        const d = new Date(r.created_at);
+        if (!isNaN(d.getTime())) {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        }
+      }
+      return r.punch_date === todayStr;
+    });
 
     if (existingToday) {
       if (existingToday.check_out_time && existingToday.check_out_time !== '-- : --' && existingToday.check_out_time !== '--:--') {
@@ -323,7 +332,6 @@ export const liveDataService = {
       return { success: true, data: existingToday, alreadyActive: true };
     }
 
-    const now = new Date();
     const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     // Determine status (Late if after 09:30 AM)
@@ -363,19 +371,30 @@ export const liveDataService = {
   },
 
   async punchCheckOut(employeeId, options = { force: false }) {
-    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
     const records = await this.getAttendance(employeeId);
-    const openPunch = records.find(r => r.punch_date === todayStr && (r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time));
+    
+    const todayRecords = records.filter(r => {
+      if (r.created_at) {
+        const d = new Date(r.created_at);
+        if (!isNaN(d.getTime())) {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        }
+      }
+      return r.punch_date === todayStr;
+    });
+
+    const openPunch = todayRecords.find(r => r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time);
 
     if (!openPunch) {
-      const completedPunch = records.find(r => r.punch_date === todayStr && r.check_out_time && r.check_out_time !== '-- : --' && r.check_out_time !== '--:--');
+      const completedPunch = todayRecords.find(r => r.check_out_time && r.check_out_time !== '-- : --' && r.check_out_time !== '--:--');
       if (completedPunch) {
         throw new Error('You have already completed your punch-out for today.');
       }
       throw new Error('No active punch-in found for today. Please punch in first.');
     }
 
-    const now = new Date();
     const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     const checkInDate = new Date(openPunch.created_at || now);
     const diffMs = Math.max(0, now.getTime() - checkInDate.getTime());
@@ -428,10 +447,20 @@ export const liveDataService = {
   },
 
   async getLiveShiftStatus(employeeId) {
-    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
     const records = await this.getAttendance(employeeId);
     
-    const todayRecords = records.filter(r => r.punch_date === todayStr);
+    const todayRecords = records.filter(r => {
+      if (r.created_at) {
+        const d = new Date(r.created_at);
+        if (!isNaN(d.getTime())) {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        }
+      }
+      return r.punch_date === todayStr;
+    });
+    
     const openRecord = todayRecords.find(r => r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time);
     const completedRecord = todayRecords.find(r => r.check_out_time && r.check_out_time !== '-- : --' && r.check_out_time !== '--:--');
 
