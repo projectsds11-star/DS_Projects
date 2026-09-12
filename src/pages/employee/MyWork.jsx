@@ -203,6 +203,33 @@ export default function MyWork() {
     }
   };
 
+  const handleDownloadFile = async (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!file?.url) {
+      showToast('File download link is unavailable.');
+      return;
+    }
+    try {
+      showToast(`Downloading ${file.name}...`);
+      const res = await fetch(file.url);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = file.name || 'document.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      console.warn('Direct blob download failed, opening in browser tab:', err);
+      window.open(file.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+
   const getPriorityBadge = (p) => {
     if (p === 'High') return <Badge variant="destructive" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">High Priority</Badge>;
     if (p === 'Medium') return <Badge variant="warning" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">Medium</Badge>;
@@ -424,12 +451,15 @@ export default function MyWork() {
                       </h4>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {selectedTask.attachments.map((file, idx) => {
                         const cat = getFileCategory(file.name, file.type);
                         return (
-                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-[#D8F5FA] shadow-2xs hover:border-[#00B4D8] transition-all">
-                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                          <div 
+                            key={idx} 
+                            className="flex items-center justify-between p-3 bg-white rounded-xl border border-[#D8F5FA] shadow-2xs hover:border-[#00B4D8] transition-all"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 pr-2">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border shrink-0 ${cat.bg}`}>
                                 {cat.label}
                               </span>
@@ -440,22 +470,36 @@ export default function MyWork() {
                                 {file.size && <p className="text-[10px] text-slate-400">{file.size}</p>}
                               </div>
                             </div>
-                            {file.url ? (
-                              <a
-                                href={file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 shadow-2xs"
-                              >
-                                <Download size={11} /> Download
-                              </a>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 italic">Attached</span>
-                            )}
+                            
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {file.url && (
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-slate-400 hover:text-[#00B4D8] hover:bg-slate-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                                  title="View document in new tab"
+                                >
+                                  <Eye size={13} />
+                                </a>
+                              )}
+                              {file.url ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDownloadFile(e, file)}
+                                  className="px-2.5 py-1.5 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <Download size={12} /> Download
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">Attached</span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+
                   </div>
                 )}
 
