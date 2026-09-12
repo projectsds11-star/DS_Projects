@@ -52,16 +52,16 @@ export default function SendOfferConfirmModal({
           aria-modal="true"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[var(--color-border)] bg-gray-50/50">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[var(--color-primary)] shrink-0">
+          <div className="flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-[var(--color-border)] bg-gray-50/50">
+            <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[var(--color-primary)] shrink-0 mt-0.5">
                 <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-bold text-[var(--color-navy)] truncate">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm sm:text-base font-bold text-[var(--color-navy)] leading-snug">
                   Send Formal Job Offer?
                 </h3>
-                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">
+                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 leading-normal">
                   Confirm dispatch of appointment package to candidate.
                 </p>
               </div>
@@ -70,7 +70,8 @@ export default function SendOfferConfirmModal({
               type="button"
               onClick={onClose}
               disabled={isSending}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
+              className="text-gray-400 hover:text-gray-600 p-1 -mr-1 -mt-0.5 rounded-md hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
+              aria-label="Close dialog"
             >
               <X className="h-5 w-5" />
             </button>
@@ -81,27 +82,27 @@ export default function SendOfferConfirmModal({
             <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 sm:p-4 space-y-2 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-blue-100">
                 <span className="text-gray-500 font-medium shrink-0">Candidate:</span>
-                <span className="font-bold text-gray-900 text-xs sm:text-sm truncate ml-2">{employeeName} ({employeeId})</span>
+                <span className="font-bold text-gray-900 text-xs sm:text-sm text-right truncate ml-2">{employeeName} ({employeeId})</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 font-medium shrink-0">Email Address:</span>
-                <span className="font-semibold text-[var(--color-primary)] truncate ml-2">{email}</span>
+                <span className="font-semibold text-[var(--color-primary)] text-right truncate ml-2">{email}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 font-medium shrink-0">Designation:</span>
-                <span className="font-semibold text-gray-900 truncate ml-2">{position}</span>
+                <span className="font-semibold text-gray-900 text-right truncate ml-2">{position}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 font-medium shrink-0">Location:</span>
-                <span className="font-semibold text-gray-800 truncate ml-2">{mandal ? `${mandal}, ${district}` : district}</span>
+                <span className="font-semibold text-gray-800 text-right truncate ml-2">{mandal ? `${mandal}, ${district}` : district}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 font-medium shrink-0">Monthly CTC:</span>
-                <span className="font-bold text-green-700 font-mono ml-2">{formatINR(monthly)}</span>
+                <span className="font-bold text-green-700 font-mono text-right ml-2">{formatINR(monthly)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 font-medium shrink-0">Proposed Joining:</span>
-                <span className="font-semibold text-gray-800 ml-2">{joiningDate}</span>
+                <span className="font-semibold text-gray-800 text-right ml-2">{joiningDate}</span>
               </div>
             </div>
 
@@ -110,20 +111,20 @@ export default function SendOfferConfirmModal({
                 What the candidate will receive:
               </p>
               <ul className="space-y-1.5 text-xs text-gray-600">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
                   <span>Official Signed Offer Letter PDF (with full salary schedule)</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
                   <span>Job Description & Responsibilities schedule</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
                   <span>Secure One-Time Account Activation Link to set portal password</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
                   <span>Onboarding documentation checklist and joining guidelines</span>
                 </li>
               </ul>
