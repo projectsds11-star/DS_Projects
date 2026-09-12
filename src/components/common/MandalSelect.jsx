@@ -88,31 +88,37 @@ export default function MandalSelect({
             isOpen && 'bg-white ring-2 ring-[var(--color-primary)] border-transparent'
           )}
         >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 truncate">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className={cn(
               'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
               selectedObj ? 'bg-blue-100 text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
             )}>
               <MapPin className="h-4 w-4" />
             </div>
-            {!district ? (
-              <span className="text-gray-400 text-xs truncate">Select District First</span>
-            ) : loading ? (
-              <span className="text-gray-400 text-xs flex items-center gap-1.5 truncate">
-                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Loading mandals...
-              </span>
-            ) : selectedObj ? (
-              <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
-                {selectedObj.name}
-                <span className="text-xs text-gray-500 font-mono font-normal ml-1.5">
-                  ({selectedObj.code})
+            <div className="min-w-0 flex-1 truncate">
+              {!district ? (
+                <span className="text-gray-400 text-xs truncate">Select District First</span>
+              ) : loading ? (
+                <span className="text-gray-400 text-xs flex items-center gap-1.5 truncate">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Loading mandals...
                 </span>
-              </span>
-            ) : (
-              <span className="text-gray-400 text-xs font-normal truncate">
-                {placeholder} ({mandals.length} available)
-              </span>
-            )}
+              ) : selectedObj ? (
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
+                    {selectedObj.name}
+                  </span>
+                  {selectedObj.code && (
+                    <span className="text-xs text-gray-500 font-mono font-normal shrink-0">
+                      ({selectedObj.code})
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-gray-400 text-xs font-normal truncate">
+                  {placeholder} ({mandals.length} available)
+                </span>
+              )}
+            </div>
           </div>
           <ChevronDown
             className={cn(

@@ -13,7 +13,7 @@ export default function LocationCard({
   mandalError = '',
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 sm:p-6 shadow-xs space-y-4">
+    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 sm:p-6 shadow-xs space-y-4 min-w-0 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-navy)] flex items-center gap-2">
