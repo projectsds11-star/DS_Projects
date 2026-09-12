@@ -15,28 +15,50 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../utils/cn';
-
-const NAV_ITEMS = [
-  { name: 'Dashboard', path: '/employee/dashboard', icon: LayoutDashboard, badge: null },
-  { name: 'My Work', path: '/employee/work', icon: ClipboardList, badge: '2 Due' },
-  { name: 'Attendance', path: '/employee/attendance', icon: Clock, badge: null },
-  { name: 'Documents', path: '/employee/documents', icon: FileText, badge: null },
-  { name: 'Profile', path: '/employee/profile', icon: User, badge: null },
-  { name: 'Notifications', path: '/employee/notifications', icon: Bell, badge: '3 New' },
-  { name: 'Settings', path: '/employee/settings', icon: Settings, badge: null },
-];
+import { liveDataService } from '../services/liveDataService';
 
 export default function EmployeeLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [employee, setEmployee] = useState(null);
+  const [dueTasksCount, setDueTasksCount] = useState(0);
+  const [newNotifsCount, setNewNotifsCount] = useState(0);
+
   const location = useLocation();
   const navigate = useNavigate();
+
+  const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-001';
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    async function loadLayoutData() {
+      try {
+        const [empData, taskData, notifData] = await Promise.all([
+          liveDataService.getEmployeeById(currentEmpId),
+          liveDataService.getWorkTasks(currentEmpId),
+          liveDataService.getNotifications(currentEmpId)
+        ]);
+
+        if (empData) setEmployee(empData);
+        if (taskData) {
+          const due = taskData.filter(t => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Pending').length;
+          setDueTasksCount(due);
+        }
+        if (notifData) {
+          const unread = notifData.filter(n => !n.is_read && !n.read).length;
+          setNewNotifsCount(unread);
+        }
+      } catch (err) {
+        console.error('Error loading employee layout data:', err);
+      }
+    }
+    loadLayoutData();
+  }, [currentEmpId, location.pathname]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -47,9 +69,29 @@ export default function EmployeeLayout() {
     navigate('/employee/login', { replace: true });
   };
 
+  const navItems = [
+    { name: 'Dashboard', path: '/employee/dashboard', icon: LayoutDashboard, badge: null },
+    { name: 'My Work', path: '/employee/work', icon: ClipboardList, badge: dueTasksCount > 0 ? `${dueTasksCount} Due` : null },
+    { name: 'Attendance', path: '/employee/attendance', icon: Clock, badge: null },
+    { name: 'Documents', path: '/employee/documents', icon: FileText, badge: null },
+    { name: 'Profile', path: '/employee/profile', icon: User, badge: null },
+    { name: 'Notifications', path: '/employee/notifications', icon: Bell, badge: newNotifsCount > 0 ? `${newNotifsCount} New` : null },
+    { name: 'Settings', path: '/employee/settings', icon: Settings, badge: null },
+  ];
+
   // Get current page title
-  const currentNav = NAV_ITEMS.find(item => location.pathname.startsWith(item.path));
+  const currentNav = navItems.find(item => location.pathname.startsWith(item.path));
   const pageTitle = currentNav ? currentNav.name : 'Employee Portal';
+
+  const empFullName = employee?.full_name || employee?.name || 'Employee';
+  const empInitials = empFullName
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'DS';
+  const empLocation = employee?.mandal || employee?.mandal_id || employee?.district || employee?.district_id || 'Nellore';
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
@@ -88,7 +130,7 @@ export default function EmployeeLayout() {
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
           </div>
           
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.startsWith(item.path);
             return (
@@ -141,7 +183,7 @@ export default function EmployeeLayout() {
                   {isCheckedIn ? 'Currently Clocked In' : 'Clocked Out'}
                 </p>
                 <p className="text-[10px] text-white/60">
-                  {isCheckedIn ? 'Since 09:15 AM (4h 25m)' : 'Shift ended'}
+                  {isCheckedIn ? 'Live Shift Active' : 'Shift ended'}
                 </p>
               </div>
             </div>
@@ -163,16 +205,16 @@ export default function EmployeeLayout() {
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white text-sm shadow-xs">
-                  RK
+                  {empInitials}
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#E63946] rounded-full" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">Rahul Kumar</p>
+                <p className="text-xs font-bold text-white truncate">{empFullName}</p>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-white/80 font-mono font-medium">DS-127</span>
+                  <span className="text-[11px] text-white/80 font-mono font-medium">{employee?.employee_id || currentEmpId}</span>
                   <span className="text-white/40">•</span>
-                  <span className="text-[11px] text-white/60 truncate">Nellore</span>
+                  <span className="text-[11px] text-white/60 truncate">{empLocation}</span>
                 </div>
               </div>
             </div>
@@ -259,10 +301,12 @@ export default function EmployeeLayout() {
               className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl relative transition-all border border-slate-200/80"
               title="Notifications"
             >
-              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border-2 border-white"></span>
-              </span>
+              {newNotifsCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border-2 border-white"></span>
+                </span>
+              )}
               <Bell size={18} />
             </NavLink>
 
