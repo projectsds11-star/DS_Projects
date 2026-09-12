@@ -282,27 +282,11 @@ export default function EmployeeLogin() {
             </div>
           </form>
 
-          {/* Forgot password card banner */}
-          <div className="mt-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-center flex items-center justify-between">
-            <div className="flex items-center gap-2 text-left">
-              <KeyRound size={16} className="text-[#E63946] shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Want to change password?</p>
-                <p className="text-[10px] text-slate-500">Reset with your registered email OTP</p>
-              </div>
-            </div>
-            <Link
-              to={usernameValue ? `/employee/forgot-password?id=${encodeURIComponent(usernameValue)}` : '/employee/forgot-password'}
-              className="px-3 py-1.5 bg-white border border-slate-300 hover:border-[#E63946] text-[#E63946] font-bold text-xs rounded-xl shadow-2xs hover:bg-[#E63946]/5 transition"
-            >
-              Reset Here
-            </Link>
-          </div>
-
           <div className="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-500 space-y-1">
             <p>Credentials are dispatched to your registered email upon onboarding.</p>
             <p className="text-slate-400">DS Projects Private Limited &bull; Andhra Pradesh</p>
           </div>
+
         </div>
       </div>
     </div>
