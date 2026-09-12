@@ -52,16 +52,16 @@ export default function SendOfferConfirmModal({
           aria-modal="true"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)] bg-gray-50/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[var(--color-primary)]">
-                <Send className="h-5 w-5" />
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[var(--color-border)] bg-gray-50/50">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[var(--color-primary)] shrink-0">
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-[var(--color-navy)]">
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-base font-bold text-[var(--color-navy)] truncate">
                   Send Formal Job Offer?
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">
                   Confirm dispatch of appointment package to candidate.
                 </p>
               </div>
@@ -70,43 +70,43 @@ export default function SendOfferConfirmModal({
               type="button"
               onClick={onClose}
               disabled={isSending}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-6 space-y-4">
-            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-2 text-xs">
+          <div className="p-4 sm:p-6 space-y-3.5 sm:space-y-4">
+            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 sm:p-4 space-y-2 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-blue-100">
-                <span className="text-gray-500 font-medium">Candidate:</span>
-                <span className="font-bold text-gray-900 text-sm">{employeeName} ({employeeId})</span>
+                <span className="text-gray-500 font-medium shrink-0">Candidate:</span>
+                <span className="font-bold text-gray-900 text-xs sm:text-sm truncate ml-2">{employeeName} ({employeeId})</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 font-medium">Email Address:</span>
-                <span className="font-semibold text-[var(--color-primary)]">{email}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium shrink-0">Email Address:</span>
+                <span className="font-semibold text-[var(--color-primary)] truncate ml-2">{email}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 font-medium">Designation:</span>
-                <span className="font-semibold text-gray-900">{position}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium shrink-0">Designation:</span>
+                <span className="font-semibold text-gray-900 truncate ml-2">{position}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 font-medium">Location:</span>
-                <span className="font-semibold text-gray-800">{district}, {mandal}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium shrink-0">Location:</span>
+                <span className="font-semibold text-gray-800 truncate ml-2">{mandal ? `${mandal}, ${district}` : district}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 font-medium">Monthly CTC:</span>
-                <span className="font-bold text-green-700">{formatINR(monthly)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium shrink-0">Monthly CTC:</span>
+                <span className="font-bold text-green-700 font-mono ml-2">{formatINR(monthly)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 font-medium">Proposed Joining:</span>
-                <span className="font-semibold text-gray-800">{joiningDate}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium shrink-0">Proposed Joining:</span>
+                <span className="font-semibold text-gray-800 ml-2">{joiningDate}</span>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
                 What the candidate will receive:
               </p>
               <ul className="space-y-1.5 text-xs text-gray-600">
@@ -129,17 +129,19 @@ export default function SendOfferConfirmModal({
               </ul>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 justify-center"
+                size="sm"
+                className="w-full sm:flex-1 justify-center text-xs h-10 font-bold whitespace-nowrap order-2 sm:order-1"
                 disabled={isSending}
                 onClick={onClose}
               >
                 Cancel / Edit
               </Button>
               <Button
-                className="flex-1 justify-center"
+                size="sm"
+                className="w-full sm:flex-1 justify-center text-xs h-10 font-bold bg-[#E63946] hover:bg-[#d62839] whitespace-nowrap order-1 sm:order-2"
                 icon={Send}
                 isLoading={isSending}
                 onClick={onConfirm}
