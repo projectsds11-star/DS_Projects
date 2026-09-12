@@ -204,17 +204,18 @@ export default function MyWork() {
   };
 
   const getPriorityBadge = (p) => {
-    if (p === 'High') return <Badge variant="destructive" className="text-xs font-bold px-2 py-0.5">High Priority</Badge>;
-    if (p === 'Medium') return <Badge variant="warning" className="text-xs font-bold px-2 py-0.5">Medium</Badge>;
-    return <Badge variant="secondary" className="text-xs font-bold px-2 py-0.5">Normal</Badge>;
+    if (p === 'High') return <Badge variant="destructive" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">High Priority</Badge>;
+    if (p === 'Medium') return <Badge variant="warning" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">Medium</Badge>;
+    return <Badge variant="secondary" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">Normal</Badge>;
   };
 
   const getStatusBadge = (s) => {
-    if (s === 'Approved') return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1"><CheckCircle2 size={12} /> Approved</span>;
-    if (s === 'Submitted') return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Upload size={12} /> Submitted</span>;
-    if (s === 'In Progress') return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> In Progress</span>;
-    return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full flex items-center gap-1"><FileText size={12} /> Assigned</span>;
+    if (s === 'Approved') return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><CheckCircle2 size={12} className="shrink-0" /> Approved</span>;
+    if (s === 'Submitted') return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><Upload size={12} className="shrink-0" /> Submitted</span>;
+    if (s === 'In Progress') return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><Clock size={12} className="shrink-0" /> In Progress</span>;
+    return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><FileText size={12} className="shrink-0" /> Assigned</span>;
   };
+
 
   return (
     <div className="space-y-6 pb-12">
@@ -319,25 +320,28 @@ export default function MyWork() {
                     <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#E63946]" />
                   )}
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="font-mono text-[11px] sm:text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 border border-slate-200">
                           {work.task_code || work.id}
                         </span>
                         {getPriorityBadge(work.priority)}
                         {attachCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#E63946] bg-[#D8F5FA] border border-[#D8F5FA]/60 px-1.5 py-0.5 rounded">
-                            <Paperclip size={10} /> {attachCount}
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#E63946] bg-[#D8F5FA] border border-[#D8F5FA]/60 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">
+                            <Paperclip size={10} className="shrink-0" /> {attachCount}
                           </span>
                         )}
                       </div>
-                      {getStatusBadge(work.status)}
+                      <div className="shrink-0">
+                        {getStatusBadge(work.status)}
+                      </div>
                     </div>
 
                     <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-[#E63946] transition-colors line-clamp-2">
                       {work.title}
                     </h3>
+
 
                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                       {work.description}
@@ -371,8 +375,8 @@ export default function MyWork() {
               <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 border-b border-slate-700">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-xs font-bold bg-[#E63946] px-2.5 py-0.5 rounded text-white">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="font-mono text-xs font-bold bg-[#E63946] px-2.5 py-0.5 rounded text-white whitespace-nowrap shrink-0">
                         {selectedTask.task_code || selectedTask.id}
                       </span>
                       {getPriorityBadge(selectedTask.priority)}
@@ -386,6 +390,7 @@ export default function MyWork() {
                     {getStatusBadge(selectedTask.status)}
                   </div>
                 </div>
+
               </CardHeader>
 
               <CardContent className="p-6 space-y-6">

@@ -229,20 +229,21 @@ export default function WorkManagement() {
 
   const getPriorityBadge = (priority) => {
     switch(priority) {
-      case 'High': return <Badge variant="destructive" className="text-xs font-bold">High</Badge>;
-      case 'Medium': return <Badge variant="warning" className="text-xs font-bold">Medium</Badge>;
-      default: return <Badge variant="secondary" className="text-xs font-bold">Normal</Badge>;
+      case 'High': return <Badge variant="destructive" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">High</Badge>;
+      case 'Medium': return <Badge variant="warning" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">Medium</Badge>;
+      default: return <Badge variant="secondary" className="text-xs font-bold px-2.5 py-0.5 whitespace-nowrap shrink-0">Normal</Badge>;
     }
   };
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'Approved': return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1"><CheckCircle2 size={12} /> Approved</span>;
-      case 'Submitted': return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> Under Review</span>;
-      case 'In Progress': return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full flex items-center gap-1"><Clock size={12} /> In Progress</span>;
-      default: return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full flex items-center gap-1">Assigned</span>;
+      case 'Approved': return <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><CheckCircle2 size={12} className="shrink-0" /> Approved</span>;
+      case 'Submitted': return <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><Clock size={12} className="shrink-0" /> Under Review</span>;
+      case 'In Progress': return <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0"><Clock size={12} className="shrink-0" /> In Progress</span>;
+      default: return <span className="text-xs font-bold text-[#E63946] bg-[#D8F5FA] px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap shrink-0">Assigned</span>;
     }
   };
+
 
   return (
     <div className="space-y-6 pb-12">
