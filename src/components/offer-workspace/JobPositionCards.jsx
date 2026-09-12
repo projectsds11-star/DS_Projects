@@ -33,10 +33,10 @@ export default function JobPositionCards({
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 sm:p-6 shadow-xs space-y-4" ref={dropdownRef}>
       {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-navy)] flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-[var(--color-primary)]" />
+            <Briefcase className="h-4 w-4 text-[var(--color-primary)] shrink-0" />
             Job Position & Role Designation *
           </span>
           <p className="text-[11px] text-gray-500 mt-0.5">
@@ -44,7 +44,7 @@ export default function JobPositionCards({
           </p>
         </div>
         {selectedPosition && (
-          <span className="text-xs font-bold text-[var(--color-primary)] bg-blue-50 px-3 py-1 rounded-full border border-blue-200 animate-in fade-in">
+          <span className="text-xs font-bold text-[var(--color-primary)] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 animate-in fade-in whitespace-nowrap shrink-0 self-start sm:self-auto">
             ✓ {selectedPosition} Selected
           </span>
         )}
@@ -56,12 +56,12 @@ export default function JobPositionCards({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'flex items-center justify-between w-full h-12 px-4 rounded-xl border bg-gray-50/80 hover:bg-white text-xs cursor-pointer transition shadow-2xs',
+            'flex items-center justify-between w-full h-12 px-3.5 sm:px-4 rounded-xl border bg-gray-50/80 hover:bg-white text-xs cursor-pointer transition shadow-2xs min-w-0',
             error ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--color-border)] hover:border-blue-400',
             isOpen && 'bg-white ring-2 ring-[var(--color-primary)] border-transparent'
           )}
         >
-          <div className="flex items-center gap-3 truncate">
+          <div className="flex items-center gap-3 truncate min-w-0 flex-1">
             <div className={cn(
               'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
               selectedPosition ? 'bg-blue-100 text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
@@ -70,19 +70,19 @@ export default function JobPositionCards({
             </div>
 
             {selectedPosition ? (
-              <div className="text-left truncate">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-gray-900 text-sm">{selectedPosition}</span>
-                  <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+              <div className="text-left truncate min-w-0 flex-1">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">{selectedPosition}</span>
+                  <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded shrink-0 hidden sm:inline-block">
                     {selectedTemplate?.department || 'Field Operations'}
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">
                   Probation: {selectedTemplate?.probation || '3 Months'} · CTC: {formatINR(selectedMonthlyEst * 12)}
                 </p>
               </div>
             ) : (
-              <span className="text-gray-400 text-xs font-medium">
+              <span className="text-gray-400 text-xs font-medium truncate">
                 Click to select job role / designation...
               </span>
             )}

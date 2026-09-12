@@ -374,49 +374,51 @@ export default function CreateJobOffer() {
           <button
             type="button"
             onClick={() => navigate('/admin/onboarding')}
-            className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-600"
+            className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-600 shrink-0 cursor-pointer"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-bold text-[var(--color-navy)]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-bold text-[var(--color-navy)] truncate">
                 Create Job Offer
               </h1>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md whitespace-nowrap shrink-0">
                 Draft Mode
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5 truncate">
               Step {currentStep} of 3 · {WIZARD_STEPS.find(s => s.id === currentStep)?.title}
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 self-end md:self-auto">
-          <span className="text-[11px] text-gray-400 font-mono flex items-center gap-1">
+        <div className="flex items-center justify-between md:justify-end gap-2.5 flex-wrap">
+          <span className="text-[11px] text-gray-400 font-mono flex items-center gap-1 shrink-0">
             <Clock className="h-3 w-3" />
-            {autosaveStatus}
+            <span className="truncate">{autosaveStatus}</span>
           </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleSaveDraft}
-            icon={Save}
-            className="text-xs"
-          >
-            Save Draft
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleNextStep}
-            className="text-xs font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs"
-          >
-            {currentStep < 3 ? 'Next Step →' : 'Review & Send'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSaveDraft}
+              icon={Save}
+              className="text-xs whitespace-nowrap"
+            >
+              Save Draft
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleNextStep}
+              className="text-xs font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs whitespace-nowrap"
+            >
+              {currentStep < 3 ? 'Next Step →' : 'Review & Send'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -433,7 +435,7 @@ export default function CreateJobOffer() {
                 if (step.id < currentStep) setCurrentStep(step.id);
               }}
               className={cn(
-                'p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center gap-3',
+                'p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all text-left flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3',
                 isActive && 'bg-[#D8F5FA]/60 border-[#E63946] shadow-xs ring-1 ring-[#E63946]',
                 isDone && 'bg-white border-green-500 cursor-pointer',
                 !isActive && !isDone && 'bg-white border-[var(--color-border)] opacity-60'
@@ -475,6 +477,8 @@ export default function CreateJobOffer() {
             {/* Right Account Provisioning Preview */}
             <div className="lg:col-span-6">
               <AccountPreviewCard
+                employeeName={watchedValues.employeeName}
+                employeeId={watchedValues.employeeId}
                 watchedValues={watchedValues}
               />
             </div>
@@ -532,28 +536,28 @@ export default function CreateJobOffer() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-semibold">Candidate</span>
-                <p className="font-bold text-gray-900">{watchedValues.employeeName}</p>
-                <p className="text-[10px] font-mono text-gray-500">{watchedValues.employeeId}</p>
+                <p className="font-bold text-gray-900 truncate">{watchedValues.employeeName}</p>
+                <p className="text-[10px] font-mono text-gray-500 truncate">{watchedValues.employeeId}</p>
               </div>
 
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-semibold">Role & Position</span>
-                <p className="font-bold text-[var(--color-primary)]">{watchedValues.position}</p>
-                <p className="text-[10px] text-gray-500">{watchedValues.department}</p>
+                <p className="font-bold text-[var(--color-primary)] truncate">{watchedValues.position}</p>
+                <p className="text-[10px] text-gray-500 truncate">{watchedValues.department}</p>
               </div>
 
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-semibold">Work Jurisdiction</span>
-                <p className="font-bold text-gray-900">{watchedValues.mandal}, {watchedValues.district}</p>
+                <p className="font-bold text-gray-900 truncate">{watchedValues.mandal}, {watchedValues.district}</p>
                 <p className="text-[10px] text-gray-500">Andhra Pradesh</p>
               </div>
 
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-semibold">Monthly Remuneration (CTC)</span>
-                <p className="font-bold font-mono text-emerald-600">
+                <p className="font-bold font-mono text-emerald-600 truncate">
                   {formatINR((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0))} / Mo
                 </p>
-                <p className="text-[10px] font-mono text-gray-500">
+                <p className="text-[10px] font-mono text-gray-500 truncate">
                   {formatINR(((Number(watchedValues.salary?.basic) || 0) + (Number(watchedValues.salary?.travel) || 0) + (Number(watchedValues.salary?.incentive) || 0) + (Number(watchedValues.salary?.other) || 0)) * 12)} CTC / yr
                 </p>
               </div>
@@ -563,19 +567,19 @@ export default function CreateJobOffer() {
           {/* Document Section: Uploaded Manual PDF vs. Auto-Generated Letterhead */}
           {documentMode === 'upload' ? (
             <div className="bg-white rounded-2xl border border-indigo-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <FileCheck className="h-5 w-5 text-[#E63946]" />
+                  <FileCheck className="h-5 w-5 text-[#E63946] shrink-0" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                     Attached Manual Offer Letter Document
                   </h3>
                 </div>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1.5">
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1.5 whitespace-nowrap self-start sm:self-auto shrink-0">
                   <Check className="h-3.5 w-3.5" /> Ready for Email Dispatch
                 </span>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-[#E63946] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
                     <FileText className="h-6 w-6" />
@@ -595,7 +599,7 @@ export default function CreateJobOffer() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep(2)}
-                  className="text-xs font-bold shrink-0"
+                  className="text-xs font-bold shrink-0 self-start sm:self-auto whitespace-nowrap"
                 >
                   Change File
                 </Button>
@@ -619,11 +623,11 @@ export default function CreateJobOffer() {
           )}
 
           {/* Editable Email Content Card — Expansive & Free View */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-8 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#E63946] text-white flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-[#E63946] text-white flex items-center justify-center shadow-xs shrink-0">
                     <Mail className="h-4 w-4" />
                   </div>
                   <span>Onboarding Email Content (Editable Dispatch Draft)</span>
@@ -632,9 +636,9 @@ export default function CreateJobOffer() {
                   Full preview of the appointment message dispatched to the candidate with their credentials.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-[#D8F5FA]/80 border border-[#D8F5FA] px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
+              <div className="flex items-center gap-2 bg-[#D8F5FA]/80 border border-[#D8F5FA] px-3.5 py-1.5 rounded-xl self-start sm:self-auto shrink-0">
                 <span className="text-[11px] font-semibold text-[#E63946]">Recipient:</span>
-                <span className="text-xs font-mono font-bold text-blue-900">{watchedValues.email || 'employee@email.com'}</span>
+                <span className="text-xs font-mono font-bold text-blue-900 truncate max-w-[200px]">{watchedValues.email || 'employee@email.com'}</span>
               </div>
             </div>
 
@@ -653,18 +657,18 @@ export default function CreateJobOffer() {
 
             {/* Email Message Body */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Email Message Body *
                 </label>
-                <span className="text-xs text-[#E63946] font-semibold bg-[#D8F5FA] px-2.5 py-0.5 rounded-md">
+                <span className="text-xs text-[#E63946] font-semibold bg-[#D8F5FA] px-2.5 py-0.5 rounded-md whitespace-nowrap">
                   ✍️ Freely Editable Message
                 </span>
               </div>
               <textarea
                 rows={13}
                 {...register('emailBody')}
-                className="flex w-full rounded-2xl border border-slate-200 bg-slate-50/40 focus:bg-white p-5 text-sm text-slate-800 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:border-transparent transition shadow-inner min-h-[340px] resize-y"
+                className="flex w-full rounded-2xl border border-slate-200 bg-slate-50/40 focus:bg-white p-4 sm:p-5 text-sm text-slate-800 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:border-transparent transition shadow-inner min-h-[300px] resize-y"
                 placeholder="Enter personalized onboarding welcome message..."
               />
               <p className="text-[11px] text-slate-400 font-medium">
@@ -676,11 +680,11 @@ export default function CreateJobOffer() {
             <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2.5 text-xs">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Attached Package:</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D8F5FA] text-blue-800 border border-[#D8F5FA] text-xs font-bold shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D8F5FA] text-blue-800 border border-[#D8F5FA] text-xs font-bold shadow-2xs whitespace-nowrap">
                   <FileText size={13} className="text-[#E63946]" />
-                  {documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}
+                  <span className="truncate max-w-[200px]">{documentMode === 'upload' ? (manualPdf?.name || 'Manual_Offer_Letter.pdf') : 'Official_Offer_Letter.pdf'}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs whitespace-nowrap">
                   <ShieldCheck size={13} className="text-emerald-600" />
                   Portal Login Credentials & One-Time Token
                 </span>
@@ -691,8 +695,8 @@ export default function CreateJobOffer() {
       )}
 
       {/* ── BOTTOM NAVIGATION ACTIONS BAR ───────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 shadow-xs flex items-center justify-between gap-3">
-        <div>
+      <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center justify-between sm:justify-start gap-2.5 w-full sm:w-auto">
           {currentStep > 1 ? (
             <Button
               type="button"
@@ -700,9 +704,9 @@ export default function CreateJobOffer() {
               size="sm"
               onClick={handlePrevStep}
               icon={ArrowLeft}
-              className="text-xs h-10 px-4 font-semibold"
+              className="text-xs h-10 px-3.5 font-semibold whitespace-nowrap"
             >
-              Back to Step {currentStep - 1}
+              Back
             </Button>
           ) : (
             <Button
@@ -710,21 +714,32 @@ export default function CreateJobOffer() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/admin/onboarding')}
-              className="text-xs text-gray-500"
+              className="text-xs text-gray-500 hover:text-gray-700 h-10 px-3 whitespace-nowrap"
             >
               Cancel
             </Button>
           )}
-        </div>
 
-        <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleSaveDraft}
             icon={Save}
-            className="text-xs h-10 px-4"
+            className="text-xs h-10 px-3.5 whitespace-nowrap sm:hidden"
+          >
+            Save Draft
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleSaveDraft}
+            icon={Save}
+            className="text-xs h-10 px-4 whitespace-nowrap hidden sm:inline-flex"
           >
             Save Draft
           </Button>
@@ -734,10 +749,10 @@ export default function CreateJobOffer() {
               type="button"
               size="sm"
               onClick={handleNextStep}
-              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-6 flex items-center gap-2 shadow-xs"
+              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-4 sm:px-6 flex items-center justify-center gap-2 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
             >
               <span>Continue to Step {currentStep + 1}</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 shrink-0" />
             </Button>
           ) : (
             <Button
@@ -745,7 +760,7 @@ export default function CreateJobOffer() {
               size="sm"
               onClick={onTriggerSend}
               icon={Send}
-              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-8 shadow-xs"
+              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-6 sm:px-8 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
             >
               Send Offer Letter
             </Button>

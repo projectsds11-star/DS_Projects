@@ -38,10 +38,10 @@ export default function EmployeeSelectorCard({
 
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 sm:p-6 shadow-xs space-y-4" ref={dropdownRef}>
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-navy)] flex items-center gap-2">
-            <User className="h-4 w-4 text-[var(--color-primary)]" />
+            <User className="h-4 w-4 text-[var(--color-primary)] shrink-0" />
             Candidate Employee Selection *
           </span>
           <p className="text-[11px] text-gray-500 mt-0.5">
@@ -49,7 +49,7 @@ export default function EmployeeSelectorCard({
           </p>
         </div>
         {selectedEmployee && (
-          <span className="text-xs font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+          <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
             ✓ Verified
           </span>
         )}
@@ -129,30 +129,34 @@ export default function EmployeeSelectorCard({
 
       {/* Selected Employee Summary Card */}
       {selectedEmployee && (
-        <div className="bg-gray-50/90 rounded-xl p-4 border border-gray-200 space-y-3 text-xs">
-          <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-            <EmployeeAvatar emp={selectedEmployee} size="md" shape="circle" />
-            <div className="min-w-0 flex-1">
-              <h4 className="font-bold text-gray-900 text-sm truncate">{selectedEmployee.name || selectedEmployee.fullName}</h4>
-              <p className="text-xs font-mono font-bold text-[var(--color-primary)]">
-                {selectedEmployee.employeeId}
-              </p>
+        <div className="bg-gray-50/90 rounded-xl p-3.5 sm:p-4 border border-gray-200 space-y-3 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-gray-200">
+            <div className="flex items-center gap-3 min-w-0">
+              <EmployeeAvatar emp={selectedEmployee} size="md" shape="circle" />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-gray-900 text-sm truncate">{selectedEmployee.name || selectedEmployee.fullName}</h4>
+                <p className="text-xs font-mono font-bold text-[var(--color-primary)]">
+                  {selectedEmployee.employeeId}
+                </p>
+              </div>
             </div>
-            <StatusBadge status={selectedEmployee.onboardingStatus || 'Pending Offer'} size="sm" />
+            <div className="self-start sm:self-auto shrink-0">
+              <StatusBadge status={selectedEmployee.onboardingStatus || 'Pending Offer'} size="sm" />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div className="flex items-center gap-2 truncate">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
+            <div className="flex items-center gap-2 truncate min-w-0">
               <Mail className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <span className="truncate">{selectedEmployee.email}</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-              <span className="font-mono">+91 {selectedEmployee.phone ? `${selectedEmployee.phone.substring(0, 5)} XXXXX` : '98765 XXXXX'}</span>
+              <span className="font-mono whitespace-nowrap">+91 {selectedEmployee.phone ? `${selectedEmployee.phone.substring(0, 5)} XXXXX` : '98765 XXXXX'}</span>
             </div>
-            <div className="flex items-center gap-2 col-span-2">
+            <div className="flex items-center gap-2 sm:col-span-2 truncate">
               <GraduationCap className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-              <span>Qualification: {selectedEmployee.qualification || 'Graduate Degree'}</span>
+              <span className="truncate">Qualification: {selectedEmployee.qualification || 'Graduate Degree'}</span>
             </div>
           </div>
         </div>

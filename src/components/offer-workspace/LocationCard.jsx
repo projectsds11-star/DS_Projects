@@ -14,10 +14,10 @@ export default function LocationCard({
 }) {
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 sm:p-6 shadow-xs space-y-4">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-navy)] flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[var(--color-primary)]" />
+            <MapPin className="h-4 w-4 text-[var(--color-primary)] shrink-0" />
             Work Jurisdiction Assignment (Andhra Pradesh) *
           </span>
           <p className="text-[11px] text-gray-500 mt-0.5">
@@ -25,7 +25,7 @@ export default function LocationCard({
           </p>
         </div>
         {district && mandal && (
-          <span className="text-xs font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+          <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
             ✓ Jurisdiction Verified
           </span>
         )}
@@ -54,21 +54,21 @@ export default function LocationCard({
 
       {/* Spacious Location Summary Banner */}
       {district && mandal && (
-        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-150">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold">
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-150">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold shrink-0">
               <MapPin className="h-5 w-5" />
             </div>
-            <div>
-              <p className="font-bold text-[var(--color-navy)] text-sm">
+            <div className="min-w-0">
+              <p className="font-bold text-[var(--color-navy)] text-xs sm:text-sm truncate">
                 Reporting Mandal: {mandal} · District: {district}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
                 State: Andhra Pradesh · Country: India
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+          <span className="text-xs font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded-full border border-blue-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
             Field Operation Unit
           </span>
         </div>

@@ -88,12 +88,13 @@ export default function Onboarding() {
             Manage end-to-end employee onboarding, job offer letters, email dispatches, and account activation.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             icon={FileText}
             onClick={() => navigate('/admin/offers')}
+            className="whitespace-nowrap"
           >
             Offer Letters List
           </Button>
@@ -101,6 +102,7 @@ export default function Onboarding() {
             size="sm"
             icon={Plus}
             onClick={() => navigate('/admin/onboarding/create')}
+            className="whitespace-nowrap"
           >
             Create Job Offer
           </Button>

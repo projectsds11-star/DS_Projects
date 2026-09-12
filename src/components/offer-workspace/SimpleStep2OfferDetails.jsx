@@ -190,17 +190,17 @@ export default function SimpleStep2OfferDetails({
 
       {/* ── 2. Simple Terms & Compensation Form ─────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-              <IndianRupee className="h-4 w-4 text-emerald-600" />
+              <IndianRupee className="h-4 w-4 text-emerald-600 shrink-0" />
               2. Appointment Terms & Monthly Remuneration (CTC)
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Structured salary package for <strong>{position}</strong> ({employeeName}).
             </p>
           </div>
-          <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+          <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
             ₹{totalMonthlyGross.toLocaleString('en-IN')} / Mo
           </span>
         </div>
