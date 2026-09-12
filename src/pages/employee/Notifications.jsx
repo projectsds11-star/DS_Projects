@@ -146,9 +146,9 @@ export default function EmployeeNotifications() {
           {CATEGORIES.map(cat => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveFilter(cat)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeCategory === cat
+                activeFilter === cat
                   ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
@@ -157,6 +157,7 @@ export default function EmployeeNotifications() {
             </button>
           ))}
         </div>
+
       </div>
 
       {/* Notifications List */}
