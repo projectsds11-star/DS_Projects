@@ -367,7 +367,7 @@ export default function CreateJobOffer() {
   }
 
   return (
-    <div className="space-y-6 pb-28 max-w-6xl mx-auto px-2 sm:px-4">
+    <div className="space-y-6 pb-28 max-w-6xl mx-auto px-0 sm:px-4">
       {/* ── WORKSPACE TOP BAR ────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

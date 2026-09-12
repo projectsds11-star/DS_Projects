@@ -74,13 +74,13 @@ export default function MandalSelect({
         </label>
       )}
 
-      <div className="relative">
+      <div className="relative w-full min-w-0">
         <button
           type="button"
           disabled={isControlDisabled}
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'flex h-12 w-full items-center justify-between rounded-xl border bg-gray-50/80 hover:bg-white px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer min-w-0',
+            'flex h-12 w-full items-center justify-between rounded-xl border bg-gray-50/80 hover:bg-white px-3 sm:px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer min-w-0 max-w-full overflow-hidden',
             error
               ? 'border-red-400 ring-2 ring-red-100 bg-red-50/20'
               : 'border-[var(--color-border)] hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]',
@@ -88,7 +88,7 @@ export default function MandalSelect({
             isOpen && 'bg-white ring-2 ring-[var(--color-primary)] border-transparent'
           )}
         >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
             <div className={cn(
               'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
               selectedObj ? 'bg-blue-100 text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
@@ -100,7 +100,7 @@ export default function MandalSelect({
                 <span className="text-gray-400 text-xs truncate">Select District First</span>
               ) : loading ? (
                 <span className="text-gray-400 text-xs flex items-center gap-1.5 truncate">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Loading mandals...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Loading...
                 </span>
               ) : selectedObj ? (
                 <div className="flex items-center gap-1.5 truncate">
@@ -108,7 +108,7 @@ export default function MandalSelect({
                     {selectedObj.name}
                   </span>
                   {selectedObj.code && (
-                    <span className="text-xs text-gray-500 font-mono font-normal shrink-0">
+                    <span className="text-xs text-gray-400 font-mono font-normal hidden sm:inline shrink-0">
                       ({selectedObj.code})
                     </span>
                   )}
@@ -122,7 +122,7 @@ export default function MandalSelect({
           </div>
           <ChevronDown
             className={cn(
-              'h-4 w-4 text-gray-400 transition-transform duration-200 shrink-0 ml-2',
+              'h-4 w-4 text-gray-400 transition-transform duration-200 shrink-0 ml-1.5',
               isOpen && 'rotate-180 text-[var(--color-primary)]'
             )}
           />
