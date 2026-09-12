@@ -31,8 +31,8 @@ export const liveDataService = {
   },
 
   /**
-   * Returns ONLY employees who have completed onboarding and are Active.
-   * Filters out candidates who are still in Draft, Pending Offer, or Inactive status.
+   * Returns active employees who are eligible for field operations and work assignment.
+   * Filters out employees who are marked Inactive or Deleted.
    */
   async getActiveOnboardedEmployees() {
     const allEmps = await this.getEmployees();
@@ -47,28 +47,31 @@ export const liveDataService = {
     }
 
     return (allEmps || []).filter(emp => {
+      if (emp.deleted_at) return false;
+      const status = (emp.status || '').toLowerCase().trim();
+      if (status === 'inactive' || status === 'deactivated') return false;
+
       const empId = emp.employee_id || emp.employeeId || emp.id;
       const matchingOffer = offers.find(o => 
-        (o.employee_id === empId || o.employeeId === empId) && 
-        (o.status === 'Offer Accepted' || o.status === 'Onboarding Completed' || o.status === 'Offer Sent')
+        (o.employee_id === empId || o.employeeId === empId)
       );
 
-      const isCompleted = emp.status === 'Active' || 
-                          emp.onboarding_status === 'Completed' || 
-                          emp.onboarding_status === 'Onboarding Completed' ||
-                          matchingOffer?.status === 'Offer Accepted' ||
-                          matchingOffer?.status === 'Onboarding Completed';
-      
-      const isNotDisabled = emp.status !== 'Inactive' && emp.status !== 'Draft' && emp.status !== 'Onboarding';
-
-      // If status is explicitly 'Onboarding' without offer acceptance/completion, filter out
-      if (emp.status === 'Onboarding' && !matchingOffer) {
-        return false;
+      // Attach matching offer data (district, mandal, position) to the employee object
+      if (matchingOffer) {
+        emp.district = emp.district || emp.district_id || matchingOffer.district;
+        emp.mandal = emp.mandal || emp.mandal_id || matchingOffer.mandal;
+        emp.position = emp.position || matchingOffer.position;
+        emp.designation = emp.designation || matchingOffer.position;
+      } else {
+        emp.district = emp.district || emp.district_id || 'Nellore';
+        emp.mandal = emp.mandal || emp.mandal_id || 'Kavali';
+        emp.designation = emp.designation || 'Mandal Field Officer';
       }
 
-      return (isCompleted || emp.status === 'Active') && isNotDisabled;
+      return true;
     });
   },
+
 
   async getEmployeeById(employeeId) {
     if (!employeeId) return null;
