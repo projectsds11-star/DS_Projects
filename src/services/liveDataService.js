@@ -79,12 +79,63 @@ export const liveDataService = {
           .select('*')
           .eq('employee_id', employeeId)
           .single();
-        if (!error && data) return data;
+        if (!error && data) {
+          // Also fetch latest job offer to sync assigned jurisdiction and designation
+          let offer = null;
+          try {
+            const { data: offerData } = await supabase
+              .from('job_offers')
+              .select('*')
+              .eq('employee_id', employeeId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            offer = offerData;
+          } catch (e) {
+            console.warn('Could not fetch offer in getEmployeeById:', e);
+          }
+
+          const resolvedMandal = offer?.mandal || data.mandal || data.mandal_id || '';
+          const resolvedDistrict = offer?.district || data.district || data.district_id || '';
+          const resolvedPosition = offer?.position || data.position || data.designation || 'Mandal Co-ordinator';
+          const resolvedName = data.full_name || data.name || offer?.employee_name || 'Employee';
+
+          return {
+            ...data,
+            id: data.id,
+            employee_id: data.employee_id || employeeId,
+            employeeId: data.employee_id || employeeId,
+            full_name: resolvedName,
+            name: resolvedName,
+            mandal: resolvedMandal,
+            mandal_id: resolvedMandal,
+            district: resolvedDistrict,
+            district_id: resolvedDistrict,
+            position: resolvedPosition,
+            designation: resolvedPosition,
+            department: offer?.department || data.department || 'Field Operations',
+            offer,
+          };
+        }
       } catch (err) {
         console.warn('Supabase getEmployeeById error:', err);
       }
     }
-    return _employees.find(e => e.employee_id === employeeId) || null;
+    const local = _employees.find(e => e.employee_id === employeeId || e.id === employeeId);
+    if (local) {
+      const localOffer = _offers.find(o => o.employee_id === employeeId || o.employeeId === employeeId);
+      return {
+        ...local,
+        mandal: localOffer?.mandal || local.mandal || local.mandal_id || '',
+        mandal_id: localOffer?.mandal || local.mandal_id || local.mandal || '',
+        district: localOffer?.district || local.district || local.district_id || '',
+        district_id: localOffer?.district || local.district_id || local.district || '',
+        position: localOffer?.position || local.position || local.designation || 'Mandal Co-ordinator',
+        designation: localOffer?.position || local.designation || local.position || 'Mandal Co-ordinator',
+        full_name: local.full_name || local.name || localOffer?.employee_name || '',
+      };
+    }
+    return null;
   },
 
   async createEmployee(employeeData) {

@@ -161,7 +161,7 @@ export default function EmployeeDashboard() {
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">{employee?.full_name || 'Rahul Kumar'}</span>
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">{employee?.full_name || employee?.name || 'Employee'}</span>
             </h1>
 
             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300">
@@ -170,7 +170,14 @@ export default function EmployeeDashboard() {
               </span>
               <span className="flex items-center gap-1.5 font-bold text-emerald-300 bg-emerald-950/80 px-3 py-1 rounded-xl border border-emerald-700/60 shadow-sm">
                 <MapPin size={15} className="text-emerald-400" />
-                <span>{employee?.mandal || 'Kavali'} Mandal, {employee?.district || 'Nellore'} District</span>
+                <span>
+                  {employee?.mandal || employee?.mandal_id ? `${employee.mandal || employee.mandal_id} Mandal, ` : ''}
+                  {(() => {
+                    const dist = employee?.district || employee?.district_id || '';
+                    if (!dist) return 'Assigned Jurisdiction';
+                    return dist.toLowerCase().includes('district') ? dist : `${dist} District`;
+                  })()}
+                </span>
               </span>
               <span className="flex items-center gap-1 text-slate-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
                 <Calendar size={14} className="text-amber-400" />
