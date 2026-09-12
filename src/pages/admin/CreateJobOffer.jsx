@@ -62,7 +62,21 @@ export default function CreateJobOffer() {
   const [searchParams] = useSearchParams();
   const candidateParamId = searchParams.get('employeeId') || searchParams.get('candidateId');
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    try {
+      const savedStep = sessionStorage.getItem('ds_create_offer_step');
+      if (savedStep && [1, 2, 3].includes(Number(savedStep))) {
+        return Number(savedStep);
+      }
+      const paramStep = searchParams.get('step');
+      if (paramStep && [1, 2, 3].includes(Number(paramStep))) {
+        return Number(paramStep);
+      }
+    } catch (e) {
+      console.warn('Could not read saved step', e);
+    }
+    return 1;
+  });
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -136,20 +150,73 @@ export default function CreateJobOffer() {
 
   const watchedValues = watch();
 
-  // 1. Initial Data Fetching
+  // Save current step to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('ds_create_offer_step', String(currentStep));
+    } catch (e) {
+      console.warn('Could not save step to sessionStorage', e);
+    }
+  }, [currentStep]);
+
+  // Save form draft to sessionStorage
+  useEffect(() => {
+    if (watchedValues?.employeeId || selectedEmployee) {
+      try {
+        sessionStorage.setItem(
+          'ds_create_offer_draft',
+          JSON.stringify({
+            values: watchedValues,
+            selectedEmployee,
+            documentMode,
+          })
+        );
+      } catch (e) {
+        console.warn('Could not save draft to sessionStorage', e);
+      }
+    }
+  }, [watchedValues, selectedEmployee, documentMode]);
+
+  // 1. Initial Data Fetching & Draft Restoration
   useEffect(() => {
     async function loadData() {
       try {
         const empList = await employeeService.getEmployees();
         setEmployees(empList);
 
-        if (candidateParamId) {
-          const match = empList.find(e => e.employeeId === candidateParamId);
-          if (match) {
-            handleSelectEmployee(match);
+        // Check if there is a saved draft in sessionStorage
+        let restored = false;
+        try {
+          const draftRaw = sessionStorage.getItem('ds_create_offer_draft');
+          if (draftRaw) {
+            const draft = JSON.parse(draftRaw);
+            if (draft?.values?.employeeId) {
+              const match = empList.find(e => e.employeeId === draft.values.employeeId);
+              if (match) {
+                setSelectedEmployee(draft.selectedEmployee || match);
+                if (draft.documentMode) setDocumentMode(draft.documentMode);
+                Object.entries(draft.values).forEach(([k, v]) => {
+                  if (v !== undefined && v !== null) {
+                    setValue(k, v);
+                  }
+                });
+                restored = true;
+              }
+            }
           }
-        } else if (empList.length > 0) {
-          handleSelectEmployee(empList[0]);
+        } catch (e) {
+          console.warn('Could not restore draft from sessionStorage', e);
+        }
+
+        if (!restored) {
+          if (candidateParamId) {
+            const match = empList.find(e => e.employeeId === candidateParamId);
+            if (match) {
+              handleSelectEmployee(match);
+            }
+          } else if (empList.length > 0) {
+            handleSelectEmployee(empList[0]);
+          }
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
@@ -341,6 +408,14 @@ export default function CreateJobOffer() {
       setShowSendingModal(false);
       setCompletedOffer(offerObj);
       setShowSuccessModal(true);
+
+      // Clean up draft and step from sessionStorage upon successful send
+      try {
+        sessionStorage.removeItem('ds_create_offer_step');
+        sessionStorage.removeItem('ds_create_offer_draft');
+      } catch (e) {
+        console.warn('Could not clear draft from sessionStorage', e);
+      }
     } catch (err) {
       console.error('Dispatch error:', err);
       setShowSendingModal(false);
