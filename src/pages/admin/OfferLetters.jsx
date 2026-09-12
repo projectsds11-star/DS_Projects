@@ -13,12 +13,15 @@ import {
   RotateCw,
   ArrowLeft,
   ChevronRight,
-  X
+  X,
+  Mail,
+  User
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import StatusBadge from '../../components/onboarding/StatusBadge';
 import OfferDocumentPreview from '../../components/onboarding/OfferDocumentPreview';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { offerService } from '../../services/onboardingService';
 import { formatINR, JOB_POSITIONS } from '../../services/templateService';
 
@@ -34,6 +37,7 @@ export default function OfferLetters() {
   // Quick Preview Drawer / Modal
   const [previewOffer, setPreviewOffer] = useState(null);
   const [resendingId, setResendingId] = useState(null);
+  const [resendTarget, setResendTarget] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
 
   const loadOffers = async () => {
@@ -55,19 +59,26 @@ export default function OfferLetters() {
     loadOffers();
   }, [search, positionFilter, districtFilter, statusFilter]);
 
-  const handleResend = async (offerId, e) => {
+  const handleOpenResend = (offer, e) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to resend the offer letter email to this candidate?')) return;
+    setResendTarget(offer);
+  };
+
+  const handleConfirmResend = async () => {
+    if (!resendTarget) return;
+    const offerId = resendTarget.id || resendTarget.offer_number || resendTarget.employee_id;
     setResendingId(offerId);
     try {
       await offerService.resendOffer(offerId);
-      setToastMessage('Offer letter email resent successfully.');
-      setTimeout(() => setToastMessage(''), 3000);
+      setToastMessage(`Offer letter package resent successfully to ${resendTarget.employeeName || resendTarget.employee_name || 'candidate'}!`);
+      setTimeout(() => setToastMessage(''), 3500);
       loadOffers();
     } catch (err) {
-      alert('Failed to resend: ' + err.message);
+      setToastMessage('Failed to resend: ' + err.message);
+      setTimeout(() => setToastMessage(''), 3500);
     } finally {
       setResendingId(null);
+      setResendTarget(null);
     }
   };
 
@@ -237,8 +248,8 @@ export default function OfferLetters() {
                         size="sm"
                         className="h-8 w-8 p-0 text-slate-500 hover:text-[#E63946] hover:bg-red-50 rounded-lg cursor-pointer"
                         title="Resend Offer Email"
-                        isLoading={resendingId === offer.id}
-                        onClick={(e) => handleResend(offer.id, e)}
+                        isLoading={resendingId === (offer.id || offer.offer_number || offer.employee_id)}
+                        onClick={(e) => handleOpenResend(offer, e)}
                       >
                         <RotateCw className="h-4 w-4" />
                       </Button>
@@ -293,6 +304,41 @@ export default function OfferLetters() {
           </div>
         </div>
       )}
+
+      {/* ── Resend Offer Confirmation Modal ─────────────────── */}
+      <ConfirmModal
+        isOpen={!!resendTarget}
+        onClose={() => setResendTarget(null)}
+        onConfirm={handleConfirmResend}
+        title="Resend Formal Offer Package?"
+        message={`Are you sure you want to re-dispatch the official appointment letter and portal activation link to ${resendTarget?.employeeName || resendTarget?.employee_name || 'this candidate'}?`}
+        details={
+          resendTarget ? (
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between items-center pb-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Candidate:</span>
+                <span className="font-bold text-slate-900">{resendTarget.employeeName || resendTarget.employee_name} ({resendTarget.employeeId || resendTarget.employee_id})</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Email Address:</span>
+                <span className="font-semibold text-[var(--color-primary)]">{resendTarget.email}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Designation:</span>
+                <span className="text-slate-800 font-medium">{resendTarget.position}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Work Jurisdiction:</span>
+                <span className="text-slate-800 font-medium">{resendTarget.mandal ? `${resendTarget.mandal}, ` : ''}{resendTarget.district}</span>
+              </div>
+            </div>
+          ) : null
+        }
+        confirmText="Confirm & Resend"
+        confirmVariant="primary"
+        icon={Send}
+        isLoading={!!resendingId}
+      />
     </div>
   );
 }

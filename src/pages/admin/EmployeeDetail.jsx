@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 const cn = (...cls) => cls.filter(Boolean).join(' ');
 
@@ -58,6 +59,8 @@ export default function EmployeeDetail() {
   const [panDocUrl, setPanDocUrl] = useState(null);
   const [loadingDoc, setLoadingDoc] = useState({ photo: false, passbook: false, aadhaar: false, pan: false });
   const [statusLoading, setStatusLoading] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // ── Fetch employee ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -92,7 +95,8 @@ export default function EmployeeDetail() {
       setPassbookUrl(url);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      alert('Could not load document: ' + e.message);
+      setToastMessage('Could not load document: ' + e.message);
+      setTimeout(() => setToastMessage(''), 3500);
     } finally {
       setLoadingDoc(p => ({ ...p, passbook: false }));
     }
@@ -106,7 +110,8 @@ export default function EmployeeDetail() {
       setAadhaarDocUrl(url);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      alert('Could not load document: ' + e.message);
+      setToastMessage('Could not load document: ' + e.message);
+      setTimeout(() => setToastMessage(''), 3500);
     } finally {
       setLoadingDoc(p => ({ ...p, aadhaar: false }));
     }
@@ -120,28 +125,34 @@ export default function EmployeeDetail() {
       setPanDocUrl(url);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      alert('Could not load document: ' + e.message);
+      setToastMessage('Could not load document: ' + e.message);
+      setTimeout(() => setToastMessage(''), 3500);
     } finally {
       setLoadingDoc(p => ({ ...p, pan: false }));
     }
   };
 
-  const handleToggleStatus = async () => {
+  const handleToggleStatus = () => {
+    if (!employee) return;
+    setShowStatusModal(true);
+  };
+
+  const handleConfirmStatusToggle = async () => {
     if (!employee) return;
     const newStatus = employee.status === 'active' ? 'inactive' : 'active';
-    const confirmMsg = newStatus === 'inactive'
-      ? `Deactivate ${employee.name}? They will no longer appear as active.`
-      : `Activate ${employee.name}?`;
-    if (!window.confirm(confirmMsg)) return;
-
     setStatusLoading(true);
     try {
       await employeeService.updateStatus(employee.employeeId, newStatus);
       setEmployee(prev => ({ ...prev, status: newStatus }));
+      setToastMessage(`Employee successfully marked as ${newStatus}.`);
+      setTimeout(() => setToastMessage(''), 3500);
     } catch (e) {
-      alert(e.message);
+      setToastMessage(e.message || 'Failed to update status');
+      setTimeout(() => setToastMessage(''), 3500);
+    } finally {
+      setStatusLoading(false);
+      setShowStatusModal(false);
     }
-    setStatusLoading(false);
   };
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -347,6 +358,31 @@ export default function EmployeeDetail() {
           ` · Updated: ${new Date(employee.updatedAt).toLocaleString('en-IN')}`
         }
       </div>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border border-slate-700 animate-in fade-in">
+          <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Status Toggle Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showStatusModal}
+        onClose={() => setShowStatusModal(false)}
+        onConfirm={handleConfirmStatusToggle}
+        title={employee.status === 'active' ? `Deactivate ${employee.name}?` : `Activate ${employee.name}?`}
+        message={
+          employee.status === 'active'
+            ? `Are you sure you want to deactivate ${employee.name} (${employee.employeeId})? They will no longer be able to log into the Employee Portal or perform shift activities.`
+            : `Are you sure you want to activate ${employee.name} (${employee.employeeId})? This will restore portal access.`
+        }
+        confirmText={employee.status === 'active' ? 'Yes, Deactivate' : 'Yes, Activate'}
+        confirmVariant={employee.status === 'active' ? 'danger' : 'success'}
+        icon={employee.status === 'active' ? XCircle : CheckCircle}
+        isLoading={statusLoading}
+      />
     </div>
   );
 }
