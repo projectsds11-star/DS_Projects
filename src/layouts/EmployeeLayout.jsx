@@ -38,13 +38,15 @@ export default function EmployeeLayout() {
   useEffect(() => {
     async function loadLayoutData() {
       try {
-        const [empData, taskData, notifData] = await Promise.all([
+        const [empData, taskData, notifData, shiftStatus] = await Promise.all([
           liveDataService.getEmployeeById(currentEmpId),
           liveDataService.getWorkTasks(currentEmpId),
-          liveDataService.getNotifications(currentEmpId)
+          liveDataService.getNotifications(currentEmpId),
+          liveDataService.getLiveShiftStatus(currentEmpId)
         ]);
 
         if (empData) setEmployee(empData);
+        if (shiftStatus) setIsCheckedIn(shiftStatus.isCheckedIn);
         if (taskData) {
           const due = taskData.filter(t => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Pending').length;
           setDueTasksCount(due);
@@ -59,6 +61,23 @@ export default function EmployeeLayout() {
     }
     loadLayoutData();
   }, [currentEmpId, location.pathname]);
+
+  const handleSidebarPunchToggle = async () => {
+    try {
+      if (isCheckedIn) {
+        await liveDataService.punchCheckOut(currentEmpId);
+        setIsCheckedIn(false);
+      } else {
+        const loc = employee?.mandal || employee?.mandal_id 
+          ? `${employee.mandal || employee.mandal_id} Field Office` 
+          : 'Field Office';
+        await liveDataService.punchCheckIn(currentEmpId, loc);
+        setIsCheckedIn(true);
+      }
+    } catch (e) {
+      console.error('Sidebar punch error:', e);
+    }
+  };
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -188,7 +207,7 @@ export default function EmployeeLayout() {
               </div>
             </div>
             <button 
-              onClick={() => setIsCheckedIn(!isCheckedIn)}
+              onClick={handleSidebarPunchToggle}
               className={cn(
                 "text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 isCheckedIn 

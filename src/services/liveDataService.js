@@ -309,9 +309,16 @@ export const liveDataService = {
     return [..._attendance];
   },
 
-  async punchCheckIn(employeeId, locationName = 'Field Office') {
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+  async punchCheckIn(employeeId, locationName = 'Field Office', coordinates = null) {
+    const now = new Date();
+    const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+
+    // Determine status (Late if after 09:30 AM)
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const isLate = (hours > 9) || (hours === 9 && minutes > 30);
+    const status = isLate ? 'Late' : 'Present';
 
     const newPunch = {
       employee_id: employeeId,
@@ -319,8 +326,12 @@ export const liveDataService = {
       check_in_time: nowTime,
       check_out_time: '-- : --',
       effective_hours: '0h 00m',
-      location_name: locationName,
-      status: 'Present'
+      location_name: locationName || 'Field Office',
+      status: status,
+      latitude: coordinates?.latitude || null,
+      longitude: coordinates?.longitude || null,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString()
     };
 
     if (isSupabaseConfigured) {
@@ -329,7 +340,7 @@ export const liveDataService = {
           .from('attendance_records')
           .insert([newPunch])
           .select();
-        if (!error && data) return { success: true, data: data[0] };
+        if (!error && data && data.length > 0) return { success: true, data: data[0] };
       } catch (err) {
         console.warn('Supabase punchCheckIn error:', err);
       }
@@ -340,16 +351,46 @@ export const liveDataService = {
   },
 
   async punchCheckOut(employeeId) {
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const now = new Date();
+    const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+
+    let effectiveHours = '8h 00m';
 
     if (isSupabaseConfigured) {
       try {
-        await supabase
+        // Find today's open punch record
+        const { data: openPunch } = await supabase
           .from('attendance_records')
-          .update({ check_out_time: nowTime })
+          .select('*')
           .eq('employee_id', employeeId)
-          .eq('punch_date', todayStr);
+          .eq('punch_date', todayStr)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openPunch) {
+          const checkInDate = new Date(openPunch.created_at || now);
+          const diffMs = Math.max(0, now.getTime() - checkInDate.getTime());
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          effectiveHours = `${diffHours}h ${diffMins.toString().padStart(2, '0')}m`;
+
+          await supabase
+            .from('attendance_records')
+            .update({
+              check_out_time: nowTime,
+              effective_hours: effectiveHours,
+              updated_at: now.toISOString()
+            })
+            .eq('id', openPunch.id);
+        } else {
+          await supabase
+            .from('attendance_records')
+            .update({ check_out_time: nowTime, effective_hours: effectiveHours })
+            .eq('employee_id', employeeId)
+            .eq('punch_date', todayStr);
+        }
       } catch (err) {
         console.warn('Supabase punchCheckOut error:', err);
       }
@@ -357,9 +398,22 @@ export const liveDataService = {
 
     const idx = _attendance.findIndex(a => a.employee_id === employeeId && a.punch_date === todayStr);
     if (idx !== -1) {
-      _attendance[idx] = { ..._attendance[idx], check_out_time: nowTime };
+      _attendance[idx] = { ..._attendance[idx], check_out_time: nowTime, effective_hours: effectiveHours };
     }
-    return { success: true, check_out_time: nowTime };
+    return { success: true, check_out_time: nowTime, effective_hours: effectiveHours };
+  },
+
+  async getLiveShiftStatus(employeeId) {
+    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const records = await this.getAttendance(employeeId);
+    const todayRecord = records.find(r => (r.punch_date === todayStr || r.isToday) && (r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time));
+    
+    if (todayRecord) {
+      const checkInDate = new Date(todayRecord.created_at || Date.now());
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - checkInDate.getTime()) / 1000));
+      return { isCheckedIn: true, todayRecord, elapsedSeconds };
+    }
+    return { isCheckedIn: false, todayRecord: null, elapsedSeconds: 0 };
   },
 
   async requestRegularization(employeeId, { date, category, reason }) {

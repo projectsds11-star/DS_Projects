@@ -40,37 +40,39 @@ export default function EmployeeDashboard() {
   // Live timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
+  const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-001';
+
+  const loadLiveData = async () => {
+    try {
+      const [empData, taskData, attData, notifData, shiftStatus] = await Promise.all([
+        liveDataService.getEmployeeById(currentEmpId),
+        liveDataService.getWorkTasks(currentEmpId),
+        liveDataService.getAttendance(currentEmpId),
+        liveDataService.getNotifications(currentEmpId),
+        liveDataService.getLiveShiftStatus(currentEmpId)
+      ]);
+
+      if (empData) setEmployee(empData);
+      if (taskData) setTasks(taskData);
+      if (attData) setAttendance(attData);
+      if (notifData) setNotifications(notifData);
+
+      if (shiftStatus.isCheckedIn) {
+        setIsCheckedIn(true);
+        setElapsedSeconds(shiftStatus.elapsedSeconds);
+      } else {
+        setIsCheckedIn(false);
+        setElapsedSeconds(0);
+      }
+    } catch (err) {
+      console.error('Error loading dashboard live data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadLiveData() {
-      setLoading(true);
-      try {
-        const [empData, taskData, attData, notifData] = await Promise.all([
-          liveDataService.getEmployeeById(currentEmpId),
-          liveDataService.getWorkTasks(currentEmpId),
-          liveDataService.getAttendance(currentEmpId),
-          liveDataService.getNotifications(currentEmpId)
-        ]);
-
-        if (empData) setEmployee(empData);
-        if (taskData) setTasks(taskData);
-        if (attData) {
-          setAttendance(attData);
-          const todayPunch = attData.find(a => a.isToday || a.check_out_time === '-- : --');
-          if (todayPunch) {
-            setIsCheckedIn(true);
-            setElapsedSeconds(3600); // initial timer offset
-          }
-        }
-        if (notifData) setNotifications(notifData);
-      } catch (err) {
-        console.error('Error loading dashboard live data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
+    setLoading(true);
     loadLiveData();
   }, [currentEmpId]);
 
@@ -93,22 +95,29 @@ export default function EmployeeDashboard() {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleToggleCheckIn = async () => {
-    if (isCheckedIn) {
-      await liveDataService.punchCheckOut(currentEmpId);
-      setIsCheckedIn(false);
-      showToast('Checked out successfully. Shift time logged.');
-    } else {
-      await liveDataService.punchCheckIn(currentEmpId, `${employee?.mandal || 'Field'} HQ`);
-      setIsCheckedIn(true);
-      setElapsedSeconds(0);
-      showToast('Checked in successfully!');
+    try {
+      if (isCheckedIn) {
+        const res = await liveDataService.punchCheckOut(currentEmpId);
+        setIsCheckedIn(false);
+        showToast(`Checked out at ${res.check_out_time || 'now'}! Shift time recorded.`);
+      } else {
+        const loc = employee?.mandal || employee?.mandal_id 
+          ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})` 
+          : 'Buchireddypalem HQ (GPS Verified)';
+        const res = await liveDataService.punchCheckIn(currentEmpId, loc);
+        setIsCheckedIn(true);
+        setElapsedSeconds(0);
+        showToast(`Checked in at ${res.data?.check_in_time || 'now'}! Shift active.`);
+      }
+      await loadLiveData();
+    } catch (err) {
+      console.error('Punch toggle error:', err);
+      showToast('Could not record punch.');
     }
-    const freshAtt = await liveDataService.getAttendance(currentEmpId);
-    setAttendance(freshAtt);
   };
 
   const handleTaskSubmit = async (e) => {
