@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabaseClient';
 import { employeeService } from '../../services/employeeService';
 
 /**
  * Enterprise Employee Avatar Component
- * Automatically resolves and displays candidate profile photo using Supabase signed URLs,
+ * Automatically resolves and displays candidate profile photo using Supabase storage URLs,
  * with graceful fallback to candidate initials if no photo is uploaded.
  */
 export default function EmployeeAvatar({
@@ -18,7 +19,7 @@ export default function EmployeeAvatar({
   const [imgError, setImgError] = useState(false);
 
   // Extract photo path and candidate name from props or emp object
-  const rawPhoto = photoPath || emp?.photoPath || emp?.candidate_photo_path || emp?.photo_path || emp?.photo || null;
+  const rawPhoto = photoPath || emp?.photoUrl || emp?.photo_url || emp?.photoPath || emp?.candidate_photo_path || emp?.photo_path || emp?.photo || null;
   const displayName = name || emp?.fullName || emp?.name || emp?.full_name || 'Employee';
   const initial = displayName.trim().charAt(0).toUpperCase() || 'E';
 
@@ -31,14 +32,22 @@ export default function EmployeeAvatar({
       if (typeof rawPhoto === 'string' && (rawPhoto.startsWith('http') || rawPhoto.startsWith('blob:') || rawPhoto.startsWith('data:'))) {
         setImgUrl(rawPhoto);
       } else if (typeof rawPhoto === 'string') {
-        // Fetch signed URL from private Supabase bucket
-        employeeService.getSignedUrl('employee-photos', rawPhoto)
-          .then(url => {
-            if (isMounted && url) setImgUrl(url);
-          })
-          .catch(() => {
-            if (isMounted) setImgError(true);
-          });
+        // Try public storage URL first
+        try {
+          const { data } = supabase.storage.from('employee-photos').getPublicUrl(rawPhoto);
+          if (data?.publicUrl) {
+            setImgUrl(data.publicUrl);
+          }
+        } catch {
+          // Fetch signed URL fallback
+          employeeService.getSignedUrl('employee-photos', rawPhoto)
+            .then(url => {
+              if (isMounted && url) setImgUrl(url);
+            })
+            .catch(() => {
+              if (isMounted) setImgError(true);
+            });
+        }
       }
     } else {
       setImgUrl(null);

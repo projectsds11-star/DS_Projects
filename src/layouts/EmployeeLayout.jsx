@@ -204,9 +204,18 @@ export default function EmployeeLayout() {
           <div className="p-3 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white text-sm shadow-xs">
-                  {empInitials}
-                </div>
+                {employee?.photo_url || employee?.photoUrl || employee?.candidate_photo_path ? (
+                  <img 
+                    src={employee?.photo_url || employee?.photoUrl || `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${employee.candidate_photo_path}`} 
+                    alt={empFullName}
+                    className="w-10 h-10 rounded-xl object-cover ring-2 ring-white/30"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white text-sm shadow-xs">
+                    {empInitials}
+                  </div>
+                )}
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#E63946] rounded-full" />
               </div>
               <div className="min-w-0">

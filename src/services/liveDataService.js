@@ -103,6 +103,28 @@ export const liveDataService = {
           const resolvedPosition = offer?.position || data.position || data.designation || 'Mandal Co-ordinator';
           const resolvedName = data.full_name || data.name || offer?.employee_name || 'Employee';
 
+          // Resolve public storage URLs
+          let photoUrl = null;
+          if (data.candidate_photo_path) {
+            const { data: pUrlData } = supabase.storage.from('employee-photos').getPublicUrl(data.candidate_photo_path);
+            photoUrl = pUrlData?.publicUrl || null;
+          }
+          let aadhaarDocUrl = null;
+          if (data.aadhaar_document_path) {
+            const { data: aUrlData } = supabase.storage.from('employee-documents').getPublicUrl(data.aadhaar_document_path);
+            aadhaarDocUrl = aUrlData?.publicUrl || null;
+          }
+          let panDocUrl = null;
+          if (data.pan_document_path) {
+            const { data: panUrlData } = supabase.storage.from('employee-documents').getPublicUrl(data.pan_document_path);
+            panDocUrl = panUrlData?.publicUrl || null;
+          }
+          let passbookUrl = null;
+          if (data.bank_passbook_path) {
+            const { data: passUrlData } = supabase.storage.from('employee-documents').getPublicUrl(data.bank_passbook_path);
+            passbookUrl = passUrlData?.publicUrl || null;
+          }
+
           return {
             ...data,
             id: data.id,
@@ -117,6 +139,12 @@ export const liveDataService = {
             position: resolvedPosition,
             designation: resolvedPosition,
             department: offer?.department || data.department || 'Field Operations',
+            photoUrl,
+            photo_url: photoUrl,
+            photoPath: data.candidate_photo_path,
+            aadhaarDocUrl,
+            panDocUrl,
+            passbookUrl,
             offer,
           };
         }
