@@ -58,10 +58,24 @@ export default function AdminLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formattedEmail }),
       });
-      const data = await response.json();
+
+      const contentType = response.headers.get('content-type') || '';
+      let data = {};
+
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.warn('Failed to parse JSON response:', jsonErr);
+        }
+      } else {
+        const text = await response.text();
+        console.warn('Non-JSON server response received:', text);
+        data = { error: text?.slice(0, 150) || 'Server returned an unexpected response format.' };
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send verification code.');
+        throw new Error(data.error || data.message || `Server responded with status ${response.status}`);
       }
 
       setStep('otp');
@@ -151,10 +165,24 @@ export default function AdminLogin() {
           otp: fullOtp,
         }),
       });
-      const data = await response.json();
+
+      const contentType = response.headers.get('content-type') || '';
+      let data = {};
+
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.warn('Failed to parse JSON response:', jsonErr);
+        }
+      } else {
+        const text = await response.text();
+        console.warn('Non-JSON server response received:', text);
+        data = { error: text?.slice(0, 150) || 'Server returned an unexpected response format.' };
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Invalid or expired verification code.');
+        throw new Error(data.error || data.message || 'Invalid or expired verification code.');
       }
 
       localStorage.setItem('ds_admin_token', data.token);

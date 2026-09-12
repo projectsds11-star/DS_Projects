@@ -83,6 +83,30 @@ export const createOffer = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Employee ID and email are required.' });
     }
 
+    // ── Duplicate offer guard — one offer per employee only ──────────────────
+    const { data: existingOffers, error: checkErr } = await supabaseAdmin
+      .from('job_offers')
+      .select('id, offer_number, position, status, created_at')
+      .eq('employee_id', employeeId)
+      .limit(1);
+
+    if (!checkErr && existingOffers && existingOffers.length > 0) {
+      const existing = existingOffers[0];
+      console.warn(`[createOffer] Blocked duplicate offer for ${employeeId} — existing: ${existing.offer_number}`);
+      return res.status(409).json({
+        success: false,
+        duplicate: true,
+        message: `An offer letter already exists for employee ${employeeId}. Each employee can only have one offer letter.`,
+        existingOffer: {
+          id: existing.id,
+          offerNumber: existing.offer_number,
+          position: existing.position,
+          status: existing.status,
+          createdAt: existing.created_at,
+        },
+      });
+    }
+
     const cleanEmpId = (employeeId || 'DS001').replace(/[^a-zA-Z0-9]/g, '');
     const idNumber = (employeeId || '001').replace(/[^0-9]/g, '') || '001';
     const candName = employeeName || 'Candidate';

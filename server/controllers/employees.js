@@ -15,18 +15,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// ── Location validation (uses the same master data as frontend) ────────────
-// We import directly from the src/data folder (same monorepo)
-let AP_DISTRICTS_DATA = [];
-let AP_DISTRICT_MANDAL_MAP = {};
-
-try {
-  const mod = await import('../../src/data/andhraPradeshMasterData.js');
-  AP_DISTRICTS_DATA = mod.AP_DISTRICTS_DATA || [];
-  AP_DISTRICT_MANDAL_MAP = mod.AP_DISTRICT_MANDAL_MAP || {};
-} catch (e) {
-  console.warn('[EmployeeCtrl] Could not load AP master data — location validation skipped:', e.message);
-}
+import { AP_DISTRICTS_DATA, AP_DISTRICT_MANDAL_MAP } from '../../src/data/andhraPradeshMasterData.js';
 
 function isValidLocation(stateId, districtId, mandalId) {
   // state must be AP
@@ -44,6 +33,25 @@ function getTransporter() {
 }
 
 async function sendWelcomeEmail({ employeeId, name, email }) {
+  const plainText = `
+Dear ${name},
+
+Congratulations and a warm welcome to DS Projects Private Limited!
+
+Your official employee profile has been successfully registered with the following details:
+
+  Employee Name   : ${name}
+  Employee ID     : ${employeeId}
+  Registered Email: ${email}
+
+Our HR team is currently preparing your onboarding documentation. You will receive further communications shortly.
+
+Warm regards,
+HR Administration
+DS Projects Private Limited
+Andhra Pradesh
+  `.trim();
+
   const html = `
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f8fafc;color:#334155">
@@ -72,7 +80,7 @@ async function sendWelcomeEmail({ employeeId, name, email }) {
       </tr>
       <tr>
         <td style="background:#f8fafc;padding:15px 30px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center">
-          DS Projects Private Limited &bull; Andhra Pradesh
+          DS Projects Private Limited &bull; Andhra Pradesh &bull; This is an official HR notification.
         </td>
       </tr>
     </table>
@@ -83,9 +91,17 @@ async function sendWelcomeEmail({ employeeId, name, email }) {
   const transporter = getTransporter();
   const info = await transporter.sendMail({
     from: `"DS Projects HR" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+    replyTo: process.env.EMAIL_USER || 'projectsds11@gmail.com',
     to: email,
-    subject: `Welcome to DS Projects Private Limited — Registration Confirmed (${employeeId})`,
+    subject: `Welcome to DS Projects — Employee Registration Confirmed (${employeeId})`,
+    text: plainText,
     html,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high',
+      'X-Mailer': 'DS Projects HRMS',
+    },
   });
   return info.messageId;
 }
@@ -237,10 +253,13 @@ export const createEmployee = async (req, res) => {
     aadhaarDocumentPath = `employees/${employeeId}/aadhaar-document.${aadhaarDocumentExt}`;
     panDocumentPath = `employees/${employeeId}/pan-document.${panDocumentExt}`;
 
-    await uploadFile('employee-photos', photoPath, photoFile.buffer, photoFile.mimetype);
-    await uploadFile('employee-documents', passbookPath, passbookFile.buffer, passbookFile.mimetype);
-    await uploadFile('employee-documents', aadhaarDocumentPath, aadhaarDocumentFile.buffer, aadhaarDocumentFile.mimetype);
-    await uploadFile('employee-documents', panDocumentPath, panDocumentFile.buffer, panDocumentFile.mimetype);
+    // Upload all 4 files in parallel — much faster than sequential awaits
+    await Promise.all([
+      uploadFile('employee-photos',    photoPath,            photoFile.buffer,            photoFile.mimetype),
+      uploadFile('employee-documents', passbookPath,         passbookFile.buffer,         passbookFile.mimetype),
+      uploadFile('employee-documents', aadhaarDocumentPath,  aadhaarDocumentFile.buffer,  aadhaarDocumentFile.mimetype),
+      uploadFile('employee-documents', panDocumentPath,      panDocumentFile.buffer,      panDocumentFile.mimetype),
+    ]);
 
   } catch (uploadErr) {
     // Cleanup partial uploads
@@ -296,18 +315,23 @@ export const createEmployee = async (req, res) => {
     return res.status(500).json({ success: false, message: `DB Error: ${insertError.message}` });
   }
 
-  // ── 7. Welcome email (non-blocking — employee already created) ────────────
+  // ── 7. Welcome email ──────────────────────────────────────────────────────
   let emailStatus = 'SENT';
   let emailError = null;
   let sentAt = null;
 
   try {
-    await sendWelcomeEmail({ employeeId, name: name.trim(), email: email.trim().toLowerCase() });
+    // Race the email against a 10-second timeout so it never hangs forever
+    await Promise.race([
+      sendWelcomeEmail({ employeeId, name: name.trim(), email: email.trim().toLowerCase() }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout after 10s')), 10000)),
+    ]);
     sentAt = new Date().toISOString();
+    console.log(`[createEmployee] ✅ Welcome email sent to ${email.trim().toLowerCase()}`);
   } catch (mailErr) {
     emailStatus = 'FAILED';
     emailError = mailErr.message;
-    console.warn('[createEmployee] Welcome email failed (employee still created):', mailErr.message);
+    console.error('[createEmployee] ❌ Welcome email failed:', mailErr.message);
   }
 
   // ── 8. Email log ──────────────────────────────────────────────────────────
@@ -319,7 +343,7 @@ export const createEmployee = async (req, res) => {
     status: emailStatus,
     error_message: emailError,
     sent_at: sentAt,
-  }]).select();
+  }]);
 
   return res.status(201).json({
     success: true,
@@ -489,15 +513,20 @@ export const updateStatus = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SOFT DELETE
+// DELETE EMPLOYEE (Full Cascade)
 // DELETE /api/admin/employees/:id
+// Removes the employee AND all associated data:
+//   - job_offers (matched by string employee_id e.g. DS-001)
+//   - email_logs (matched by UUID employee.id)
+//   - Storage files: photo, passbook, aadhaar doc, PAN doc
 // ─────────────────────────────────────────────────────────────────────────────
 export const deleteEmployee = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // string employee_id e.g. "DS-001"
 
+  // 1. Fetch the full employee record (need UUID + file paths)
   const { data: emp, error: fetchErr } = await supabaseAdmin
     .from('employees')
-    .select('id, candidate_photo_path, bank_passbook_path, aadhaar_document_path, pan_document_path')
+    .select('id, employee_id, candidate_photo_path, bank_passbook_path, aadhaar_document_path, pan_document_path')
     .eq('employee_id', id)
     .single();
 
@@ -505,25 +534,88 @@ export const deleteEmployee = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Employee not found.' });
   }
 
-  // Hard delete from database
+  const cleanupSummary = {
+    offersDeleted: 0,
+    emailLogsDeleted: 0,
+    filesDeleted: [],
+    filesFailedToDelete: [],
+  };
+
+  // 2. Delete all related job_offers (stored with string employee_id)
+  try {
+    const { data: deletedOffers, error: offersErr } = await supabaseAdmin
+      .from('job_offers')
+      .delete()
+      .eq('employee_id', emp.employee_id)
+      .select('id');
+
+    if (offersErr) {
+      console.warn('[deleteEmployee] Could not delete job_offers:', offersErr.message);
+    } else {
+      cleanupSummary.offersDeleted = deletedOffers?.length ?? 0;
+      console.log(`[deleteEmployee] Deleted ${cleanupSummary.offersDeleted} job offer(s) for ${emp.employee_id}`);
+    }
+  } catch (e) {
+    console.warn('[deleteEmployee] job_offers cleanup error:', e.message);
+  }
+
+  // 3. Delete all related email_logs (stored with UUID employee.id)
+  try {
+    const { data: deletedLogs, error: logsErr } = await supabaseAdmin
+      .from('email_logs')
+      .delete()
+      .eq('employee_id', emp.id)
+      .select('id');
+
+    if (logsErr) {
+      console.warn('[deleteEmployee] Could not delete email_logs:', logsErr.message);
+    } else {
+      cleanupSummary.emailLogsDeleted = deletedLogs?.length ?? 0;
+      console.log(`[deleteEmployee] Deleted ${cleanupSummary.emailLogsDeleted} email log(s) for employee UUID ${emp.id}`);
+    }
+  } catch (e) {
+    console.warn('[deleteEmployee] email_logs cleanup error:', e.message);
+  }
+
+  // 4. Hard delete the employee row from the database
   const { error: delErr } = await supabaseAdmin
     .from('employees')
     .delete()
     .eq('employee_id', id);
 
   if (delErr) {
-    return res.status(500).json({ success: false, message: 'Failed to delete employee.' });
+    return res.status(500).json({ success: false, message: 'Failed to delete employee record.' });
   }
 
-  // Cleanup files in background (don't block response)
-  Promise.all([
-    deleteFile('employee-photos', emp.candidate_photo_path),
-    deleteFile('employee-documents', emp.bank_passbook_path),
-    deleteFile('employee-documents', emp.aadhaar_document_path),
-    deleteFile('employee-documents', emp.pan_document_path)
-  ]).catch(err => console.error('[deleteEmployee] Failed to delete files:', err));
+  // 5. Delete all storage files (non-blocking — employee row already gone)
+  const filesToDelete = [
+    { bucket: 'employee-photos',    path: emp.candidate_photo_path },
+    { bucket: 'employee-documents', path: emp.bank_passbook_path },
+    { bucket: 'employee-documents', path: emp.aadhaar_document_path },
+    { bucket: 'employee-documents', path: emp.pan_document_path },
+  ];
 
-  return res.status(200).json({ success: true, message: 'Employee permanently removed.' });
+  await Promise.allSettled(
+    filesToDelete.map(async ({ bucket, path: filePath }) => {
+      if (!filePath) return;
+      try {
+        await deleteFile(bucket, filePath);
+        cleanupSummary.filesDeleted.push(filePath);
+        console.log(`[deleteEmployee] Deleted storage file: ${bucket}/${filePath}`);
+      } catch (fileErr) {
+        cleanupSummary.filesFailedToDelete.push(filePath);
+        console.error(`[deleteEmployee] Failed to delete storage file ${bucket}/${filePath}:`, fileErr.message);
+      }
+    })
+  );
+
+  console.log(`[deleteEmployee] ✅ Employee ${id} fully removed. Summary:`, cleanupSummary);
+
+  return res.status(200).json({
+    success: true,
+    message: `Employee ${id} and all associated data have been permanently deleted.`,
+    cleanup: cleanupSummary,
+  });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

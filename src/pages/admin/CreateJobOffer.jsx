@@ -344,6 +344,15 @@ export default function CreateJobOffer() {
     } catch (err) {
       console.error('Dispatch error:', err);
       setShowSendingModal(false);
+
+      // If server blocked a duplicate offer, show the DuplicateOfferModal
+      if (err?.response?.status === 409 || err?.status === 409 || err?.duplicate) {
+        const existing = err?.response?.data?.existingOffer || err?.existingOffer || null;
+        setExistingOffer(existing);
+        setShowDuplicateModal(true);
+        return;
+      }
+
       alert('Failed to dispatch job offer: ' + (err.message || 'Please check network connection and try again.'));
     }
   };

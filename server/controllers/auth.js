@@ -10,19 +10,22 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
-// ✅ Supabase client for persistent OTP storage (works across serverless instances)
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || 'https://wprxkmxbuwipmymswmgq.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwcnhrbXhidXdpcG15bXN3bWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNjc4NjAsImV4cCI6MjEwMzc0Mzg2MH0.1v8bdsxokG7TWleHilXtHsO9gl5ai7xhYfZ_3GcsENQ'
-);
+// ✅ Supabase client for persistent OTP storage
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://wprxkmxbuwipmymswmgq.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwcnhrbXhidXdpcG15bXN3bWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNjc4NjAsImV4cCI6MjEwMzc0Mzg2MH0.1v8bdsxokG7TWleHilXtHsO9gl5ai7xhYfZ_3GcsENQ';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
 
 function getTransporter() {
-  const user = process.env.EMAIL_USER || 'projectsds11@gmail.com';
-  const pass = process.env.EMAIL_PASS || 'csuuuanyimfzoarx';
+  const user = (process.env.EMAIL_USER || 'projectsds11@gmail.com').trim();
+  const pass = (process.env.EMAIL_PASS || 'csuuuanyimfzoarx').trim();
   return nodemailer.createTransport({
     service: 'gmail',
-    auth: { user: user.trim(), pass: pass.trim() },
+    auth: { user, pass },
   });
 }
 
@@ -34,34 +37,54 @@ const ADMIN_EMAILS = [
 
 // ─── REQUEST OTP ────────────────────────────────────────────────────────────
 export const requestOtp = async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) return res.status(400).json({ message: 'Email is required.' });
-
-  const formattedEmail = email.toLowerCase().trim();
-
-  if (!ADMIN_EMAILS.includes(formattedEmail)) {
-    return res.status(403).json({ message: 'Unauthorized email address. Access denied.' });
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
-
-  // Store OTP in Supabase (upsert so only one OTP per email at a time)
-  const { error: upsertError } = await supabase
-    .from('admin_otps')
-    .upsert({ email: formattedEmail, otp, expires_at: expiresAt }, { onConflict: 'email' });
-
-  if (upsertError) {
-    console.error('Supabase OTP upsert error:', upsertError.message);
-    // Fallback: continue anyway (email will still be sent)
-  }
-
-  console.log(`\n========================================`);
-  console.log(`🔑 ADMIN OTP for ${formattedEmail}: ${otp}`);
-  console.log(`========================================\n`);
-
   try {
+    const { email } = req.body || {};
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Email address is required.',
+        message: 'Email address is required.',
+      });
+    }
+
+    const formattedEmail = email.toLowerCase().trim();
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formattedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide a valid email address.',
+        message: 'Please provide a valid email address.',
+      });
+    }
+
+    if (!ADMIN_EMAILS.includes(formattedEmail)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized email address. Access denied.',
+        message: 'Unauthorized email address. Access denied.',
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
+
+    // Store OTP in Supabase
+    try {
+      const { error: upsertError } = await supabase
+        .from('admin_otps')
+        .upsert({ email: formattedEmail, otp, expires_at: expiresAt }, { onConflict: 'email' });
+
+      if (upsertError) {
+        console.error('[Auth Service] Supabase OTP storage warning:', upsertError.message);
+      }
+    } catch (dbErr) {
+      console.error('[Auth Service] Supabase DB exception:', dbErr.message);
+    }
+
+    // Dispatch Email via Nodemailer
     const transporter = getTransporter();
     await transporter.sendMail({
       from: `"DS Projects Security" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
@@ -94,55 +117,94 @@ export const requestOtp = async (req, res) => {
       `,
     });
 
-    console.log(`✅ OTP email sent to ${formattedEmail}`);
-    return res.status(200).json({ message: `Passcode sent to ${formattedEmail}` });
+    console.log(`[Auth Service] OTP successfully generated and emailed to ${formattedEmail}`);
+    return res.status(200).json({
+      success: true,
+      message: `A 6-digit passcode was dispatched to ${formattedEmail}`,
+    });
   } catch (error) {
-    console.error('⚠️ Error sending OTP email:', error.message);
-    return res.status(500).json({ message: 'Failed to deliver OTP email. Please try again.' });
+    console.error('[Auth Service] Critical error in requestOtp:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Unable to send verification email. Please verify SMTP settings or try again later.',
+      message: 'Unable to send verification email. Please verify SMTP settings or try again later.',
+    });
   }
 };
 
 // ─── VERIFY OTP ─────────────────────────────────────────────────────────────
 export const verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  try {
+    const { email, otp } = req.body || {};
 
-  if (!email || !otp) {
-    return res.status(400).json({ message: 'Email and OTP are required.' });
-  }
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and authentication code are required.',
+        message: 'Email and authentication code are required.',
+      });
+    }
 
-  const formattedEmail = email.toLowerCase().trim();
+    const formattedEmail = email.toLowerCase().trim();
+    const cleanOtp = String(otp).trim();
 
-  // Fetch OTP from Supabase
-  const { data, error } = await supabase
-    .from('admin_otps')
-    .select('otp, expires_at')
-    .eq('email', formattedEmail)
-    .single();
+    // Fetch OTP from Supabase
+    const { data, error } = await supabase
+      .from('admin_otps')
+      .select('otp, expires_at')
+      .eq('email', formattedEmail)
+      .single();
 
-  if (error || !data) {
-    return res.status(400).json({ message: 'No OTP requested for this email or it has expired.' });
-  }
+    if (error || !data) {
+      return res.status(400).json({
+        success: false,
+        error: 'No active OTP requested for this email or it has expired.',
+        message: 'No active OTP requested for this email or it has expired.',
+      });
+    }
 
-  // Check expiry
-  if (new Date() > new Date(data.expires_at)) {
+    // Check expiry
+    if (new Date() > new Date(data.expires_at)) {
+      await supabase.from('admin_otps').delete().eq('email', formattedEmail);
+      return res.status(400).json({
+        success: false,
+        error: 'Verification code has expired. Please request a new one.',
+        message: 'Verification code has expired. Please request a new one.',
+      });
+    }
+
+    // Check OTP value
+    if (data.otp !== cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid authentication code. Please check and try again.',
+        message: 'Invalid authentication code. Please check and try again.',
+      });
+    }
+
+    // ✅ OTP correct — delete it so it can't be reused
     await supabase.from('admin_otps').delete().eq('email', formattedEmail);
-    return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+
+    // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET || 'DS_Projects_JWT_SuperSecret_2026_#Andhra';
+    const token = jwt.sign(
+      { email: formattedEmail, role: 'admin' },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      email: formattedEmail,
+    });
+  } catch (error) {
+    console.error('[Auth Service] Critical error in verifyOtp:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'An unexpected error occurred during verification.',
+      message: 'An unexpected error occurred during verification.',
+    });
   }
-
-  // Check OTP value
-  if (data.otp !== otp.trim()) {
-    return res.status(400).json({ message: 'Invalid OTP. Please check the code and try again.' });
-  }
-
-  // ✅ OTP correct — delete it so it can't be reused
-  await supabase.from('admin_otps').delete().eq('email', formattedEmail);
-
-  // Generate JWT
-  const token = jwt.sign(
-    { email: formattedEmail, role: 'admin' },
-    process.env.JWT_SECRET || 'DS_Projects_JWT_SuperSecret_2026_#Andhra',
-    { expiresIn: '7d' }
-  );
-
-  return res.status(200).json({ message: 'Login successful', token, email: formattedEmail });
 };
