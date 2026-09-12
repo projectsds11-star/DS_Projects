@@ -177,56 +177,56 @@ export default function OfferLetters() {
               <tr>
                 <th className="px-4 py-3">Offer Ref & Candidate</th>
                 <th className="px-4 py-3">Role & Jurisdiction</th>
-                <th className="px-4 py-3">Joining Date</th>
-                <th className="px-4 py-3">Compensation</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Sent Timestamp</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 whitespace-nowrap">Joining Date</th>
+                <th className="px-4 py-3 whitespace-nowrap">Compensation</th>
+                <th className="px-4 py-3 whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 whitespace-nowrap">Sent Timestamp</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
+            <tbody className="divide-y divide-slate-100">
               {offers.map((offer) => (
                 <tr
                   key={offer.id}
-                  className="hover:bg-[#D8F5FA]/20 transition-colors cursor-pointer"
+                  className="hover:bg-slate-50/80 transition-colors cursor-pointer"
                   onClick={() => setPreviewOffer(offer)}
                 >
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5 whitespace-nowrap">
                     <div>
-                      <span className="font-mono font-bold text-[var(--color-primary)] text-xs">{offer.offerNumber}</span>
-                      <p className="font-bold text-gray-900 text-sm mt-0.5">{offer.employeeName}</p>
-                      <p className="text-[11px] font-mono text-gray-400">{offer.employeeId} · {offer.email}</p>
+                      <span className="font-mono font-bold text-[#E63946] text-xs">{offer.offerNumber}</span>
+                      <p className="font-bold text-slate-900 text-sm mt-0.5">{offer.employeeName}</p>
+                      <p className="text-[11px] font-mono text-slate-400">{offer.employeeId} · {offer.email}</p>
                     </div>
                   </td>
 
-                  <td className="px-4 py-3.5">
-                    <p className="font-bold text-gray-800">{offer.position}</p>
-                    <p className="text-[11px] text-gray-500">{offer.district}, {offer.mandal}</p>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <p className="font-bold text-slate-800">{offer.position}</p>
+                    <p className="text-[11px] text-slate-500">{offer.district}, {offer.mandal}</p>
                   </td>
 
-                  <td className="px-4 py-3.5 text-gray-700 font-medium">
+                  <td className="px-4 py-3.5 text-slate-700 font-medium whitespace-nowrap">
                     {offer.joiningDate}
                   </td>
 
-                  <td className="px-4 py-3.5">
-                    <p className="font-mono font-bold text-green-700">{formatINR(offer.salary?.monthlyTotal || 0)} / mo</p>
-                    <p className="text-[10px] font-mono text-gray-400">{formatINR(offer.salary?.annualCtc || 0)} CTC</p>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <p className="font-mono font-bold text-emerald-700">{formatINR(offer.salary?.monthlyTotal || 0)} / mo</p>
+                    <p className="text-[10px] font-mono text-slate-400">{formatINR(offer.salary?.annualCtc || 0)} CTC</p>
                   </td>
 
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5 whitespace-nowrap">
                     <StatusBadge status={offer.status} />
                   </td>
 
-                  <td className="px-4 py-3.5 text-gray-500 font-mono text-[11px]">
+                  <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
                     {offer.sentAt || 'Draft'}
                   </td>
 
-                  <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-gray-500 hover:text-[var(--color-primary)]"
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
                         title="Preview Document"
                         onClick={() => setPreviewOffer(offer)}
                       >
@@ -235,7 +235,7 @@ export default function OfferLetters() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-gray-500 hover:text-[#E63946]"
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-[#E63946] hover:bg-red-50 rounded-lg cursor-pointer"
                         title="Resend Offer Email"
                         isLoading={resendingId === offer.id}
                         onClick={(e) => handleResend(offer.id, e)}
@@ -245,7 +245,7 @@ export default function OfferLetters() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-[11px] px-2.5"
+                        className="h-8 text-xs font-bold px-3 rounded-lg border-slate-300 hover:bg-slate-50 text-slate-700 shadow-2xs whitespace-nowrap cursor-pointer"
                         onClick={() => navigate(`/admin/offers/${offer.id}`)}
                       >
                         Details

@@ -190,14 +190,14 @@ export default function Onboarding() {
                 <option value="Chittoor">Chittoor</option>
               </select>
 
-              <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs">
+              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto whitespace-nowrap">
                 {['all', 'pending', 'sent', 'accepted', 'completed'].map(t => (
                   <button
                     key={t}
                     onClick={() => setActiveTab(t)}
                     className={cn(
-                      'px-2.5 py-1 rounded capitalize font-medium transition-all text-[11px]',
-                      activeTab === t ? 'bg-white shadow-xs text-[var(--color-primary)] font-bold' : 'text-gray-500 hover:text-gray-800'
+                      'px-3 py-1.5 rounded-lg capitalize font-bold transition-all text-xs cursor-pointer whitespace-nowrap',
+                      activeTab === t ? 'bg-white shadow-xs text-[#E63946]' : 'text-slate-600 hover:text-slate-900'
                     )}
                   >
                     {t}
@@ -211,7 +211,7 @@ export default function Onboarding() {
         {/* Table / Responsive Cards */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="text-gray-500 uppercase bg-gray-50/80 border-b border-[var(--color-border)] font-semibold text-[10px]">
+            <thead className="text-slate-500 uppercase bg-slate-50/80 border-b border-slate-200 font-bold text-[11px] whitespace-nowrap">
               <tr>
                 <th className="px-4 py-3">Employee</th>
                 <th className="px-4 py-3">ID & Location</th>
@@ -221,51 +221,51 @@ export default function Onboarding() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
+            <tbody className="divide-y divide-slate-100">
               {filteredEmployees.map((emp) => (
-                <tr key={emp.employeeId} className="hover:bg-[#D8F5FA]/20 transition-colors">
-                  <td className="px-4 py-3.5">
+                <tr key={emp.employeeId} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-4 py-3.5 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <EmployeeAvatar emp={emp} size="sm" shape="circle" />
                       <div>
-                        <p className="font-bold text-gray-900">{emp.fullName}</p>
-                        <p className="text-[11px] text-gray-400">{emp.qualification || 'Graduate'}</p>
+                        <p className="font-bold text-slate-900">{emp.fullName}</p>
+                        <p className="text-[11px] text-slate-400">{emp.qualification || 'Graduate'}</p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-4 py-3.5">
-                    <p className="font-mono font-bold text-[var(--color-primary)]">{emp.employeeId}</p>
-                    <p className="text-[11px] text-gray-500">{emp.district}{emp.mandal ? ` · ${emp.mandal}` : ''}</p>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <p className="font-mono font-bold text-[#E63946]">{emp.employeeId}</p>
+                    <p className="text-[11px] text-slate-500">{emp.district}{emp.mandal ? ` · ${emp.mandal}` : ''}</p>
                   </td>
 
-                  <td className="px-4 py-3.5">
-                    <p className="text-gray-800">{emp.email}</p>
-                    <p className="text-[11px] text-gray-400 font-mono">+91 {emp.phone}</p>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <p className="text-slate-800 font-medium">{emp.email}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">+91 {emp.phone}</p>
                   </td>
 
-                  <td className="px-4 py-3.5 text-gray-500">
+                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">
                     {emp.createdDate}
                   </td>
 
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5 whitespace-nowrap">
                     <StatusBadge status={emp.onboardingStatus || 'Pending Offer'} />
                   </td>
 
-                  <td className="px-4 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right whitespace-nowrap">
                     {emp.hasOffer ? (
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-[11px] px-2.5"
+                          className="h-8 text-xs font-bold px-3 rounded-xl border-slate-300 hover:bg-slate-100 text-slate-700 shadow-2xs whitespace-nowrap"
                           onClick={() => navigate(`/admin/onboarding/${emp.employeeId}`)}
                         >
                           Timeline
                         </Button>
                         <Button
                           size="sm"
-                          className="h-7 text-[11px] px-2.5"
+                          className="h-8 text-xs font-bold px-3 rounded-xl bg-[#E63946] hover:bg-[#d62839] text-white shadow-xs whitespace-nowrap"
                           onClick={() => navigate(`/admin/offers/${emp.offerId}`)}
                         >
                           View Offer
@@ -274,7 +274,7 @@ export default function Onboarding() {
                     ) : (
                       <Button
                         size="sm"
-                        className="h-7 text-[11px] px-3 bg-[var(--color-primary)]"
+                        className="h-8 text-xs font-bold px-3.5 rounded-xl bg-[#E63946] hover:bg-[#d62839] text-white shadow-xs whitespace-nowrap"
                         icon={ArrowRight}
                         onClick={() => navigate(`/admin/onboarding/create?employeeId=${emp.employeeId}`)}
                       >
