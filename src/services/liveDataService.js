@@ -310,9 +310,21 @@ export const liveDataService = {
   },
 
   async punchCheckIn(employeeId, locationName = 'Field Office', coordinates = null) {
+    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const records = await this.getAttendance(employeeId);
+    
+    // Check if a record already exists for today
+    const existingToday = records.find(r => r.punch_date === todayStr);
+
+    if (existingToday) {
+      if (existingToday.check_out_time && existingToday.check_out_time !== '-- : --' && existingToday.check_out_time !== '--:--') {
+        throw new Error('You have already completed your daily shift (1 punch-in & 1 punch-out allowed per day). Next punch available tomorrow.');
+      }
+      return { success: true, data: existingToday, alreadyActive: true };
+    }
+
     const now = new Date();
     const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
 
     // Determine status (Late if after 09:30 AM)
     const hours = now.getHours();
@@ -350,70 +362,126 @@ export const liveDataService = {
     return { success: true, data: newPunch };
   },
 
-  async punchCheckOut(employeeId) {
+  async punchCheckOut(employeeId, options = { force: false }) {
+    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const records = await this.getAttendance(employeeId);
+    const openPunch = records.find(r => r.punch_date === todayStr && (r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time));
+
+    if (!openPunch) {
+      const completedPunch = records.find(r => r.punch_date === todayStr && r.check_out_time && r.check_out_time !== '-- : --' && r.check_out_time !== '--:--');
+      if (completedPunch) {
+        throw new Error('You have already completed your punch-out for today.');
+      }
+      throw new Error('No active punch-in found for today. Please punch in first.');
+    }
+
     const now = new Date();
     const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const todayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    const checkInDate = new Date(openPunch.created_at || now);
+    const diffMs = Math.max(0, now.getTime() - checkInDate.getTime());
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const effectiveHours = `${diffHours}h ${diffMins.toString().padStart(2, '0')}m`;
 
-    let effectiveHours = '8h 00m';
+    const MANDATORY_SHIFT_SECONDS = 8 * 3600; // 8 hours mandatory
+    const elapsedSeconds = Math.floor(diffMs / 1000);
+
+    // 8-hour mandatory rule verification
+    if (elapsedSeconds < MANDATORY_SHIFT_SECONDS && !options.force) {
+      const remainingSec = MANDATORY_SHIFT_SECONDS - elapsedSeconds;
+      const remHours = Math.floor(remainingSec / 3600);
+      const remMins = Math.floor((remainingSec % 3600) / 60);
+      return {
+        success: false,
+        requiresEarlyConfirm: true,
+        remainingTime: `${remHours}h ${remMins.toString().padStart(2, '0')}m`,
+        elapsedTime: `${diffHours}h ${diffMins.toString().padStart(2, '0')}m`,
+        message: `8 Hours Mandatory Shift: You have only worked ${diffHours}h ${diffMins}m. 8 hours of duty is mandatory before punching out (Remaining: ${remHours}h ${remMins}m).`
+      };
+    }
 
     if (isSupabaseConfigured) {
       try {
-        // Find today's open punch record
-        const { data: openPunch } = await supabase
+        await supabase
           .from('attendance_records')
-          .select('*')
-          .eq('employee_id', employeeId)
-          .eq('punch_date', todayStr)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (openPunch) {
-          const checkInDate = new Date(openPunch.created_at || now);
-          const diffMs = Math.max(0, now.getTime() - checkInDate.getTime());
-          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-          effectiveHours = `${diffHours}h ${diffMins.toString().padStart(2, '0')}m`;
-
-          await supabase
-            .from('attendance_records')
-            .update({
-              check_out_time: nowTime,
-              effective_hours: effectiveHours,
-              updated_at: now.toISOString()
-            })
-            .eq('id', openPunch.id);
-        } else {
-          await supabase
-            .from('attendance_records')
-            .update({ check_out_time: nowTime, effective_hours: effectiveHours })
-            .eq('employee_id', employeeId)
-            .eq('punch_date', todayStr);
-        }
+          .update({
+            check_out_time: nowTime,
+            effective_hours: effectiveHours,
+            updated_at: now.toISOString()
+          })
+          .eq('id', openPunch.id);
       } catch (err) {
         console.warn('Supabase punchCheckOut error:', err);
       }
     }
 
-    const idx = _attendance.findIndex(a => a.employee_id === employeeId && a.punch_date === todayStr);
+    const idx = _attendance.findIndex(a => a.id === openPunch.id || (a.employee_id === employeeId && a.punch_date === todayStr));
     if (idx !== -1) {
       _attendance[idx] = { ..._attendance[idx], check_out_time: nowTime, effective_hours: effectiveHours };
     }
-    return { success: true, check_out_time: nowTime, effective_hours: effectiveHours };
+    return { 
+      success: true, 
+      check_out_time: nowTime, 
+      effective_hours: effectiveHours,
+      completedToday: true
+    };
   },
 
   async getLiveShiftStatus(employeeId) {
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
     const records = await this.getAttendance(employeeId);
-    const todayRecord = records.find(r => (r.punch_date === todayStr || r.isToday) && (r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time));
     
-    if (todayRecord) {
-      const checkInDate = new Date(todayRecord.created_at || Date.now());
+    const todayRecords = records.filter(r => r.punch_date === todayStr);
+    const openRecord = todayRecords.find(r => r.check_out_time === '-- : --' || r.check_out_time === '--:--' || !r.check_out_time);
+    const completedRecord = todayRecords.find(r => r.check_out_time && r.check_out_time !== '-- : --' && r.check_out_time !== '--:--');
+
+    const MANDATORY_SHIFT_SECONDS = 8 * 3600; // 8 hours
+
+    if (openRecord) {
+      const checkInDate = new Date(openRecord.created_at || Date.now());
       const elapsedSeconds = Math.max(0, Math.floor((Date.now() - checkInDate.getTime()) / 1000));
-      return { isCheckedIn: true, todayRecord, elapsedSeconds };
+      const remainingSeconds = Math.max(0, MANDATORY_SHIFT_SECONDS - elapsedSeconds);
+      const canPunchOut = elapsedSeconds >= MANDATORY_SHIFT_SECONDS;
+      const progressPercent = Math.min(100, Math.round((elapsedSeconds / MANDATORY_SHIFT_SECONDS) * 100));
+
+      return {
+        status: 'IN_PROGRESS',
+        isCheckedIn: true,
+        isCompletedToday: false,
+        todayRecord: openRecord,
+        elapsedSeconds,
+        remainingSeconds,
+        canPunchOut,
+        progressPercent,
+        mandatorySeconds: MANDATORY_SHIFT_SECONDS
+      };
     }
-    return { isCheckedIn: false, todayRecord: null, elapsedSeconds: 0 };
+
+    if (completedRecord) {
+      return {
+        status: 'COMPLETED',
+        isCheckedIn: false,
+        isCompletedToday: true,
+        todayRecord: completedRecord,
+        elapsedSeconds: 0,
+        remainingSeconds: 0,
+        canPunchOut: false,
+        progressPercent: 100,
+        mandatorySeconds: MANDATORY_SHIFT_SECONDS
+      };
+    }
+
+    return {
+      status: 'NOT_PUNCHED',
+      isCheckedIn: false,
+      isCompletedToday: false,
+      todayRecord: null,
+      elapsedSeconds: 0,
+      remainingSeconds: MANDATORY_SHIFT_SECONDS,
+      canPunchOut: false,
+      progressPercent: 0,
+      mandatorySeconds: MANDATORY_SHIFT_SECONDS
+    };
   },
 
   async requestRegularization(employeeId, { date, category, reason }) {

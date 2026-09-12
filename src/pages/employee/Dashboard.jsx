@@ -40,11 +40,22 @@ export default function EmployeeDashboard() {
   // Live timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+  const [shiftStatus, setShiftStatus] = useState({
+    status: 'NOT_PUNCHED',
+    isCheckedIn: false,
+    isCompletedToday: false,
+    todayRecord: null,
+    elapsedSeconds: 0,
+    remainingSeconds: 28800,
+    canPunchOut: false,
+    progressPercent: 0
+  });
+
   const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-001';
 
   const loadLiveData = async () => {
     try {
-      const [empData, taskData, attData, notifData, shiftStatus] = await Promise.all([
+      const [empData, taskData, attData, notifData, liveShift] = await Promise.all([
         liveDataService.getEmployeeById(currentEmpId),
         liveDataService.getWorkTasks(currentEmpId),
         liveDataService.getAttendance(currentEmpId),
@@ -57,12 +68,10 @@ export default function EmployeeDashboard() {
       if (attData) setAttendance(attData);
       if (notifData) setNotifications(notifData);
 
-      if (shiftStatus.isCheckedIn) {
-        setIsCheckedIn(true);
-        setElapsedSeconds(shiftStatus.elapsedSeconds);
-      } else {
-        setIsCheckedIn(false);
-        setElapsedSeconds(0);
+      if (liveShift) {
+        setShiftStatus(liveShift);
+        setIsCheckedIn(liveShift.isCheckedIn);
+        setElapsedSeconds(liveShift.elapsedSeconds);
       }
     } catch (err) {
       console.error('Error loading dashboard live data:', err);
@@ -80,7 +89,18 @@ export default function EmployeeDashboard() {
     let interval = null;
     if (isCheckedIn) {
       interval = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
+        setElapsedSeconds(prev => {
+          const next = prev + 1;
+          const prog = Math.min(100, Math.round((next / 28800) * 100));
+          setShiftStatus(s => ({
+            ...s,
+            elapsedSeconds: next,
+            remainingSeconds: Math.max(0, 28800 - next),
+            canPunchOut: next >= 28800,
+            progressPercent: prog
+          }));
+          return next;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -99,11 +119,20 @@ export default function EmployeeDashboard() {
   };
 
   const handleToggleCheckIn = async () => {
+    if (shiftStatus.isCompletedToday) {
+      showToast('Daily shift completed (1 punch-in and 1 punch-out allowed per day). Next punch available tomorrow.');
+      return;
+    }
+
     try {
       if (isCheckedIn) {
         const res = await liveDataService.punchCheckOut(currentEmpId);
+        if (res.requiresEarlyConfirm) {
+          showToast(res.message);
+          return;
+        }
         setIsCheckedIn(false);
-        showToast(`Checked out at ${res.check_out_time || 'now'}! Shift time recorded.`);
+        showToast(`Checked out at ${res.check_out_time || 'now'}! Shift time recorded (${res.effective_hours}).`);
       } else {
         const loc = employee?.mandal || employee?.mandal_id 
           ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})` 
@@ -111,12 +140,12 @@ export default function EmployeeDashboard() {
         const res = await liveDataService.punchCheckIn(currentEmpId, loc);
         setIsCheckedIn(true);
         setElapsedSeconds(0);
-        showToast(`Checked in at ${res.data?.check_in_time || 'now'}! Shift active.`);
+        showToast(`Checked in at ${res.data?.check_in_time || 'now'}! 8-hour shift active.`);
       }
       await loadLiveData();
     } catch (err) {
       console.error('Punch toggle error:', err);
-      showToast('Could not record punch.');
+      showToast(err.message || 'Could not record punch.');
     }
   };
 
@@ -195,34 +224,63 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          {/* Shift Tracker Widget */}
+          {/* Shift Tracker Widget with 8-Hour Goal */}
           <div className="bg-white/10 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-white/15 shadow-inner flex flex-col sm:flex-row sm:items-center gap-5 shrink-0">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${isCheckedIn ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  shiftStatus.isCompletedToday 
+                    ? 'bg-blue-300' 
+                    : isCheckedIn 
+                      ? 'bg-emerald-400 animate-pulse' 
+                      : 'bg-slate-400'
+                }`} />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                  {isCheckedIn ? 'Shift In Progress' : 'Currently Off-Duty'}
+                  {shiftStatus.isCompletedToday 
+                    ? 'Shift Completed Today' 
+                    : isCheckedIn 
+                      ? (shiftStatus.canPunchOut ? '8h Goal Met • Active' : 'Shift Active (8h Duty)') 
+                      : 'Currently Off-Duty'}
                 </span>
               </div>
               <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-                {isCheckedIn ? formatHours(elapsedSeconds) : '-- : -- : --'}
+                {shiftStatus.isCompletedToday 
+                  ? (shiftStatus.todayRecord?.effective_hours || '08h 00m') 
+                  : isCheckedIn 
+                    ? formatHours(elapsedSeconds) 
+                    : '-- : -- : --'}
               </p>
               <p className="text-[11px] text-slate-300">
-                {isCheckedIn ? 'Punched in • GPS Location active' : 'Click punch in to begin duty'}
+                {shiftStatus.isCompletedToday 
+                  ? `Logged today: ${shiftStatus.todayRecord?.check_in_time} - ${shiftStatus.todayRecord?.check_out_time}` 
+                  : isCheckedIn 
+                    ? (shiftStatus.canPunchOut ? '8 hours completed • Ready to punch out' : `Remaining: ${formatHours(shiftStatus.remainingSeconds)}`) 
+                    : '1 punch-in per day (8 hours mandatory)'}
               </p>
             </div>
 
             <div className="sm:border-l sm:border-white/15 sm:pl-5">
-              <button
-                onClick={handleToggleCheckIn}
-                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all shadow-lg cursor-pointer ${
-                  isCheckedIn
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
-                }`}
-              >
-                {isCheckedIn ? 'Punch Out' : 'Punch In Now'}
-              </button>
+              {shiftStatus.isCompletedToday ? (
+                <button
+                  disabled
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-white/20 text-white cursor-not-allowed border border-white/30"
+                >
+                  Shift Completed
+                </button>
+              ) : (
+                <button
+                  onClick={handleToggleCheckIn}
+                  className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all shadow-lg cursor-pointer ${
+                    isCheckedIn
+                      ? (shiftStatus.canPunchOut 
+                          ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/40 animate-pulse' 
+                          : 'bg-slate-900/90 hover:bg-slate-900 text-white')
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
+                  }`}
+                >
+                  {isCheckedIn ? (shiftStatus.canPunchOut ? 'Punch Out (8h Met)' : 'Punch Out') : 'Punch In Now'}
+                </button>
+              )}
             </div>
           </div>
         </div>

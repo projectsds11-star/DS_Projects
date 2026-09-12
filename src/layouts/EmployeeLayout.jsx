@@ -25,6 +25,9 @@ export default function EmployeeLayout() {
   const [dueTasksCount, setDueTasksCount] = useState(0);
   const [newNotifsCount, setNewNotifsCount] = useState(0);
 
+  const [isCompletedToday, setIsCompletedToday] = useState(false);
+  const [shiftHours, setShiftHours] = useState('');
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -46,7 +49,13 @@ export default function EmployeeLayout() {
         ]);
 
         if (empData) setEmployee(empData);
-        if (shiftStatus) setIsCheckedIn(shiftStatus.isCheckedIn);
+        if (shiftStatus) {
+          setIsCheckedIn(shiftStatus.isCheckedIn);
+          setIsCompletedToday(shiftStatus.isCompletedToday);
+          if (shiftStatus.todayRecord?.effective_hours) {
+            setShiftHours(shiftStatus.todayRecord.effective_hours);
+          }
+        }
         if (taskData) {
           const due = taskData.filter(t => t.status === 'Assigned' || t.status === 'In Progress' || t.status === 'Pending').length;
           setDueTasksCount(due);
@@ -63,10 +72,13 @@ export default function EmployeeLayout() {
   }, [currentEmpId, location.pathname]);
 
   const handleSidebarPunchToggle = async () => {
+    if (isCompletedToday) return;
     try {
       if (isCheckedIn) {
-        await liveDataService.punchCheckOut(currentEmpId);
+        const res = await liveDataService.punchCheckOut(currentEmpId, { force: true });
         setIsCheckedIn(false);
+        setIsCompletedToday(true);
+        if (res.effective_hours) setShiftHours(res.effective_hours);
       } else {
         const loc = employee?.mandal || employee?.mandal_id 
           ? `${employee.mandal || employee.mandal_id} Field Office` 
@@ -195,28 +207,46 @@ export default function EmployeeLayout() {
             <div className="flex items-center gap-2.5">
               <span className={cn(
                 "w-2.5 h-2.5 rounded-full shrink-0",
-                isCheckedIn ? "bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" : "bg-white/40"
+                isCompletedToday 
+                  ? "bg-blue-300 shadow-sm" 
+                  : isCheckedIn 
+                    ? "bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" 
+                    : "bg-white/40"
               )} />
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate">
-                  {isCheckedIn ? 'Currently Clocked In' : 'Clocked Out'}
+                  {isCompletedToday 
+                    ? 'Shift Completed' 
+                    : isCheckedIn 
+                      ? 'Currently Clocked In' 
+                      : 'Clocked Out'}
                 </p>
                 <p className="text-[10px] text-white/60">
-                  {isCheckedIn ? 'Live Shift Active' : 'Shift ended'}
+                  {isCompletedToday 
+                    ? `Logged: ${shiftHours || '8h 00m'}` 
+                    : isCheckedIn 
+                      ? '8h Shift Active' 
+                      : 'Shift ended'}
                 </p>
               </div>
             </div>
-            <button 
-              onClick={handleSidebarPunchToggle}
-              className={cn(
-                "text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                isCheckedIn 
-                  ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
-                  : "bg-[#00B4D8] text-white hover:bg-[#48CAE4] shadow-xs"
-              )}
-            >
-              {isCheckedIn ? 'Out' : 'In'}
-            </button>
+            {isCompletedToday ? (
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white/90 border border-white/20">
+                Done
+              </span>
+            ) : (
+              <button 
+                onClick={handleSidebarPunchToggle}
+                className={cn(
+                  "text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer",
+                  isCheckedIn 
+                    ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                    : "bg-[#00B4D8] text-white hover:bg-[#48CAE4] shadow-xs"
+                )}
+              >
+                {isCheckedIn ? 'Out' : 'In'}
+              </button>
+            )}
           </div>
 
           {/* User Card at bottom */}
