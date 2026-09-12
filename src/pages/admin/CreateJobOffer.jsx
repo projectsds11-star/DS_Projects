@@ -414,9 +414,10 @@ export default function CreateJobOffer() {
               type="button"
               size="sm"
               onClick={handleNextStep}
-              className="text-xs font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] shadow-xs whitespace-nowrap"
+              rightIcon={currentStep < 3 ? ArrowRight : undefined}
+              className="text-xs font-bold bg-[#E63946] hover:bg-[#d62839] shadow-xs whitespace-nowrap"
             >
-              {currentStep < 3 ? 'Next Step →' : 'Review & Send'}
+              {currentStep < 3 ? 'Next Step' : 'Review & Send'}
             </Button>
           </div>
         </div>
@@ -749,10 +750,10 @@ export default function CreateJobOffer() {
               type="button"
               size="sm"
               onClick={handleNextStep}
-              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-4 sm:px-6 flex items-center justify-center gap-2 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
+              rightIcon={ArrowRight}
+              className="text-xs h-10 font-bold bg-[#E63946] hover:bg-[#d62839] px-4 sm:px-6 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
             >
-              <span>Continue to Step {currentStep + 1}</span>
-              <ArrowRight className="h-4 w-4 shrink-0" />
+              Continue to Step {currentStep + 1}
             </Button>
           ) : (
             <Button
@@ -760,7 +761,7 @@ export default function CreateJobOffer() {
               size="sm"
               onClick={onTriggerSend}
               icon={Send}
-              className="text-xs h-10 font-bold bg-[var(--color-primary)] hover:bg-[#1a3375] px-6 sm:px-8 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
+              className="text-xs h-10 font-bold bg-[#E63946] hover:bg-[#d62839] px-6 sm:px-8 shadow-xs whitespace-nowrap flex-1 sm:flex-initial"
             >
               Send Offer Letter
             </Button>
