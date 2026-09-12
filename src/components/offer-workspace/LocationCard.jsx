@@ -55,15 +55,19 @@ export default function LocationCard({
       {/* Spacious Location Summary Banner */}
       {district && mandal && (
         <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-150">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold shrink-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
               <MapPin className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-[var(--color-navy)] text-xs sm:text-sm truncate">
-                Reporting Mandal: {mandal} · District: {district}
-              </p>
-              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap text-xs sm:text-sm">
+                <span className="text-gray-500 font-medium">Reporting Mandal:</span>
+                <span className="font-bold text-[var(--color-navy)]">{mandal}</span>
+                <span className="text-gray-400 hidden sm:inline">·</span>
+                <span className="text-gray-500 font-medium">District:</span>
+                <span className="font-bold text-[var(--color-navy)]">{district}</span>
+              </div>
+              <p className="text-[11px] text-gray-500">
                 State: Andhra Pradesh · Country: India
               </p>
             </div>

@@ -67,35 +67,40 @@ export default function DistrictSelect({
           disabled={disabled || loading}
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'flex h-11 w-full items-center justify-between rounded-xl border bg-white px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer',
+            'flex h-12 w-full items-center justify-between rounded-xl border bg-gray-50/80 hover:bg-white px-3.5 py-2.5 text-xs text-left transition shadow-2xs cursor-pointer min-w-0',
             error
               ? 'border-red-400 ring-2 ring-red-100 bg-red-50/20'
-              : 'border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+              : 'border-[var(--color-border)] hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]',
             disabled && 'bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 shadow-none',
-            isOpen && 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+            isOpen && 'bg-white ring-2 ring-[var(--color-primary)] border-transparent'
           )}
         >
-          <div className="flex items-center gap-2.5 truncate">
-            <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 truncate">
+            <div className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+              selectedObj ? 'bg-blue-100 text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
+            )}>
+              <MapPin className="h-4 w-4" />
+            </div>
             {loading ? (
-              <span className="text-slate-400 text-xs flex items-center gap-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading districts...
+              <span className="text-gray-400 text-xs flex items-center gap-1.5 truncate">
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Loading districts...
               </span>
             ) : selectedObj ? (
-              <span className="font-semibold text-slate-900 truncate text-xs sm:text-sm">
+              <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
                 {selectedObj.name}
-                <span className="text-xs text-slate-400 font-normal ml-1.5">
+                <span className="text-xs text-gray-500 font-normal ml-1.5">
                   ({selectedObj.mandalCount || (selectedObj.mandals ? selectedObj.mandals.length : 0)} Mandals)
                 </span>
               </span>
             ) : (
-              <span className="text-slate-400 text-xs font-normal">{placeholder}</span>
+              <span className="text-gray-400 text-xs font-normal truncate">{placeholder}</span>
             )}
           </div>
           <ChevronDown
             className={cn(
-              'h-4 w-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2',
-              isOpen && 'rotate-180 text-blue-600'
+              'h-4 w-4 text-gray-400 transition-transform duration-200 shrink-0 ml-2',
+              isOpen && 'rotate-180 text-[var(--color-primary)]'
             )}
           />
         </button>
