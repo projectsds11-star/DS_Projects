@@ -41,7 +41,13 @@ import EmployeeSettings from '../pages/employee/Settings';
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/admin/login" replace />,
+    element: (() => {
+      const hostname = window.location.hostname;
+      if (hostname.includes('candidate') || hostname.includes('employee')) {
+        return <Navigate to="/employee/login" replace />;
+      }
+      return <Navigate to="/admin/login" replace />;
+    })(),
   },
   {
     path: '/admin/login',
