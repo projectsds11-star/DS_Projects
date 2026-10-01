@@ -35,6 +35,9 @@ const ADMIN_EMAILS = [
   'projectsds11@gmail.com',
 ];
 
+// ── In-Memory OTP Store Fallback for Admins ─────────────────────────────────
+const adminOtpStore = new Map();
+
 // ─── REQUEST OTP ────────────────────────────────────────────────────────────
 export const requestOtp = async (req, res) => {
   try {
@@ -83,6 +86,9 @@ export const requestOtp = async (req, res) => {
     } catch (dbErr) {
       console.error('[Auth Service] Supabase DB exception:', dbErr.message);
     }
+
+    // Fallback: Store OTP in-memory
+    adminOtpStore.set(formattedEmail, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
     // Dispatch Email via Nodemailer
     const transporter = getTransporter();
@@ -148,12 +154,43 @@ export const verifyOtp = async (req, res) => {
     const formattedEmail = email.toLowerCase().trim();
     const cleanOtp = String(otp).trim();
 
-    // Fetch OTP from Supabase
+    // 1. Check in-memory store first
+    const memRecord = adminOtpStore.get(formattedEmail);
+    if (memRecord && memRecord.otp === cleanOtp) {
+      if (Date.now() > memRecord.expiresAt) {
+        adminOtpStore.delete(formattedEmail);
+        return res.status(400).json({
+          success: false,
+          error: 'Verification code has expired. Please request a new one.',
+          message: 'Verification code has expired. Please request a new one.',
+        });
+      }
+      
+      // Valid OTP
+      adminOtpStore.delete(formattedEmail);
+      supabase.from('admin_otps').delete().eq('email', formattedEmail).catch(() => {});
+      
+      const jwtSecret = process.env.JWT_SECRET || 'DS_Projects_JWT_SuperSecret_2026_#Andhra';
+      const token = jwt.sign(
+        { email: formattedEmail, role: 'admin' },
+        jwtSecret,
+        { expiresIn: '7d' }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        token,
+        email: formattedEmail,
+      });
+    }
+
+    // 2. Fetch OTP from Supabase (fallback)
     const { data, error } = await supabase
       .from('admin_otps')
       .select('otp, expires_at')
       .eq('email', formattedEmail)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return res.status(400).json({
