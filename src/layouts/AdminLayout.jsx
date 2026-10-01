@@ -42,7 +42,7 @@ export default function AdminLayout() {
   
   const adminEmail = (() => {
     try {
-      const raw = localStorage.getItem('ds_admin_session');
+      const raw = sessionStorage.getItem('ds_admin_session');
       if (!raw) return 'admin@dsprojects.com';
       const session = JSON.parse(raw);
       return session?.email || 'admin@dsprojects.com';
@@ -54,8 +54,8 @@ export default function AdminLayout() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const handleLogout = async () => {
-    localStorage.removeItem('ds_admin_token');
-    localStorage.removeItem('ds_admin_session');
+    sessionStorage.removeItem('ds_admin_token');
+    sessionStorage.removeItem('ds_admin_session');
     try { await supabase.auth.signOut(); } catch (e) {}
     navigate('/admin/login', { replace: true });
   };

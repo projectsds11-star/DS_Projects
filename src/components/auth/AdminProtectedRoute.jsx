@@ -10,15 +10,15 @@ export default function AdminProtectedRoute({ children }) {
   useEffect(() => {
     const checkSession = () => {
       try {
-        const token = localStorage.getItem('ds_admin_token');
-        const session = localStorage.getItem('ds_admin_session');
+        const token = sessionStorage.getItem('ds_admin_token');
+        const session = sessionStorage.getItem('ds_admin_session');
         
         if (token && session) {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);
-          localStorage.removeItem('ds_admin_token');
-          localStorage.removeItem('ds_admin_session');
+          sessionStorage.removeItem('ds_admin_token');
+          sessionStorage.removeItem('ds_admin_session');
         }
       } catch (error) {
         console.error('Admin session check failed', error);

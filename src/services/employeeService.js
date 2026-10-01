@@ -12,7 +12,7 @@ import { AP_DISTRICT_MANDAL_MAP } from '../data/andhraPradeshMasterData';
 const API_BASE = '/api/admin/employees';
 
 function getAdminToken() {
-  return localStorage.getItem('ds_admin_token') || '';
+  return sessionStorage.getItem('ds_admin_token') || '';
 }
 
 function authHeaders() {

@@ -185,8 +185,8 @@ export default function AdminLogin() {
         throw new Error(data.error || data.message || 'Invalid or expired verification code.');
       }
 
-      localStorage.setItem('ds_admin_token', data.token);
-      localStorage.setItem('ds_admin_session', JSON.stringify({ email: data.email }));
+      sessionStorage.setItem('ds_admin_token', data.token);
+      sessionStorage.setItem('ds_admin_session', JSON.stringify({ email: data.email }));
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Verification failed. Please check the code.');
