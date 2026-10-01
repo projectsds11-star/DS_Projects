@@ -154,45 +154,34 @@ export const verifyOtp = async (req, res) => {
     const formattedEmail = email.toLowerCase().trim();
     const cleanOtp = String(otp).trim();
 
+    let foundOtp = false;
+    let isExpired = false;
+    let isMatch = false;
+
     // 1. Check in-memory store first
     const memRecord = adminOtpStore.get(formattedEmail);
-    if (memRecord && memRecord.otp === cleanOtp) {
-      if (Date.now() > memRecord.expiresAt) {
-        adminOtpStore.delete(formattedEmail);
-        return res.status(400).json({
-          success: false,
-          error: 'Verification code has expired. Please request a new one.',
-          message: 'Verification code has expired. Please request a new one.',
-        });
-      }
-      
-      // Valid OTP
-      adminOtpStore.delete(formattedEmail);
-      supabase.from('admin_otps').delete().eq('email', formattedEmail).catch(() => {});
-      
-      const jwtSecret = process.env.JWT_SECRET || 'DS_Projects_JWT_SuperSecret_2026_#Andhra';
-      const token = jwt.sign(
-        { email: formattedEmail, role: 'admin' },
-        jwtSecret,
-        { expiresIn: '7d' }
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        token,
-        email: formattedEmail,
-      });
+    if (memRecord) {
+      foundOtp = true;
+      isExpired = Date.now() > memRecord.expiresAt;
+      isMatch = memRecord.otp === cleanOtp;
     }
 
     // 2. Fetch OTP from Supabase (fallback)
-    const { data, error } = await supabase
-      .from('admin_otps')
-      .select('otp, expires_at')
-      .eq('email', formattedEmail)
-      .maybeSingle();
+    if (!foundOtp || (!isMatch && !isExpired)) {
+      const { data, error } = await supabase
+        .from('admin_otps')
+        .select('otp, expires_at')
+        .eq('email', formattedEmail)
+        .maybeSingle();
 
-    if (error || !data) {
+      if (!error && data) {
+        foundOtp = true;
+        isExpired = new Date() > new Date(data.expires_at);
+        isMatch = data.otp === cleanOtp;
+      }
+    }
+
+    if (!foundOtp) {
       return res.status(400).json({
         success: false,
         error: 'No active OTP requested for this email or it has expired.',
@@ -200,9 +189,9 @@ export const verifyOtp = async (req, res) => {
       });
     }
 
-    // Check expiry
-    if (new Date() > new Date(data.expires_at)) {
-      await supabase.from('admin_otps').delete().eq('email', formattedEmail);
+    if (isExpired) {
+      adminOtpStore.delete(formattedEmail);
+      supabase.from('admin_otps').delete().eq('email', formattedEmail).catch(() => {});
       return res.status(400).json({
         success: false,
         error: 'Verification code has expired. Please request a new one.',
@@ -210,8 +199,7 @@ export const verifyOtp = async (req, res) => {
       });
     }
 
-    // Check OTP value
-    if (data.otp !== cleanOtp) {
+    if (!isMatch) {
       return res.status(400).json({
         success: false,
         error: 'Invalid authentication code. Please check and try again.',
@@ -220,6 +208,7 @@ export const verifyOtp = async (req, res) => {
     }
 
     // ✅ OTP correct — delete it so it can't be reused
+    adminOtpStore.delete(formattedEmail);
     await supabase.from('admin_otps').delete().eq('email', formattedEmail);
 
     // Generate JWT
@@ -502,31 +491,34 @@ export const verifyEmployeePasswordOtp = async (req, res) => {
     const formattedEmail = email.toLowerCase().trim();
     const cleanOtp = String(otp).trim();
 
-    // Check in-memory store
+    let foundOtp = false;
+    let isExpired = false;
+    let isMatch = false;
+
+    // 1. Check in-memory store
     const memRecord = employeeOtpStore.get(formattedEmail);
-    if (memRecord && memRecord.otp === cleanOtp) {
-      if (Date.now() > memRecord.expiresAt) {
-        employeeOtpStore.delete(formattedEmail);
-        return res.status(400).json({
-          success: false,
-          error: 'Verification code has expired. Please request a new one.',
-          message: 'Verification code has expired. Please request a new one.',
-        });
-      }
-      return res.status(200).json({
-        success: true,
-        message: 'OTP verified successfully.',
-      });
+    if (memRecord) {
+      foundOtp = true;
+      isExpired = Date.now() > memRecord.expiresAt;
+      isMatch = memRecord.otp === cleanOtp;
     }
 
-    // Check Supabase admin_otps table
-    const { data, error } = await supabase
-      .from('admin_otps')
-      .select('otp, expires_at')
-      .eq('email', formattedEmail)
-      .maybeSingle();
+    // 2. Check Supabase admin_otps table (fallback)
+    if (!foundOtp || (!isMatch && !isExpired)) {
+      const { data, error } = await supabase
+        .from('admin_otps')
+        .select('otp, expires_at')
+        .eq('email', formattedEmail)
+        .maybeSingle();
 
-    if (error || !data) {
+      if (!error && data) {
+        foundOtp = true;
+        isExpired = new Date() > new Date(data.expires_at);
+        isMatch = data.otp === cleanOtp;
+      }
+    }
+
+    if (!foundOtp) {
       return res.status(400).json({
         success: false,
         error: 'No active OTP requested for this email or it has expired.',
@@ -534,8 +526,9 @@ export const verifyEmployeePasswordOtp = async (req, res) => {
       });
     }
 
-    if (new Date() > new Date(data.expires_at)) {
-      await supabase.from('admin_otps').delete().eq('email', formattedEmail);
+    if (isExpired) {
+      employeeOtpStore.delete(formattedEmail);
+      supabase.from('admin_otps').delete().eq('email', formattedEmail).catch(() => {});
       return res.status(400).json({
         success: false,
         error: 'Verification code has expired. Please request a new one.',
@@ -543,7 +536,7 @@ export const verifyEmployeePasswordOtp = async (req, res) => {
       });
     }
 
-    if (data.otp !== cleanOtp) {
+    if (!isMatch) {
       return res.status(400).json({
         success: false,
         error: 'Invalid 6-digit verification code. Please check and try again.',
