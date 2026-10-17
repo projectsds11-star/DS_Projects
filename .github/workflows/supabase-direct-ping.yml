@@ -1,0 +1,57 @@
+name: Supabase Direct Keep-Alive
+
+# Backup: Pings Supabase REST API directly every 4 days
+# Works even if the Vercel deployment is down
+on:
+  schedule:
+    - cron: '0 4 */4 * *'    # Every 4 days at 04:00 UTC = 09:30 IST
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    name: Direct Supabase Ping
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Wake up Supabase project
+        env:
+          SUPABASE_URL: https://wprxkmxbuwipmymswmgq.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🚀 Waking up Supabase project..."
+          
+          # Try to do a simple count query — this resets Supabase inactivity timer
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 20 \
+            -H "apikey: $SUPABASE_SERVICE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "Prefer: count=exact" \
+            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1")
+
+          echo "Response status: $STATUS"
+
+          case $STATUS in
+            200|206)
+              echo "✅ Supabase is alive! Project active."
+              ;;
+            401|403)
+              echo "✅ Supabase is reachable (auth error expected without anon key)."
+              ;;
+            0)
+              echo "❌ Supabase is unreachable. Project may be paused."
+              echo "   → Go to https://supabase.com/dashboard to restore."
+              exit 1
+              ;;
+            *)
+              echo "⚠️ Unexpected status: $STATUS"
+              ;;
+          esac
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "📊 Keep-alive run complete at $(date -u)"
+          echo "   Next scheduled run: in ~4 days"
+          echo "   Supabase auto-pauses after: 7 days"
+          echo "   Safety margin: ✅ 3+ days buffer"

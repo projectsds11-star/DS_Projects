@@ -1,0 +1,57 @@
+name: Keep Supabase Alive
+
+# Runs every 3 days at 9:00 AM IST (3:30 AM UTC)
+# Supabase free tier pauses after 7 days — this ensures it never pauses
+on:
+  schedule:
+    - cron: '30 3 */3 * *'   # Every 3 days at 03:30 UTC = 09:00 IST
+  workflow_dispatch:           # Also allows manual trigger from GitHub UI
+
+jobs:
+  ping:
+    name: Ping Supabase via Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping deployed app health endpoint
+        run: |
+          echo "🔔 Pinging app to keep Supabase alive..."
+          RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
+            --max-time 30 \
+            https://ds-projects-eta.vercel.app/api/health)
+
+          echo "HTTP Status: $RESPONSE"
+          echo "Response body:"
+          cat response.json || true
+
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Supabase is alive and healthy!"
+          else
+            echo "⚠️ Health check returned status $RESPONSE"
+            exit 1
+          fi
+
+      - name: Also ping Supabase REST API directly (backup)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "ℹ️ SUPABASE_URL secret not set — skipping direct ping"
+            exit 0
+          fi
+
+          echo "🔔 Direct Supabase REST ping..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 15 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1")
+
+          echo "Supabase REST status: $RESPONSE"
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "406" ]; then
+            echo "✅ Supabase responding!"
+          else
+            echo "⚠️ Supabase returned $RESPONSE"
+          fi
