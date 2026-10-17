@@ -111,9 +111,28 @@ async function uploadFile(bucket, storagePath, buffer, mimetype) {
   const { error } = await supabaseAdmin.storage
     .from(bucket)
     .upload(storagePath, buffer, { contentType: mimetype, upsert: true });
-  if (error) throw new Error(`Storage upload failed [${bucket}/${storagePath}]: ${error.message}`);
+
+  if (error) {
+    const msg = error.message || '';
+    // Detect DNS / network / Supabase project-paused errors
+    if (
+      msg.includes('fetch failed') ||
+      msg.includes('ENOTFOUND') ||
+      msg.includes('ECONNREFUSED') ||
+      msg.includes('network') ||
+      msg.includes('getaddrinfo')
+    ) {
+      throw new Error(
+        '⚠️ Cannot connect to Supabase Storage. Your Supabase project is likely PAUSED (free tier pauses after 7 days of inactivity). ' +
+        'Please go to https://supabase.com/dashboard, find your project, and click "Restore project". ' +
+        'Then restart the server and try again.'
+      );
+    }
+    throw new Error(`Storage upload failed [${bucket}/${storagePath}]: ${error.message}`);
+  }
   return storagePath;
 }
+
 
 async function deleteFile(bucket, storagePath) {
   if (!storagePath) return;
@@ -447,7 +466,7 @@ export const updateEmployee = async (req, res) => {
   }
 
   const updates = {};
-  if (name) updates.full_name = name.trim();
+  if (name) { updates.full_name = name.trim(); updates.name = name.trim(); }
   if (address) updates.address = address.trim();
   if (phone) updates.phone = phone.trim();
   if (email) updates.email = email.trim().toLowerCase();

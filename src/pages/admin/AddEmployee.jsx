@@ -459,13 +459,47 @@ export default function AddEmployee() {
           {serverError && (
             <motion.div
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4"
+              className={`flex items-start gap-3 rounded-xl p-4 border ${
+                serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')
+                  ? 'bg-amber-50 border-amber-300'
+                  : 'bg-red-50 border-red-200'
+              }`}
             >
-              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{serverError}</p>
+              <AlertCircle className={`h-5 w-5 shrink-0 mt-0.5 ${
+                serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')
+                  ? 'text-amber-500'
+                  : 'text-red-500'
+              }`} />
+              <div className="flex-1">
+                <p className={`text-sm font-semibold mb-1 ${
+                  serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')
+                    ? 'text-amber-800'
+                    : 'text-red-800'
+                }`}>
+                  {serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')
+                    ? '⚠️ Database Connection Error'
+                    : 'Submission Error'}
+                </p>
+                <p className={`text-sm ${
+                  serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')
+                    ? 'text-amber-700'
+                    : 'text-red-700'
+                }`}>{serverError}</p>
+                {(serverError.includes('Supabase') || serverError.includes('paused') || serverError.includes('Cannot connect')) && (
+                  <a
+                    href="https://supabase.com/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 text-xs font-bold text-amber-800 underline hover:text-amber-900"
+                  >
+                    → Open Supabase Dashboard to restore the project
+                  </a>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
+
 
         {/* Preview Sections */}
         <div className="space-y-4">
