@@ -1,27 +1,74 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, X, RefreshCw, User } from 'lucide-react';
+import { UploadCloud, X, Loader2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
 const ACCEPTED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_SIZE_MB = 5;
+
+// ── Auto-compress using Canvas API ───────────────────────────────────────────
+// Resizes image to max 800×800 px and compresses to JPEG at quality 0.82.
+// Output is always under ~400 KB — safe for Vercel's 4.5 MB serverless limit.
+function compressImage(file, { maxWidth = 800, maxHeight = 800, quality = 0.82 } = {}) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      // Calculate new dimensions while keeping aspect ratio
+      let { width, height } = img;
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error('Compression failed'));
+          // Return a File so FormData / multer treat it correctly
+          const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressed);
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not load image'));
+    };
+
+    img.src = objectUrl;
+  });
+}
 
 export default function PhotoUploader({ value, onChange, error }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [compressing, setCompressing] = useState(false);
 
   const validate = (file) => {
     if (!ACCEPTED.includes(file.type)) {
       return 'Only JPG, PNG, or WEBP images are allowed.';
     }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      return `File size must be less than ${MAX_SIZE_MB}MB.`;
-    }
-    return null;
+    return null; // No size check — we compress automatically
   };
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
     const err = validate(file);
     if (err) {
@@ -29,8 +76,17 @@ export default function PhotoUploader({ value, onChange, error }) {
       return;
     }
     setLocalError('');
-    const preview = URL.createObjectURL(file);
-    onChange({ file, preview });
+    setCompressing(true);
+
+    try {
+      const compressed = await compressImage(file);
+      const preview = URL.createObjectURL(compressed);
+      onChange({ file: compressed, preview });
+    } catch (e) {
+      setLocalError('Could not process the image. Please try another file.');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const handleDrop = (e) => {
@@ -51,9 +107,20 @@ export default function PhotoUploader({ value, onChange, error }) {
 
   return (
     <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start">
-      {/* Preview or Upload Area */}
+      {/* Preview / Upload Box / Compressing Spinner */}
       <AnimatePresence mode="wait">
-        {value?.preview ? (
+        {compressing ? (
+          <motion.div
+            key="compressing"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-28 h-28 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 flex flex-col items-center justify-center shrink-0 gap-1"
+          >
+            <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
+            <span className="text-[10px] text-indigo-400 font-bold tracking-wide">Compressing…</span>
+          </motion.div>
+        ) : value?.preview ? (
           <motion.div
             key="preview"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -102,19 +169,21 @@ export default function PhotoUploader({ value, onChange, error }) {
       <div className="flex flex-col gap-2">
         <p className="text-sm font-bold text-slate-700">Candidate Photo</p>
         <p className="text-xs text-slate-500 font-medium leading-relaxed">
-          JPG, PNG or WEBP · Maximum {MAX_SIZE_MB}MB
-          <br />Drag & drop or click the box to upload.
+          JPG, PNG or WEBP · Any size
+          <br />Auto-compressed before upload.
+          <br />Drag &amp; drop or click the box to upload.
         </p>
         <div className="flex gap-2 flex-wrap mt-1">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
+            disabled={compressing}
+            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition disabled:opacity-50"
           >
             <UploadCloud className="h-3.5 w-3.5" />
             {value ? 'Replace Photo' : 'Browse Files'}
           </button>
-          {value && (
+          {value && !compressing && (
             <button
               type="button"
               onClick={handleRemove}
