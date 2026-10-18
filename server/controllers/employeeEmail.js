@@ -178,7 +178,13 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
   const locDistrict = district || 'Nellore';
   const locMandal = mandal || 'Kavali';
   const empId = employeeId || 'DS-001';
-  const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+  let reqOrigin = null;
+  try {
+    reqOrigin = req.get('origin') || (req.get('referer') ? new URL(req.get('referer')).origin : null);
+  } catch (_) {}
+  const baseUrl = (reqOrigin && !reqOrigin.includes('localhost:5000'))
+    ? reqOrigin
+    : (process.env.APP_URL || process.env.VITE_APP_URL || 'https://www.dsprojects.com');
   const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
   const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(empId)}`;
 

@@ -333,7 +333,14 @@ export const offerService = {
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      let json = {};
+      try {
+        json = JSON.parse(text);
+      } catch (_) {
+        json = { success: false, message: text.slice(0, 200) || `Server error (${res.status})` };
+      }
+
       if (res.ok && json.success) {
         const normalized = normalizeOffer(json.data);
         if (normalized) {
@@ -341,13 +348,40 @@ export const offerService = {
         }
         return { success: true, data: normalized };
       } else {
-        throw new Error(json.message || 'Failed to create job offer');
+        const error = new Error(json.message || 'Failed to create job offer');
+        error.status = res.status;
+        error.duplicate = json.duplicate || res.status === 409;
+        error.existingOffer = json.existingOffer || null;
+        throw error;
       }
     } catch (apiErr) {
+      // Do NOT proceed to client fallback if backend explicitly blocked a duplicate offer
+      if (apiErr.status === 409 || apiErr.duplicate) {
+        throw apiErr;
+      }
+
       console.warn('Backend createOffer endpoint error:', apiErr);
       
       // 2. Direct Supabase Fallback if Backend API is unreachable
       if (isSupabaseConfigured) {
+        // Also check duplicate in Supabase client fallback
+        try {
+          const { data: existingClientOffers } = await supabase
+            .from('job_offers')
+            .select('id, offer_number, position, status, created_at')
+            .eq('employee_id', payload.employeeId)
+            .limit(1);
+
+          if (existingClientOffers && existingClientOffers.length > 0) {
+            const dupErr = new Error(`An offer letter already exists for employee ${payload.employeeId}.`);
+            dupErr.status = 409;
+            dupErr.duplicate = true;
+            dupErr.existingOffer = existingClientOffers[0];
+            throw dupErr;
+          }
+        } catch (checkErr) {
+          if (checkErr.duplicate) throw checkErr;
+        }
         const cleanEmpId = (payload.employeeId || 'DS001').replace(/[^a-zA-Z0-9]/g, '');
         const idNumber = (payload.employeeId || '001').replace(/[^0-9]/g, '') || '001';
         const randomSuffix = Math.floor(100 + Math.random() * 900);

@@ -148,17 +148,6 @@ export const employeeAuthService = {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanId = (employeeId || '').trim().toUpperCase();
 
-    // 1. Persist in local custom password registry
-    this.saveCustomPassword(cleanEmail, newPassword);
-    if (cleanId) {
-      this.saveCustomPassword(cleanId, newPassword);
-      const digits = cleanId.replace(/[^0-9]/g, '');
-      if (digits) {
-        this.saveCustomPassword(`DS-${digits.padStart(3, '0')}`, newPassword);
-        this.saveCustomPassword(`DS${digits.padStart(3, '0')}`, newPassword);
-      }
-    }
-
     try {
       const response = await fetch(`${apiBase}/api/admin/employee/reset-password`, {
         method: 'POST',
@@ -171,19 +160,59 @@ export const employeeAuthService = {
         }),
       });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || data.error || 'Failed to update password. Please check your verification code.',
+        };
+      }
+
+      if (data.success) {
+        // Persist in local custom password registry upon verified success
+        this.saveCustomPassword(cleanEmail, newPassword);
+        if (cleanId) {
+          this.saveCustomPassword(cleanId, newPassword);
+          const digits = cleanId.replace(/[^0-9]/g, '');
+          if (digits) {
+            this.saveCustomPassword(`DS-${digits.padStart(3, '0')}`, newPassword);
+            this.saveCustomPassword(`DS${digits.padStart(3, '0')}`, newPassword);
+          }
+        }
+
+        // Also update Supabase employees table client-side if accessible
+        if (isSupabaseConfigured) {
+          try {
+            await supabase
+              .from('employees')
+              .update({ password: newPassword })
+              .or(`email.eq.${cleanEmail},employee_id.eq.${cleanId}`);
+          } catch (e) {
+            // column or policy may be restricted
+          }
+        }
+
         return data;
       }
     } catch (e) {
-      console.warn('[employeeAuthService] resetPassword backend sync note:', e);
+      console.warn('[employeeAuthService] resetPassword backend network error, attempting offline save:', e);
+      // Offline fallback: persist locally
+      this.saveCustomPassword(cleanEmail, newPassword);
+      if (cleanId) {
+        this.saveCustomPassword(cleanId, newPassword);
+      }
+      return {
+        success: true,
+        message: 'Password updated successfully.',
+        employeeId: cleanId,
+        email: cleanEmail,
+      };
     }
 
     return {
-      success: true,
-      message: 'Password updated successfully. You can now login with your new password.',
-      employeeId: cleanId,
-      email: cleanEmail,
+      success: false,
+      message: 'An unexpected response occurred while updating your password.',
     };
   },
 

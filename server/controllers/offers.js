@@ -199,7 +199,13 @@ export const createOffer = async (req, res) => {
 
     if (status !== 'Draft') {
       try {
-        const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+        let reqOrigin = null;
+        try {
+          reqOrigin = req.get('origin') || (req.get('referer') ? new URL(req.get('referer')).origin : null);
+        } catch (_) {}
+        const baseUrl = (reqOrigin && !reqOrigin.includes('localhost:5000'))
+          ? reqOrigin
+          : (process.env.APP_URL || process.env.VITE_APP_URL || 'https://www.dsprojects.com');
         const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
         const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(employeeId)}`;
         const role = position || 'Mandal Co-ordinator';
@@ -638,7 +644,13 @@ export const resendOffer = async (req, res) => {
     const normalizedName = candName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '') || 'candidate';
     const corporateUsername = `${normalizedName}${idNumber}@dsprojects`;
     const generatedPassword = `DS@${idNumber}!2026`;
-    const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+    let reqOrigin = null;
+    try {
+      reqOrigin = req.get('origin') || (req.get('referer') ? new URL(req.get('referer')).origin : null);
+    } catch (_) {}
+    const baseUrl = (reqOrigin && !reqOrigin.includes('localhost:5000'))
+      ? reqOrigin
+      : (process.env.APP_URL || process.env.VITE_APP_URL || 'https://www.dsprojects.com');
     const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
     const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(empId)}`;
 

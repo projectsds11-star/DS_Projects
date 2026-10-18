@@ -123,6 +123,7 @@ export default function EmployeeLogin() {
               district: dbOffer.district,
               mandal: dbOffer.mandal,
               status: dbOffer.status === 'Offer Accepted' ? 'Active' : 'Onboarding',
+              password: dbOffer.password,
             };
           }
         } catch (e) {
