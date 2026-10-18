@@ -103,6 +103,31 @@ export const employeeService = {
   // ── WRITE OPERATIONS (Express backend) ──────────────────────────────────────
 
   /**
+   * Safe JSON parse — returns an object even if the response body is not JSON.
+   * Prevents "Unexpected token" crashes when the server returns a 413, 502,
+   * nginx error page, or any other non-JSON body.
+   */
+  async _safeJson(res) {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Body was HTML / plain-text (e.g. "Request Entity Too Large")
+      const status = res.status;
+      if (status === 413) {
+        return { success: false, message: 'File too large. Please upload photos under 5 MB and documents under 10 MB.' };
+      }
+      if (status === 401) {
+        return { success: false, message: 'Session expired. Please log in again.' };
+      }
+      if (status === 403) {
+        return { success: false, message: 'Access denied. Admin privileges required.' };
+      }
+      return { success: false, message: text.slice(0, 200) || `Server error (${status})` };
+    }
+  },
+
+  /**
    * Create a new employee.
    * Sends multipart/form-data with files to backend.
    * Backend handles: atomic ID, file upload, DB insert, welcome email.
@@ -135,7 +160,7 @@ export const employeeService = {
       body,
     });
 
-    const json = await res.json();
+    const json = await this._safeJson(res);
     if (!res.ok) {
       throw new Error(json.message || 'Failed to create employee.');
     }
@@ -168,7 +193,7 @@ export const employeeService = {
       body,
     });
 
-    const json = await res.json();
+    const json = await this._safeJson(res);
     if (!res.ok) throw new Error(json.message || 'Failed to update employee.');
     return json;
   },
@@ -182,7 +207,7 @@ export const employeeService = {
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    const json = await res.json();
+    const json = await this._safeJson(res);
     if (!res.ok) throw new Error(json.message || 'Failed to update status.');
     return json;
   },
@@ -195,7 +220,7 @@ export const employeeService = {
       method: 'DELETE',
       headers: authHeaders(),
     });
-    const json = await res.json();
+    const json = await this._safeJson(res);
     if (!res.ok) throw new Error(json.message || 'Failed to delete employee.');
     return json;
   },
@@ -230,6 +255,15 @@ function mapRow(e) {
     phone: e.phone || '',
     email: e.email || '',
     photoPath: e.candidate_photo_path || null,
+    candidate_photo_path: e.candidate_photo_path || null,
+    photoUrl: e.candidate_photo_path
+      ? (supabase?.storage?.from('employee-photos')?.getPublicUrl(e.candidate_photo_path)?.data?.publicUrl ||
+         `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${e.candidate_photo_path}`)
+      : null,
+    photo_url: e.candidate_photo_path
+      ? (supabase?.storage?.from('employee-photos')?.getPublicUrl(e.candidate_photo_path)?.data?.publicUrl ||
+         `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${e.candidate_photo_path}`)
+      : null,
     qualification: e.qualification || '',
     course: e.course || '',
     university: e.university || '',

@@ -75,14 +75,10 @@ export default function EmployeeDetail() {
       setEmployee(emp);
       setLoading(false);
 
-      // Preload photo signed URL
-      if (emp.photoPath) {
-        try {
-          setLoadingDoc(p => ({ ...p, photo: true }));
-          const url = await employeeService.getSignedUrl('employee-photos', emp.photoPath);
-          setPhotoUrl(url);
-        } catch { /* no photo preview */ }
-        finally { setLoadingDoc(p => ({ ...p, photo: false })); }
+      // Preload photo URL
+      if (emp.photoUrl || emp.photoPath) {
+        const directUrl = emp.photoUrl || `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${emp.photoPath}`;
+        setPhotoUrl(directUrl);
       }
     })();
   }, [id]);

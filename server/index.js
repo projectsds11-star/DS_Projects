@@ -15,8 +15,16 @@ app.use(cors({
   origin: true,
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Handle body-parser oversize (413) — return JSON so the frontend can parse it
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, message: 'Uploaded file is too large. Maximum allowed size is 25 MB per file.' });
+  }
+  next(err);
+});
 
 // Health Check — pings Supabase to keep it alive (used by GitHub Actions cron)
 app.get(['/api/health', '/health'], async (req, res) => {

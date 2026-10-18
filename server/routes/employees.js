@@ -18,7 +18,7 @@ const router = express.Router();
 // Multer: memory storage (files as Buffers, uploaded to Supabase from server)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
   fileFilter(req, file, cb) {
     const allowedPhoto = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const allowedDoc = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -42,10 +42,16 @@ const uploadFields = upload.fields([
   { name: 'panDocument', maxCount: 1 },
 ]);
 
-// Wrap multer errors into JSON responses
+// Wrap multer errors into JSON responses (including 413 file-too-large)
 function handleUpload(req, res, next) {
   uploadFields(req, res, (err) => {
     if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: 'File too large. Maximum allowed size per file is 25 MB. Please compress your photo/document and try again.',
+        });
+      }
       return res.status(422).json({ success: false, message: err.message });
     }
     next();

@@ -37,20 +37,22 @@ function EmployeeAvatar({ emp }) {
 
   useEffect(() => {
     let isMounted = true;
+    const url = emp.photoUrl || emp.photo_url;
     const path = emp.photoPath || emp.candidate_photo_path || emp.photo_path || emp.photo;
-    if (path) {
-      if (typeof path === 'string' && (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:'))) {
+
+    if (url && typeof url === 'string') {
+      setImgUrl(url);
+    } else if (path && typeof path === 'string') {
+      if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
         setImgUrl(path);
       } else {
-        employeeService.getSignedUrl('employee-photos', path)
-          .then(url => {
-            if (isMounted && url) setImgUrl(url);
-          })
-          .catch(() => {});
+        // Direct public URL from public bucket
+        const publicUrl = `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${path}`;
+        setImgUrl(publicUrl);
       }
     }
     return () => { isMounted = false; };
-  }, [emp.photoPath, emp.candidate_photo_path, emp.photo_path, emp.photo]);
+  }, [emp.photoUrl, emp.photo_url, emp.photoPath, emp.candidate_photo_path, emp.photo_path, emp.photo]);
 
   if (imgUrl) {
     return (

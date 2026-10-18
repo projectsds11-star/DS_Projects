@@ -292,6 +292,7 @@ export const createEmployee = async (req, res) => {
   // ── 6. Database insert ────────────────────────────────────────────────────
   const employeeRecord = {
     employee_id: employeeId,
+    name: name.trim(),
     full_name: name.trim(),
     address: address.trim(),
     phone: phone.trim().replace(/\s/g, ''),
