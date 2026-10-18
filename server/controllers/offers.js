@@ -201,6 +201,7 @@ export const createOffer = async (req, res) => {
       try {
         const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
         const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
+        const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(employeeId)}`;
         const role = position || 'Mandal Co-ordinator';
         const locDistrict = district || 'Nellore';
         const locMandal = mandal || 'Kavali';
@@ -345,6 +346,23 @@ export const createOffer = async (req, res) => {
                 </p>
               </div>
 
+              <!-- Password Reset / Recovery Box -->
+              <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px 20px; margin: 20px 0;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #166534;">🔑 Forgot or Need to Change Your Password?</h4>
+                <p style="font-size: 12px; color: #15803d; margin: 0 0 10px 0; line-height: 1.5;">
+                  You can change or reset your portal password anytime using secure Email OTP verification:
+                </p>
+                <p style="margin: 0;">
+                  <a href="${forgotPasswordUrl}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: bold; padding: 10px 18px; border-radius: 6px;">
+                    👉 Reset / Change Password &rarr;
+                  </a>
+                </p>
+                <p style="font-size: 11px; color: #166534; margin: 10px 0 0 0; word-break: break-all;">
+                  Direct link: <a href="${forgotPasswordUrl}" style="color: #15803d; text-decoration: underline;">${forgotPasswordUrl}</a><br>
+                  Simply enter your Employee ID (<strong>${employeeId}</strong>) or registered email, and a 6-digit OTP will be dispatched to your inbox.
+                </p>
+              </div>
+
               <!-- CTA -->
               <table width="100%" cellspacing="0" cellpadding="0" style="margin: 25px 0 15px 0;">
                 <tr>
@@ -413,6 +431,12 @@ Employee Portal Login Credentials:
 - Temporary Password: ${generatedPassword}
 
 You can log into the portal using your Username (${corporateUsername}), Employee ID (${employeeId}), or Email (${email}).
+
+Forgot or Need to Change Your Password?
+You can reset your password anytime via Email OTP verification at:
+${forgotPasswordUrl}
+Enter your Employee ID (${employeeId}) or email to receive a 6-digit verification code.
+
 Your signed Letter of Appointment PDF is attached to this email.
 
 Warm regards,
@@ -454,6 +478,114 @@ DS PROJECTS PRIVATE LIMITED
 
         console.log(`✅ Onboarding & Credentials Email with PDF attachment sent to ${email} (ID: ${info.messageId})`);
         emailSent = true;
+
+        // ── 5. Send Dedicated Administrative Notification Email to Admin ────────────
+        // (Includes PDF attachment, full deployment and CTC details, but WITHOUT employee password)
+        const adminEmail = (process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER || 'projectsds11@gmail.com').trim();
+        try {
+          const adminHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Admin Notification — Offer Released</title></head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f8fafc; color: #334155; line-height: 1.6;">
+  <table width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; max-width: 600px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 25px 30px; text-align: left;">
+              <span style="background: #2563eb; color: #ffffff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">ADMINISTRATIVE RECORD</span>
+              <h1 style="color: #ffffff; font-size: 20px; font-weight: bold; margin: 0;">DS PROJECTS PRIVATE LIMITED</h1>
+              <p style="color: #93c5fd; font-size: 13px; margin: 4px 0 0 0;">New Employee Offer Released & Dispatched</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 30px; font-size: 14px; color: #334155;">
+              <p style="margin-top: 0; font-size: 15px;">
+                Hello <strong>Administrator</strong>,
+              </p>
+              <p>
+                An official employment offer letter has been generated and dispatched to candidate <strong>${candName}</strong> (${email}).
+              </p>
+
+              <!-- Status Badge -->
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; margin: 15px 0; font-size: 13px; color: #065f46;">
+                ✅ <strong>Status:</strong> Offer Released &bull; Email delivered with attached signed appointment letter PDF.
+              </div>
+
+              <!-- Deployment Info -->
+              <h3 style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 20px 0 8px 0;">Employee & Deployment Details:</h3>
+              <table width="100%" cellspacing="0" cellpadding="8" style="background-color: #f8fafc; border-radius: 8px; margin: 10px 0 20px 0; border: 1px solid #e2e8f0; font-size: 13px;">
+                <tr><td width="38%" style="color: #64748b; font-weight: bold;">Employee Name:</td><td style="color: #0f172a; font-weight: 600;">${candName}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Official Employee ID:</td><td style="color: #1e3a8a; font-weight: bold; font-family: monospace;">${employeeId}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Offer Reference ID:</td><td style="color: #1e3a8a; font-weight: bold; font-family: monospace;">${offerNum}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Designation / Position:</td><td style="color: #0f172a; font-weight: 600;">${role}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Assigned Jurisdiction:</td><td style="color: #0f172a; font-weight: 600;">${locMandal} Mandal, ${locDistrict} District</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Date of Joining:</td><td style="color: #0f172a;">${joiningDate || new Date().toISOString().slice(0, 10)}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Candidate Email:</td><td style="color: #0f172a;">${email}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Candidate Phone:</td><td style="color: #0f172a;">${phone || 'N/A'}</td></tr>
+                <tr><td style="color: #64748b; font-weight: bold;">Portal Login Username:</td><td style="color: #1e3a8a; font-weight: bold; font-family: monospace;">${corporateUsername}</td></tr>
+              </table>
+
+              <!-- Security Notice regarding password -->
+              <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 6px; padding: 12px 16px; margin: 15px 0; font-size: 12px; color: #475569;">
+                🔒 <strong>Password Privacy & Security:</strong> The employee's temporary portal password was securely dispatched directly to the employee's personal email (<strong>${email}</strong>). For enterprise security and privacy, the password is not included in administrative notifications.
+              </div>
+
+              <!-- Compensation Table -->
+              <h3 style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 20px 0 8px 0;">Approved Compensation Schedule:</h3>
+              <table width="100%" cellspacing="0" cellpadding="8" style="background-color: #ffffff; border-radius: 8px; margin-bottom: 20px; border: 1px solid #cbd5e1; font-size: 13px;">
+                <tr style="background-color: #eff6ff; font-weight: bold;">
+                  <td style="color: #1e3a8a;">Total Monthly Remuneration (CTC)</td>
+                  <td align="right" style="color: #1e3a8a; font-size: 14px;">₹${monthlyTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr style="background-color: #1e3a8a; color: #ffffff; font-weight: bold;">
+                  <td style="color: #ffffff; padding: 10px 8px;">Annual Cost to Company (CTC)</td>
+                  <td align="right" style="color: #ffffff; padding: 10px 8px; font-size: 15px;">₹${annualCtc.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              </table>
+
+              <p style="font-size: 13px; color: #64748b; margin-top: 20px;">
+                📄 <em>The signed Appointment Letter PDF is attached to this notification for company archives.</em>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; padding: 15px 30px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
+              DS Projects Private Limited &bull; Internal HRMS Notification &bull; Confidential
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+          `;
+
+          const adminMailOptions = {
+            from: `"DS Projects System" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+            to: adminEmail,
+            subject: `📋 [Admin Record] Offer Letter Released — ${candName} (${employeeId})`,
+            html: adminHtml,
+          };
+
+          if (pdfBuffer) {
+            const safeFilename = `Appointment_Letter_${(employeeId || 'DS-001').replace(/[^a-zA-Z0-9_-]/g, '')}_${candName.replace(/\s+/g, '_')}.pdf`;
+            adminMailOptions.attachments = [
+              {
+                filename: safeFilename,
+                content: pdfBuffer,
+                contentType: 'application/pdf',
+              }
+            ];
+          }
+
+          await transporter.sendMail(adminMailOptions);
+          console.log(`✅ Admin Notification Email dispatched to ${adminEmail} (password omitted for security)`);
+        } catch (adminErr) {
+          console.warn('⚠️ Admin notification email notice:', adminErr.message);
+        }
       } catch (mailErr) {
         console.error('❌ Failed to send onboarding email:', mailErr);
         emailError = mailErr.message;
@@ -508,6 +640,7 @@ export const resendOffer = async (req, res) => {
     const generatedPassword = `DS@${idNumber}!2026`;
     const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
     const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
+    const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(empId)}`;
 
     const basicSalary = Number(offer.basic_salary) || 25000;
     const travelAllowance = Number(offer.travel_allowance) || 5000;
@@ -647,6 +780,23 @@ export const resendOffer = async (req, res) => {
                 </p>
               </div>
 
+              <!-- Password Reset / Recovery Box -->
+              <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px 20px; margin: 20px 0;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #166534;">🔑 Forgot or Need to Change Your Password?</h4>
+                <p style="font-size: 12px; color: #15803d; margin: 0 0 10px 0; line-height: 1.5;">
+                  You can change or reset your portal password anytime using secure Email OTP verification:
+                </p>
+                <p style="margin: 0;">
+                  <a href="${forgotPasswordUrl}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: bold; padding: 10px 18px; border-radius: 6px;">
+                    👉 Reset / Change Password &rarr;
+                  </a>
+                </p>
+                <p style="font-size: 11px; color: #166534; margin: 10px 0 0 0; word-break: break-all;">
+                  Direct link: <a href="${forgotPasswordUrl}" style="color: #15803d; text-decoration: underline;">${forgotPasswordUrl}</a><br>
+                  Simply enter your Employee ID (<strong>${empId}</strong>) or registered email, and a 6-digit OTP will be dispatched to your inbox.
+                </p>
+              </div>
+
               <p style="margin-top: 25px; margin-bottom: 0;">Warm regards,<br><strong>Management & Administration</strong><br><strong>DS PROJECTS PRIVATE LIMITED</strong></p>
             </td>
           </tr>
@@ -688,6 +838,12 @@ Employee Portal Login Credentials:
 - Temporary Password: ${generatedPassword}
 
 You can log into the portal using your Username (${corporateUsername}), Employee ID (${empId}), or Email (${offer.email}).
+
+Forgot or Need to Change Your Password?
+You can reset your password anytime via Email OTP verification at:
+${forgotPasswordUrl}
+Enter your Employee ID (${empId}) or email to receive a 6-digit verification code.
+
 Your signed Letter of Appointment PDF is attached to this email.
 
 Warm regards,
@@ -722,6 +878,36 @@ DS PROJECTS PRIVATE LIMITED
 
     const transporter = getTransporter();
     await transporter.sendMail(mailOptions);
+
+    // Send copy to admin without password
+    const adminEmail = (process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER || 'projectsds11@gmail.com').trim();
+    try {
+      const adminMailOptions = {
+        from: `"DS Projects System" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+        to: adminEmail,
+        subject: `📋 [Admin Record - Resend] Offer Letter Re-dispatched — ${candName} (${empId})`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #334155;">
+            <h2 style="color: #1e3a8a; margin-top: 0;">DS PROJECTS PRIVATE LIMITED</h2>
+            <p><strong>Notice:</strong> The appointment letter for <strong>${candName}</strong> (${empId}) was re-dispatched to <strong>${offer.email}</strong>.</p>
+            <p>Position: ${offer.position}<br/>Deployment: ${offer.mandal || ''} Mandal, ${offer.district || ''} District<br/>Joining Date: ${offer.joining_date || ''}</p>
+            <p style="font-size: 12px; color: #64748b;">🔒 Employee portal credentials were provided directly to the employee. Password is omitted for security.</p>
+          </div>
+        `,
+      };
+      if (pdfBuffer) {
+        adminMailOptions.attachments = [
+          {
+            filename: `Appointment_Letter_${(empId).replace(/[^a-zA-Z0-9_-]/g, '')}_${candName.replace(/\s+/g, '_')}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf',
+          }
+        ];
+      }
+      await transporter.sendMail(adminMailOptions);
+    } catch (adminErr) {
+      console.warn('⚠️ Admin resend copy notice:', adminErr.message);
+    }
 
     await supabaseAdmin
       .from('job_offers')

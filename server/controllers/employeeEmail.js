@@ -180,6 +180,7 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
   const empId = employeeId || 'DS-001';
   const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
   const portalUrl = `${baseUrl.replace(/\/$/, '')}/employee/login`;
+  const forgotPasswordUrl = `${baseUrl.replace(/\/$/, '')}/employee/forgot-password?id=${encodeURIComponent(empId)}`;
 
   // System auto-generated credentials as per structure
   const cleanEmpId = empId.replace(/[^a-zA-Z0-9]/g, '');
@@ -361,6 +362,23 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
                 </p>
               </div>
 
+              <!-- Password Reset / Recovery Box -->
+              <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px 20px; margin: 20px 0;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #166534;">🔑 Forgot or Need to Change Your Password?</h4>
+                <p style="font-size: 12px; color: #15803d; margin: 0 0 10px 0; line-height: 1.5;">
+                  You can change or reset your portal password anytime using secure Email OTP verification:
+                </p>
+                <p style="margin: 0;">
+                  <a href="${forgotPasswordUrl}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: bold; padding: 10px 18px; border-radius: 6px;">
+                    👉 Reset / Change Password &rarr;
+                  </a>
+                </p>
+                <p style="font-size: 11px; color: #166534; margin: 10px 0 0 0; word-break: break-all;">
+                  Direct link: <a href="${forgotPasswordUrl}" style="color: #15803d; text-decoration: underline;">${forgotPasswordUrl}</a><br>
+                  Simply enter your Employee ID (<strong>${empId}</strong>) or registered email, and a 6-digit OTP will be dispatched to your inbox.
+                </p>
+              </div>
+
               <!-- CTA -->
               <table width="100%" cellspacing="0" cellpadding="0" style="margin: 25px 0 15px 0;">
                 <tr>
@@ -422,6 +440,51 @@ export const sendOnboardingCompletionEmail = async (req, res) => {
     const info = await transporter.sendMail(mailOptions);
 
     console.log(`✅ Onboarding & Credentials Email with PDF attachment sent to ${email} (ID: ${info.messageId})`);
+
+    // Send copy to Admin (WITHOUT employee password)
+    const adminEmail = (process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER || 'projectsds11@gmail.com').trim();
+    try {
+      const adminMailOptions = {
+        from: `"DS Projects System" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+        to: adminEmail,
+        subject: `📋 [Admin Record] Onboarding Completed & Offer Dispatched — ${candidateName} (${empId})`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 25px; color: #334155; max-width: 600px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #0f172a; margin-top: 0;">DS PROJECTS PRIVATE LIMITED</h2>
+            <p style="color: #2563eb; font-weight: bold; font-size: 14px;">Administrative Record — Onboarding Completed</p>
+            <p>An official employment offer letter and portal activation notice have been dispatched to candidate <strong>${candidateName}</strong> (<code>${email}</code>).</p>
+            <table width="100%" cellpadding="8" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; margin: 15px 0;">
+              <tr><td width="40%" style="color: #64748b; font-weight: bold;">Employee ID:</td><td style="color: #1e3a8a; font-family: monospace; font-weight: bold;">${empId}</td></tr>
+              <tr><td style="color: #64748b; font-weight: bold;">Employee Name:</td><td style="color: #0f172a; font-weight: 600;">${candidateName}</td></tr>
+              <tr><td style="color: #64748b; font-weight: bold;">Designation / Position:</td><td style="color: #0f172a;">${role}</td></tr>
+              <tr><td style="color: #64748b; font-weight: bold;">Jurisdiction:</td><td style="color: #0f172a;">${locMandal} Mandal, ${locDistrict} District</td></tr>
+              <tr><td style="color: #64748b; font-weight: bold;">Date of Joining:</td><td style="color: #0f172a;">${joiningDate || new Date().toISOString().slice(0, 10)}</td></tr>
+              <tr><td style="color: #64748b; font-weight: bold;">Portal Username:</td><td style="color: #1e3a8a; font-family: monospace;">${corporateUsername}</td></tr>
+            </table>
+            <p style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 10px 14px; border-radius: 6px;">
+              🔒 <strong>Security Policy:</strong> The employee's login credentials and temporary password were sent directly to the candidate's personal email (<strong>${email}</strong>). The password is not displayed in admin notifications.
+            </p>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 15px;">Official signed appointment letter PDF is attached for records.</p>
+          </div>
+        `,
+      };
+
+      if (pdfBuffer) {
+        const safeFilename = `Offer_Letter_${(empId).replace(/[^a-zA-Z0-9_-]/g, '')}_${(candidateName).replace(/\s+/g, '_')}.pdf`;
+        adminMailOptions.attachments = [
+          {
+            filename: safeFilename,
+            content: pdfBuffer,
+            contentType: 'application/pdf',
+          }
+        ];
+      }
+
+      await transporter.sendMail(adminMailOptions);
+      console.log(`✅ Admin Onboarding Notification dispatched to ${adminEmail}`);
+    } catch (adminErr) {
+      console.warn('⚠️ Admin notification email notice:', adminErr.message);
+    }
 
     return res.status(200).json({
       success: true,
