@@ -134,10 +134,30 @@ export default function EmployeeDashboard() {
         setIsCheckedIn(false);
         showToast(`Checked out at ${res.check_out_time || 'now'}! Shift time recorded (${res.effective_hours}).`);
       } else {
-        const loc = employee?.mandal || employee?.mandal_id 
-          ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})` 
-          : 'Buchireddypalem HQ (GPS Verified)';
-        const res = await liveDataService.punchCheckIn(currentEmpId, loc);
+        // Build location name: try real GPS first, fall back to employee's mandal
+        let loc = employee?.mandal || employee?.mandal_id
+          ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})`
+          : 'Field Office';
+        let coords = null;
+
+        if (navigator.geolocation) {
+          try {
+            const pos = await new Promise((resolve, reject) =>
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 60000 })
+            );
+            coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+            // Build a readable location label from coordinates
+            const mandalName = employee?.mandal || employee?.mandal_id || '';
+            const districtName = employee?.district || '';
+            loc = mandalName
+              ? `${mandalName} Field Office — GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+              : `GPS Verified (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+          } catch {
+            // Geolocation denied or unavailable — keep mandal-based fallback
+          }
+        }
+
+        const res = await liveDataService.punchCheckIn(currentEmpId, loc, coords);
         setIsCheckedIn(true);
         setElapsedSeconds(0);
         showToast(`Checked in at ${res.data?.check_in_time || 'now'}! 8-hour shift active.`);

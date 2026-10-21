@@ -17,7 +17,9 @@ import {
   FileText,
   Printer,
   ChevronDown,
-  CalendarDays
+  CalendarDays,
+  Check,
+  X
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -371,18 +373,79 @@ export default function Attendance() {
     printWindow.document.close();
   };
 
-  const statusBadge = (s, checkOut) => {
-    if (checkOut === '-- : --' || checkOut === '--:--' || !checkOut) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-          On Duty Now
-        </span>
-      );
+  const handleApproveRegularization = async (recordId) => {
+    try {
+      await liveDataService.approveRegularization(recordId);
+      await loadAttendance(true);
+    } catch (err) {
+      console.error('Error approving regularization:', err);
     }
-    if (s === 'Present') return <Badge variant="success" className="font-bold text-xs whitespace-nowrap">Present</Badge>;
-    if (s === 'Late') return <Badge variant="warning" className="font-bold text-xs whitespace-nowrap">Late Arrival</Badge>;
-    return <Badge variant="destructive" className="font-bold text-xs whitespace-nowrap">Absent</Badge>;
+  };
+
+  const handleRejectRegularization = async (recordId) => {
+    try {
+      await liveDataService.rejectRegularization(recordId);
+      await loadAttendance(true);
+    } catch (err) {
+      console.error('Error rejecting regularization:', err);
+    }
+  };
+
+  const statusBadge = (row) => {
+    const s = row.status;
+    const checkOut = row.check_out_time;
+    const isRegularized = row.is_regularized;
+    const regularizationReason = row.regularization_reason;
+    const isApproved = !!row.regularization_approved_at;
+
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(!checkOut || checkOut === '-- : --' || checkOut === '--:--') ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              On Duty Now
+            </span>
+          ) : s === 'Present' ? (
+            <Badge variant="success" className="font-bold text-xs whitespace-nowrap">Present</Badge>
+          ) : s === 'Late' ? (
+            <Badge variant="warning" className="font-bold text-xs whitespace-nowrap">Late Arrival</Badge>
+          ) : (
+            <Badge variant="destructive" className="font-bold text-xs whitespace-nowrap">Absent</Badge>
+          )}
+
+          {isRegularized && isApproved && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">
+              Regularized
+            </span>
+          )}
+        </div>
+
+        {regularizationReason && !isApproved && (
+          <div className="p-1.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] space-y-1">
+            <p className="text-amber-800 font-medium leading-tight">
+              <span className="font-bold">Req: </span>{regularizationReason}
+            </p>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <button
+                onClick={() => handleApproveRegularization(row.id)}
+                className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-0.5 rounded cursor-pointer transition-colors"
+                title="Approve Regularization as Present"
+              >
+                <Check size={10} /> Approve
+              </button>
+              <button
+                onClick={() => handleRejectRegularization(row.id)}
+                className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 rounded cursor-pointer transition-colors"
+                title="Reject Regularization"
+              >
+                <X size={10} /> Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -664,7 +727,7 @@ export default function Attendance() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {statusBadge(row.status, row.check_out_time)}
+                        {statusBadge(row)}
                       </td>
                     </tr>
                   );

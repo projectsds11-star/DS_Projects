@@ -18,7 +18,10 @@ import {
   FileCheck,
   Building2,
   Calendar,
-  Sparkles
+  Sparkles,
+  Edit3,
+  X,
+  Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -33,6 +36,13 @@ export default function EmployeeProfile() {
   const [refreshing, setRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [imgError, setImgError] = useState(false);
+
+  // Profile Update Request State
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateCategory, setUpdateCategory] = useState('phone');
+  const [updateDetails, setUpdateDetails] = useState('');
+  const [updateReason, setUpdateReason] = useState('');
+  const [isSubmittingUpdate, setIsSubmittingUpdate] = useState(false);
 
   const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-001';
 
@@ -64,6 +74,41 @@ export default function EmployeeProfile() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleProfileUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!updateDetails.trim()) {
+      showToast('Please provide the new details to update.');
+      return;
+    }
+    setIsSubmittingUpdate(true);
+    try {
+      const categoryLabels = {
+        phone: 'Mobile Phone Number',
+        address: 'Residential Address',
+        bank: 'Bank Account / IFSC Details',
+        other: 'General Profile Details'
+      };
+      const label = categoryLabels[updateCategory] || updateCategory;
+      await liveDataService.createNotification({
+        title: `Profile Update Request: ${employee?.full_name || employee?.name || currentEmpId}`,
+        message: `Employee requested change to ${label}: "${updateDetails.trim()}". Reason: ${updateReason.trim() || 'Not specified'}.`,
+        type: 'PROFILE_UPDATE_REQUEST',
+        employee_id: currentEmpId,
+        is_read: false,
+        created_at: new Date().toISOString()
+      });
+      setShowUpdateModal(false);
+      setUpdateDetails('');
+      setUpdateReason('');
+      showToast('Profile update request submitted to HR Administration for verification.');
+    } catch (err) {
+      console.error('Failed to submit update request:', err);
+      showToast('Could not submit update request. Please try again.');
+    } finally {
+      setIsSubmittingUpdate(false);
+    }
   };
 
   const getPublicUrl = (bucket, path) => {
@@ -180,6 +225,16 @@ export default function EmployeeProfile() {
             icon={refreshing ? RefreshCw : RefreshCw}
           >
             {refreshing ? 'Refreshing...' : 'Refresh Record'}
+          </Button>
+
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={() => setShowUpdateModal(true)} 
+            className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer shadow-xs"
+            icon={Edit3}
+          >
+            Request Profile Update
           </Button>
         </div>
       </div>
@@ -538,6 +593,96 @@ export default function EmployeeProfile() {
           </Card>
         )}
       </div>
+
+      {/* Profile Update Request Modal */}
+      {showUpdateModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#00B4D8] bg-white/10 px-2 py-0.5 rounded">
+                  Official Record Amendment
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1">Request Profile Information Update</h3>
+              </div>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleProfileUpdateSubmit} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Update Category *</label>
+                <select
+                  value={updateCategory}
+                  onChange={(e) => setUpdateCategory(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                >
+                  <option value="phone">Mobile Phone Number</option>
+                  <option value="address">Residential Address</option>
+                  <option value="bank">Bank Account / IFSC Details</option>
+                  <option value="other">Other Information</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">New Value / Requested Changes *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={updateDetails}
+                  onChange={(e) => setUpdateDetails(e.target.value)}
+                  placeholder={
+                    updateCategory === 'phone'
+                      ? 'e.g. New phone number: 9876543210'
+                      : updateCategory === 'address'
+                      ? 'e.g. New permanent address details with PIN code...'
+                      : 'e.g. New Bank Name, Account Number, IFSC code, Branch...'
+                  }
+                  className="w-full rounded-xl border border-slate-300 p-3 text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Reason for Update (Optional)</label>
+                <input
+                  type="text"
+                  value={updateReason}
+                  onChange={(e) => setUpdateReason(e.target.value)}
+                  placeholder="e.g. Relocated to new residence, Changed salary account"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+                ⚠️ All updates to official identity, address, or banking records require verification and approval by DS Projects HR Administration before reflecting in your portal profile.
+              </p>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowUpdateModal(false)}
+                  disabled={isSubmittingUpdate}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingUpdate}
+                  className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
+                  icon={Send}
+                >
+                  {isSubmittingUpdate ? 'Submitting...' : 'Submit Update Request'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

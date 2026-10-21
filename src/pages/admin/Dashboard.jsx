@@ -56,8 +56,8 @@ export default function AdminDashboard() {
   }, []);
 
   const totalEmployees = employees.length;
-  const activeEmployees = employees.filter(e => e.status === 'Active').length;
-  const onboardingCount = employees.filter(e => e.status === 'Onboarding' || e.onboarding_status !== 'Completed').length;
+  const activeEmployees = employees.filter(e => (e.status || '').toLowerCase() === 'active').length;
+  const onboardingCount = employees.filter(e => (e.status || '').toLowerCase() === 'onboarding' || e.onboarding_status !== 'Completed').length;
   const totalTasks = tasks.length;
   const pendingTasks = tasks.filter(t => t.status === 'Assigned' || t.status === 'In Progress').length;
   const completedTasks = tasks.filter(t => t.status === 'Approved' || t.status === 'Submitted').length;

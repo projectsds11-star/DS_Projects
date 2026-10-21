@@ -139,9 +139,10 @@ export default function EmployeeAttendance() {
         showToast(`Checked out at ${res.check_out_time || 'now'}! Shift completed (${res.effective_hours}).`);
       } else {
         // Punch in
-        const locationName = employee?.mandal || employee?.mandal_id 
-          ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})` 
-          : 'Buchireddypalem HQ (GPS Verified)';
+        const locationName = employee?.mandal || employee?.mandal_id
+          ? `${employee.mandal || employee.mandal_id} Field Office (${employee.district || 'AP'})`
+          : 'Field Office';
+
 
         let coords = null;
         if (navigator.geolocation) {

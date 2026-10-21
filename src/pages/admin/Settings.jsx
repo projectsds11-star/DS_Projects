@@ -18,6 +18,26 @@ import { Input } from '../../components/ui/Input';
 import { Label } from '../../components/ui/Label';
 import { AP_DISTRICTS_DATA, AP_STATE } from '../../data/andhraPradeshMasterData';
 
+const SETTINGS_KEY = 'ds_system_settings_v1';
+
+const DEFAULT_SETTINGS = {
+  companyName: 'DS Projects Private Limited',
+  portalUrl: 'www.dsprojects.in',
+  corporateEmail: 'contact@dsprojects.in',
+  contactPhone: '+91 861 2345678',
+  alertNewEmployee: true,
+  alertWorkReport: true,
+  alertMissedPunch: true,
+};
+
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+  } catch {}
+  return DEFAULT_SETTINGS;
+}
+
 const TABS = [
   { id: 'company', label: 'Company Profile', icon: Building },
   { id: 'locations', label: 'AP Location Master', icon: MapPin },
@@ -31,10 +51,24 @@ export default function Settings() {
   const [selectedDistrict, setSelectedDistrict] = useState(AP_DISTRICTS_DATA[20]); // Default: Nellore
   const [mandalSearch, setMandalSearch] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+  const [settings, setSettings] = useState(loadSettings);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSettingChange = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = () => {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      showToast('System settings saved successfully!');
+    } catch (err) {
+      showToast('Failed to save settings.');
+    }
   };
 
   const filteredDistricts = AP_DISTRICTS_DATA.filter(d =>
@@ -68,7 +102,7 @@ export default function Settings() {
         </div>
 
         <Button 
-          onClick={() => showToast('Configurations successfully saved!')} 
+          onClick={handleSave} 
           className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold cursor-pointer"
           icon={Save}
         >
@@ -112,19 +146,19 @@ export default function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Company Name</Label>
-                    <Input defaultValue="DS Projects Private Limited" className="rounded-xl border-slate-300" />
+                    <Input value={settings.companyName} onChange={e => handleSettingChange('companyName', e.target.value)} className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Official Portal URL</Label>
-                    <Input defaultValue="www.dsprojects.in" className="rounded-xl border-slate-300" />
+                    <Input value={settings.portalUrl} onChange={e => handleSettingChange('portalUrl', e.target.value)} className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Corporate Email</Label>
-                    <Input defaultValue="contact@dsprojects.in" className="rounded-xl border-slate-300" />
+                    <Input value={settings.corporateEmail} onChange={e => handleSettingChange('corporateEmail', e.target.value)} className="rounded-xl border-slate-300" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Contact Phone</Label>
-                    <Input defaultValue="+91 861 2345678" className="rounded-xl border-slate-300" />
+                    <Input value={settings.contactPhone} onChange={e => handleSettingChange('contactPhone', e.target.value)} className="rounded-xl border-slate-300" />
                   </div>
                 </div>
               </CardContent>
@@ -234,16 +268,21 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="p-6 space-y-3 text-xs sm:text-sm">
                 {[
-                  { title: 'New Employee Registration Alert', desc: 'Notify admin when candidate completes registration' },
-                  { title: 'Field Work Report Submission', desc: 'Instant alert when a mandal lead submits daily report' },
-                  { title: 'Attendance Missed Punch Notification', desc: 'Alert supervisor when punch is regularized' },
-                ].map((item, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  { key: 'alertNewEmployee', title: 'New Employee Registration Alert', desc: 'Notify admin when candidate completes registration' },
+                  { key: 'alertWorkReport', title: 'Field Work Report Submission', desc: 'Instant alert when a mandal lead submits daily report' },
+                  { key: 'alertMissedPunch', title: 'Attendance Missed Punch Notification', desc: 'Alert supervisor when punch is regularized' },
+                ].map((item) => (
+                  <div key={item.key} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-900">{item.title}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-[#E63946] rounded cursor-pointer" />
+                    <input
+                      type="checkbox"
+                      checked={settings[item.key]}
+                      onChange={e => handleSettingChange(item.key, e.target.checked)}
+                      className="w-4 h-4 text-[#E63946] rounded cursor-pointer"
+                    />
                   </div>
                 ))}
               </CardContent>

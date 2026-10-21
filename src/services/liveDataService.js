@@ -527,6 +527,35 @@ export const liveDataService = {
     return { success: true };
   },
 
+  async approveRegularization(recordId, status = 'Present') {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('attendance_records').update({
+          status: status,
+          is_regularized: true,
+          regularization_approved_at: new Date().toISOString()
+        }).eq('id', recordId);
+      } catch (err) {
+        console.warn('Supabase approveRegularization error:', err);
+      }
+    }
+    return { success: true };
+  },
+
+  async rejectRegularization(recordId) {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('attendance_records').update({
+          regularization_reason: null,
+          is_regularized: false
+        }).eq('id', recordId);
+      } catch (err) {
+        console.warn('Supabase rejectRegularization error:', err);
+      }
+    }
+    return { success: true };
+  },
+
   // =========================================================================
   // 4. DOCUMENTS
   // =========================================================================

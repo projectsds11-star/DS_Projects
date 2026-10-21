@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, 
@@ -10,17 +10,33 @@ import {
   ChevronRight, 
   Briefcase, 
   IndianRupee, 
-  Save 
+  Save,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { MASTER_TEMPLATES, JOB_POSITIONS, formatINR } from '../../services/templateService';
 
+const STORAGE_KEY = 'ds_offer_templates_v1';
+
+function loadTemplates() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge with master to pick up any new roles added later
+      return { ...MASTER_TEMPLATES, ...parsed };
+    }
+  } catch {}
+  return MASTER_TEMPLATES;
+}
+
 export default function TemplateManager() {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('Mandal Co-ordinator');
-  const [templates, setTemplates] = useState(MASTER_TEMPLATES);
+  const [templates, setTemplates] = useState(loadTemplates);
   const [savedToast, setSavedToast] = useState(false);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
 
   const currentTpl = templates[selectedRole];
 
@@ -32,12 +48,30 @@ export default function TemplateManager() {
         [field]: val,
       },
     }));
+    setHasUnsaved(true);
   };
 
   const handleSave = () => {
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2500);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+      setSavedToast(true);
+      setHasUnsaved(false);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (err) {
+      console.error('Failed to save templates:', err);
+    }
   };
+
+  const handleReset = () => {
+    if (window.confirm('Reset ALL templates to system defaults? Custom changes will be lost.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      setTemplates(MASTER_TEMPLATES);
+      setHasUnsaved(false);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    }
+  };
+
 
   return (
     <div className="space-y-6 pb-20">
@@ -71,9 +105,19 @@ export default function TemplateManager() {
           </div>
         </div>
 
-        <Button size="sm" icon={Save} onClick={handleSave}>
-          Save Template Changes
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {hasUnsaved && (
+            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+              ● Unsaved changes
+            </span>
+          )}
+          <Button size="sm" variant="outline" icon={RotateCcw} onClick={handleReset} className="text-slate-600">
+            Reset Defaults
+          </Button>
+          <Button size="sm" icon={Save} onClick={handleSave}>
+            Save Template Changes
+          </Button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">

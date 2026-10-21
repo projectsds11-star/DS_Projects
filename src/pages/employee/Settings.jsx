@@ -25,6 +25,32 @@ import { Label } from '../../components/ui/Label';
 import { employeeAuthService } from '../../services/employeeAuthService';
 
 
+const NOTIF_PREFS_KEY = 'ds_emp_notif_prefs_v1';
+const REGIONAL_PREFS_KEY = 'ds_emp_regional_prefs_v1';
+
+const DEFAULT_NOTIF_PREFS = {
+  workAssign: { email: true, inApp: true, sms: true },
+  workApproval: { email: true, inApp: true, sms: false },
+  attendanceReminder: { email: false, inApp: true, sms: true },
+  broadcasts: { email: true, inApp: true, sms: false },
+};
+
+function loadNotifPrefs() {
+  try {
+    const saved = localStorage.getItem(NOTIF_PREFS_KEY);
+    if (saved) return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(saved) };
+  } catch {}
+  return DEFAULT_NOTIF_PREFS;
+}
+
+function loadRegionalPrefs() {
+  try {
+    const saved = localStorage.getItem(REGIONAL_PREFS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { language: 'English (Default)', dateFormat: 'DD/MM/YYYY (e.g. 01/09/2026)' };
+}
+
 export default function EmployeeSettings() {
   const [activeTab, setActiveTab] = useState('password');
   const [showOld, setShowOld] = useState(false);
@@ -34,17 +60,13 @@ export default function EmployeeSettings() {
   const [confirmPass, setConfirmPass] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Notification Preferences State
-  const [notifPrefs, setNotifPrefs] = useState({
-    workAssign: { email: true, inApp: true, sms: true },
-    workApproval: { email: true, inApp: true, sms: false },
-    attendanceReminder: { email: false, inApp: true, sms: true },
-    broadcasts: { email: true, inApp: true, sms: false },
-  });
+  // Notification Preferences State (Persisted)
+  const [notifPrefs, setNotifPrefs] = useState(loadNotifPrefs);
 
-  // App Preferences
-  const [language, setLanguage] = useState('English');
-  const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+  // App Preferences (Persisted)
+  const initialRegional = loadRegionalPrefs();
+  const [language, setLanguage] = useState(initialRegional.language || 'English (Default)');
+  const [dateFormat, setDateFormat] = useState(initialRegional.dateFormat || 'DD/MM/YYYY (e.g. 01/09/2026)');
 
   // FAQ open state
   const [openFaq, setOpenFaq] = useState(null);
@@ -52,6 +74,24 @@ export default function EmployeeSettings() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSaveNotifPrefs = () => {
+    try {
+      localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(notifPrefs));
+      showToast('Notification preferences saved successfully!');
+    } catch {
+      showToast('Notification preferences updated!');
+    }
+  };
+
+  const handleSaveRegionalPrefs = () => {
+    try {
+      localStorage.setItem(REGIONAL_PREFS_KEY, JSON.stringify({ language, dateFormat }));
+      showToast('Regional preferences saved successfully!');
+    } catch {
+      showToast('Regional preferences updated!');
+    }
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -332,7 +372,7 @@ export default function EmployeeSettings() {
 
                 <div className="pt-2 flex justify-end">
                   <Button 
-                    onClick={() => showToast('Notification preferences saved!')}
+                    onClick={handleSaveNotifPrefs}
                     className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold"
                     icon={Save}
                   >
@@ -382,7 +422,7 @@ export default function EmployeeSettings() {
 
                 <div className="pt-2 flex justify-end">
                   <Button 
-                    onClick={() => showToast('Regional preferences saved!')}
+                    onClick={handleSaveRegionalPrefs}
                     className="bg-[#E63946] hover:bg-[#FF6B6B] text-white font-bold"
                     icon={Save}
                   >
