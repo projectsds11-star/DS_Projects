@@ -38,10 +38,12 @@ CREATE POLICY "service_role_employees"
   ON public.employees FOR ALL TO service_role
   USING (true) WITH CHECK (true);
 
--- For portal read operations: allow read access only for non-deleted active records,
--- while sensitive updates/inserts are reserved for service_role
-CREATE POLICY "authenticated_employees_read"
-  ON public.employees FOR SELECT TO authenticated
+-- For portal read operations: allow read access for active non-deleted records
+-- (Mutations: INSERT, UPDATE, DELETE remain strictly service_role only)
+DROP POLICY IF EXISTS "authenticated_employees_read" ON public.employees;
+DROP POLICY IF EXISTS "anon_read_employees" ON public.employees;
+CREATE POLICY "anon_read_employees"
+  ON public.employees FOR SELECT TO anon, authenticated
   USING (deleted_at IS NULL);
 
 -- 3. SECURE EMAIL DISPATCH LOGS
