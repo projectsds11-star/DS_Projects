@@ -61,6 +61,31 @@ export default function Documents() {
     if (file) {
       setIsUploading(true);
       try {
+        // 1. Upload actual binary to Supabase Storage
+        let storagePath = null;
+        let publicUrl = null;
+        try {
+          const { supabase } = await import('../../services/supabaseClient');
+          const ext = file.name.split('.').pop();
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          storagePath = `${currentEmpId}/${Date.now()}_${safeName}`;
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('employee-documents')
+            .upload(storagePath, file, { upsert: false, contentType: file.type });
+          if (!uploadErr && uploadData) {
+            const { data: urlData } = supabase.storage
+              .from('employee-documents')
+              .getPublicUrl(storagePath);
+            publicUrl = urlData?.publicUrl || null;
+          } else {
+            console.warn('Supabase Storage upload warn:', uploadErr?.message);
+            storagePath = null;
+          }
+        } catch (storageErr) {
+          console.warn('Storage not configured, saving metadata only:', storageErr.message);
+        }
+
+        // 2. Save metadata record with storage path
         const newDocPayload = {
           employee_id: currentEmpId,
           document_name: file.name.replace(/\.[^/.]+$/, ''),
@@ -68,7 +93,9 @@ export default function Documents() {
           file_type: file.name.split('.').pop().toUpperCase(),
           file_size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
           verification_status: 'Pending',
-          verified_by: 'HR Admin'
+          verified_by: 'HR Admin',
+          ...(storagePath && { file_path: storagePath }),
+          ...(publicUrl && { file_url: publicUrl }),
         };
         await liveDataService.addDocument(newDocPayload);
         const freshDocs = await liveDataService.getDocuments(currentEmpId);
@@ -78,6 +105,7 @@ export default function Documents() {
         showToast('Failed to upload document.');
       } finally {
         setIsUploading(false);
+
       }
     }
   };

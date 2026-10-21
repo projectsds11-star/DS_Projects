@@ -932,3 +932,130 @@ DS PROJECTS PRIVATE LIMITED
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+/**
+ * POST /api/admin/offers/activate
+ * Activate an employee account using their activation token (offer_number or employee_id).
+ * Sets the permanent password across employees, job_offers, and employee_credentials tables.
+ */
+export const activateAccount = async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+
+    if (!token || typeof token !== 'string' || token.length < 2) {
+      return res.status(400).json({ success: false, message: 'A valid activation token is required.' });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    // Look up offer by offer_number or employee_id
+    const { data: offers, error: lookupErr } = await supabaseAdmin
+      .from('job_offers')
+      .select('*')
+      .or(`offer_number.eq.${token},employee_id.eq.${token}`)
+      .limit(1);
+
+    if (lookupErr) {
+      console.error('activateAccount lookup error:', lookupErr);
+      return res.status(500).json({ success: false, message: 'Database error during account lookup.' });
+    }
+
+    const offer = offers && offers[0];
+    if (!offer) {
+      return res.status(404).json({ success: false, message: 'Invalid or expired activation link. Please contact HR.' });
+    }
+
+    const empId = offer.employee_id;
+    const email = offer.email;
+    const idNumber = (empId || '001').replace(/[^0-9]/g, '') || '001';
+    const normalizedName = (offer.employee_name || 'candidate').toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '');
+    const username = `${normalizedName}${idNumber}@dsprojects`;
+    const now = new Date().toISOString();
+
+    // 1. Update employees table
+    await supabaseAdmin
+      .from('employees')
+      .update({ password, updated_at: now })
+      .eq('employee_id', empId);
+
+    // 2. Update job_offers — mark as Offer Accepted
+    await supabaseAdmin
+      .from('job_offers')
+      .update({ password, status: 'Offer Accepted', updated_at: now })
+      .eq('id', offer.id);
+
+    // 3. Upsert into employee_credentials
+    try {
+      await supabaseAdmin
+        .from('employee_credentials')
+        .upsert({
+          email,
+          employee_id: empId,
+          username,
+          password,
+          updated_at: now,
+        }, { onConflict: 'email' });
+    } catch (credErr) {
+      console.warn('employee_credentials upsert note:', credErr.message);
+    }
+
+    console.log(`[Account Activation] Employee ${empId} (${email}) activated portal account.`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account activated successfully.',
+      username,
+      employeeId: empId,
+    });
+  } catch (err) {
+    console.error('activateAccount catch error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/admin/email-logs
+ * Returns email dispatch history from email_logs table (with fallback to job_offers sent records)
+ */
+export const getEmailLogs = async (req, res) => {
+  try {
+    // Try email_logs table first
+    const { data: logs, error } = await supabaseAdmin
+      .from('email_logs')
+      .select('*')
+      .order('sent_at', { ascending: false })
+      .limit(200);
+
+    if (!error && logs && logs.length > 0) {
+      return res.status(200).json({ success: true, data: logs });
+    }
+
+    // Fallback: derive from job_offers sent history
+    const { data: offerLogs } = await supabaseAdmin
+      .from('job_offers')
+      .select('id, offer_number, employee_id, employee_name, email, position, district, status, email_status, sent_at, created_at')
+      .not('sent_at', 'is', null)
+      .order('sent_at', { ascending: false })
+      .limit(200);
+
+    const derived = (offerLogs || []).map(o => ({
+      id: o.id,
+      type: 'offer_letter',
+      recipient_name: o.employee_name,
+      recipient_email: o.email,
+      employee_id: o.employee_id,
+      subject: `Job Offer Letter — ${o.position} | DS Projects`,
+      status: o.email_status || 'Delivered',
+      sent_at: o.sent_at,
+      offer_number: o.offer_number,
+      district: o.district,
+    }));
+
+    return res.status(200).json({ success: true, data: derived });
+  } catch (err) {
+    console.error('getEmailLogs error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import employeeRoutes from './routes/employees.js';
 import offerRoutes from './routes/offers.js';
+import { getEmailLogs } from './controllers/offers.js';
 import { supabaseAdmin } from './services/supabaseAdmin.js';
 
 dotenv.config();
@@ -53,6 +54,8 @@ app.get(['/api/health', '/health'], async (req, res) => {
 app.use(['/api/admin', '/admin'], authRoutes);
 app.use(['/api/admin/employees', '/admin/employees'], employeeRoutes);
 app.use(['/api/admin/offers', '/admin/offers'], offerRoutes);
+// Email logs audit trail
+app.get(['/api/admin/email-logs', '/admin/email-logs'], getEmailLogs);
 
 // 404 Handler for undefined API routes (always return JSON)
 app.use((req, res) => {

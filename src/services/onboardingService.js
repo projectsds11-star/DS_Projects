@@ -142,8 +142,68 @@ export const onboardingService = {
     return existing || null;
   },
 
-  /** Get full email logs audit trail */
+  /** Get full email logs audit trail — fetches from Supabase email_logs */
   async getEmailLogs() {
+    // 1. Try Backend API
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/admin/email-logs`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          _emailLogs = json.data;
+          return json.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend email-logs unavailable, falling back to Supabase:', e);
+    }
+
+    // 2. Fallback: fetch directly from Supabase email_logs table
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('email_logs')
+          .select('*')
+          .order('sent_at', { ascending: false })
+          .limit(200);
+        if (!error && data) {
+          _emailLogs = data;
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase email_logs query error:', err);
+      }
+    }
+
+    // 3. Final fallback: derive from job_offers sent history
+    if (isSupabaseConfigured) {
+      try {
+        const { data } = await supabase
+          .from('job_offers')
+          .select('id, offer_number, employee_id, employee_name, email, position, district, status, email_status, sent_at, created_at')
+          .not('sent_at', 'is', null)
+          .order('sent_at', { ascending: false })
+          .limit(200);
+        if (data) {
+          return data.map(o => ({
+            id: o.id,
+            type: 'offer_letter',
+            recipient_name: o.employee_name,
+            recipient_email: o.email,
+            employee_id: o.employee_id,
+            subject: `Job Offer Letter — ${o.position} | DS Projects`,
+            status: o.email_status || 'Delivered',
+            sent_at: o.sent_at,
+            offer_number: o.offer_number,
+            district: o.district,
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase job_offers email log fallback error:', err);
+      }
+    }
+
     return [..._emailLogs];
   },
 
@@ -537,5 +597,84 @@ export const offerService = {
     });
 
     return { success: true, sentAt: now };
+  },
+
+  /**
+   * Activate employee account — called from AccountActivation.jsx
+   * Validates the activation token (offerId or employeeId embedded in URL),
+   * sets the permanent password in Supabase and marks offer as accepted.
+   */
+  async activateAccount(token, password) {
+    // 1. Try Backend API activation endpoint
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/admin/offers/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        return json;
+      }
+      if (res.status === 400 || res.status === 404) {
+        return { success: false, message: json.message || 'Invalid activation link.' };
+      }
+    } catch (apiErr) {
+      console.warn('Backend activateAccount error, falling back to Supabase client:', apiErr);
+    }
+
+    // 2. Supabase Client Fallback
+    if (isSupabaseConfigured) {
+      try {
+        // Token may be offer_number, employee_id, or a composite token
+        const { data: offers } = await supabase
+          .from('job_offers')
+          .select('*')
+          .or(`offer_number.eq.${token},employee_id.eq.${token}`)
+          .limit(1);
+
+        const offer = offers && offers[0];
+        if (!offer) {
+          return { success: false, message: 'Invalid or expired activation link. Please contact HR.' };
+        }
+
+        const empId = offer.employee_id;
+        const email = offer.email;
+        const idNumber = (empId || '001').replace(/[^0-9]/g, '') || '001';
+        const normalizedName = (offer.employee_name || 'candidate').toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, '');
+        const username = `${normalizedName}${idNumber}@dsprojects`;
+
+        // Update password in employees table
+        await supabase
+          .from('employees')
+          .update({ password, updated_at: new Date().toISOString() })
+          .eq('employee_id', empId);
+
+        // Update password in job_offers table
+        await supabase
+          .from('job_offers')
+          .update({ password, status: 'Offer Accepted', updated_at: new Date().toISOString() })
+          .eq('id', offer.id);
+
+        // Upsert into employee_credentials table
+        await supabase
+          .from('employee_credentials')
+          .upsert({
+            email,
+            employee_id: empId,
+            username,
+            password,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'email' });
+
+        return { success: true, username, employeeId: empId };
+      } catch (err) {
+        console.error('Supabase activateAccount error:', err);
+        return { success: false, message: 'Activation failed. Please try again or contact HR.' };
+      }
+    }
+
+    return { success: false, message: 'System unavailable. Please contact HR support.' };
   }
 };
