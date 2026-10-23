@@ -3,6 +3,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
+  Building2,
   UserCheck, 
   FileCheck, 
   ClipboardList, 
@@ -25,6 +26,7 @@ import { supabase } from '../services/supabaseClient';
 const NAV_ITEMS = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Employees', path: '/admin/employees', icon: Users },
+  { name: 'Agencies', path: '/admin/agencies', icon: Building2 },
   { name: 'Onboarding', path: '/admin/onboarding', icon: UserCheck },
   { name: 'Job Offers', path: '/admin/offers', icon: FileCheck },
   { name: 'Daily Work', path: '/admin/work', icon: ClipboardList },

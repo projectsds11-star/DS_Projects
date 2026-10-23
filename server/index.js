@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import employeeRoutes from './routes/employees.js';
 import offerRoutes from './routes/offers.js';
+import agencyRoutes from './routes/agencies.js';
 import { getEmailLogs } from './controllers/offers.js';
 import { supabaseAdmin } from './services/supabaseAdmin.js';
 
@@ -54,6 +55,7 @@ app.get(['/api/health', '/health'], async (req, res) => {
 app.use(['/api/admin', '/admin'], authRoutes);
 app.use(['/api/admin/employees', '/admin/employees'], employeeRoutes);
 app.use(['/api/admin/offers', '/admin/offers'], offerRoutes);
+app.use(['/api/admin/agencies', '/admin/agencies'], agencyRoutes);
 // Email logs audit trail
 app.get(['/api/admin/email-logs', '/admin/email-logs'], getEmailLogs);
 

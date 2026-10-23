@@ -13,6 +13,8 @@ import AdminDashboard from '../pages/admin/Dashboard';
 import Employees from '../pages/admin/Employees';
 import AddEmployee from '../pages/admin/AddEmployee';
 import EmployeeDetail from '../pages/admin/EmployeeDetail';
+import Agencies from '../pages/admin/Agencies';
+import AddAgency from '../pages/admin/AddAgency';
 
 // Onboarding Module Pages
 import Onboarding from '../pages/admin/Onboarding';
@@ -82,6 +84,11 @@ const router = createBrowserRouter([
       { path: 'employees/add', element: <AddEmployee /> },
       { path: 'employees/edit/:id', element: <AddEmployee /> },
       { path: 'employees/:id', element: <EmployeeDetail /> },
+
+      // Agencies routes
+      { path: 'agencies', element: <Agencies /> },
+      { path: 'agencies/add', element: <AddAgency /> },
+      { path: 'agencies/edit/:id', element: <AddAgency /> },
 
       // Onboarding routes
       { path: 'onboarding', element: <Onboarding /> },
