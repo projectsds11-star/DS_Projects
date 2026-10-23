@@ -84,6 +84,7 @@ export default function Employees() {
   const [agencyFilter, setAgencyFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null); // { type: 'action'|'status', emp: object, top: number, right?: number, left?: number }
   const [toastMessage, setToastMessage] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, emp: null });
@@ -141,12 +142,16 @@ export default function Employees() {
   const executeDelete = async () => {
     const emp = confirmModal.emp;
     if (!emp) return;
+    setIsDeleting(true);
     try {
       await employeeService.deleteEmployee(emp.employeeId);
       setEmployees(prev => prev.filter(e => e.employeeId !== emp.employeeId));
-      showToast(`${emp.name} removed.`);
+      showToast(`${emp.name} removed successfully.`);
+      setConfirmModal({ isOpen: false, emp: null });
     } catch (err) {
       showToast(err.message || 'Failed to delete employee.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -573,7 +578,10 @@ export default function Employees() {
       )}
       <ConfirmModal 
         isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, emp: null })}
+        isLoading={isDeleting}
+        onClose={() => {
+          if (!isDeleting) setConfirmModal({ isOpen: false, emp: null });
+        }}
         onConfirm={executeDelete}
         title="Delete Employee?"
         message={confirmModal.emp ? `Permanently remove ${confirmModal.emp.name} (${confirmModal.emp.employeeId})? This action cannot be undone and will delete all their uploaded documents.` : ''}
