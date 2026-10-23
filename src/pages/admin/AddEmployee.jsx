@@ -421,6 +421,7 @@ export default function AddEmployee() {
           name: result.data?.name,
           email: result.data?.email,
           emailStatus: result.emailStatus,
+          agencyName: payload.agency_name || '',
         });
       }
       setStep('success');

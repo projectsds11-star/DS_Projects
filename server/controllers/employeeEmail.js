@@ -2,6 +2,8 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { supabaseAdmin } from '../services/supabaseAdmin.js';
+import { generateOfferLetterPDF } from '../services/pdfGenerator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +26,7 @@ function getTransporter() {
 
 /**
  * EMAIL 1: Welcome Email (Sent immediately upon adding employee)
- * Confirms registration in DS Projects and congratulates the employee.
+ * Confirms registration in DS Projects or Partner Agency.
  */
 export const sendWelcomeEmail = async (req, res) => {
   const {
@@ -36,6 +38,8 @@ export const sendWelcomeEmail = async (req, res) => {
     district,
     mandal,
     joiningDate,
+    agencyId,
+    agencyName,
   } = req.body;
 
   if (!email || !fullName) {
@@ -47,7 +51,151 @@ export const sendWelcomeEmail = async (req, res) => {
   const locMandal = mandal || 'Field';
   const empId = employeeId || 'DS-001';
 
-  const htmlContent = `
+  // Check if assigned to an agency
+  let agencyData = null;
+  const isDirect = !agencyId || agencyId === 'direct' || (agencyName && agencyName.toLowerCase().includes('direct ds'));
+
+  if (!isDirect) {
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agencyId);
+      let query = supabaseAdmin.from('agencies').select('*');
+      if (isUuid) {
+        query = query.or(`id.eq.${agencyId},agency_code.eq.${agencyId}`);
+      } else if (agencyId) {
+        query = query.eq('agency_code', agencyId);
+      } else if (agencyName) {
+        query = query.ilike('name', agencyName.trim());
+      }
+      const { data, error } = await query.maybeSingle();
+      if (!error && data) {
+        agencyData = data;
+      }
+    } catch (err) {
+      console.warn('[sendWelcomeEmail] Failed to fetch agency info:', err.message);
+    }
+  }
+
+  const effectiveAgencyName = agencyData?.name || (isDirect ? null : (agencyName && agencyName.trim() ? agencyName.trim() : null));
+  const agencyEmail = agencyData?.email || null;
+  const agencyPhone = agencyData?.phone || null;
+  const agencyContactPerson = agencyData?.contact_person || 'Partner Administration';
+  const agencyCode = agencyData?.agency_code || (agencyId && agencyId !== 'direct' ? agencyId : null);
+  const agencyDistrict = agencyData?.district_name || locDistrict;
+  const agencyAddress = agencyData?.address || '';
+
+  const isAgencyEmail = !isDirect && !!effectiveAgencyName;
+  const senderDisplayName = isAgencyEmail ? effectiveAgencyName : 'DS Projects HR';
+  const replyToAddress = (isAgencyEmail && agencyEmail) ? agencyEmail : (process.env.EMAIL_USER || 'projectsds11@gmail.com');
+  const emailSubject = isAgencyEmail
+    ? `🎉 Welcome to ${effectiveAgencyName} — Registration Confirmed (${empId})`
+    : `🎉 Welcome to DS Projects Private Limited — Registration Confirmed (${empId})`;
+
+  const htmlContent = isAgencyEmail ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to ${effectiveAgencyName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f8fafc; color: #334155; line-height: 1.6;">
+  <table width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; max-width: 600px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #092c4c 0%, #0369a1 100%); padding: 25px 30px; text-align: left;">
+              <div style="display:inline-block;background:rgba(255,255,255,0.18);color:#e0f2fe;font-size:10px;font-weight:bold;letter-spacing:1px;padding:3px 10px;border-radius:12px;margin-bottom:8px;text-transform:uppercase">
+                Authorized Partner Agency ${agencyCode ? `&bull; ${agencyCode}` : ''}
+              </div>
+              <h1 style="color: #ffffff; font-size: 20px; font-weight: bold; margin: 0; letter-spacing: 0.5px;">${effectiveAgencyName.toUpperCase()}</h1>
+              <p style="color: #bae6fd; font-size: 12px; margin: 4px 0 0 0;">In Association with DS Projects Private Limited &bull; Employee Registration Confirmation</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 30px; font-size: 14px; color: #334155;">
+              <p style="margin-top: 0; font-size: 16px;">Dear <strong>${fullName}</strong>,</p>
+              
+              <p>Congratulations and a warm welcome to <strong>${effectiveAgencyName}</strong> in collaboration with <strong>DS Projects Private Limited</strong>! We are delighted to have you join our organization.</p>
+              
+              <p>Your official employee profile has been successfully registered in our corporate database with the following details:</p>
+
+              <!-- Details Box -->
+              <table width="100%" cellspacing="0" cellpadding="8" style="background-color: #f8fafc; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; font-size: 13px;">
+                <tr>
+                  <td width="38%" style="color: #64748b; font-weight: bold;">Employee Name:</td>
+                  <td style="color: #0f172a; font-weight: 600;">${fullName}</td>
+                </tr>
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Official Employee ID:</td>
+                  <td style="color: #0369a1; font-weight: bold; font-family: monospace;">${empId}</td>
+                </tr>
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Registered Email:</td>
+                  <td style="color: #0f172a;">${email}</td>
+                </tr>
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Partner Agency:</td>
+                  <td style="color: #0f172a; font-weight: 600;">${effectiveAgencyName} ${agencyCode ? `<span style="color:#64748b">(${agencyCode})</span>` : ''}</td>
+                </tr>
+                ${agencyContactPerson ? `
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Agency Coordinator:</td>
+                  <td style="color: #0f172a;">${agencyContactPerson}</td>
+                </tr>` : ''}
+                ${agencyEmail ? `
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Agency Email:</td>
+                  <td style="color: #0369a1;"><a href="mailto:${agencyEmail}" style="color:#0369a1;text-decoration:none">${agencyEmail}</a></td>
+                </tr>` : ''}
+                ${agencyPhone ? `
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Agency Phone:</td>
+                  <td style="color: #0f172a;">${agencyPhone}</td>
+                </tr>` : ''}
+                ${agencyDistrict ? `
+                <tr>
+                  <td style="color: #64748b; font-weight: bold;">Jurisdiction:</td>
+                  <td style="color: #0f172a;">${agencyDistrict}, Andhra Pradesh</td>
+                </tr>` : ''}
+              </table>
+
+              <!-- Notice Box -->
+              <div style="background:#f0f9ff;border-left:4px solid #0284c7;padding:12px 16px;border-radius:6px;margin:20px 0;font-size:12.5px;color:#0369a1">
+                <strong>Partner Agency Communication:</strong> For any operational questions, regional assignments, or reporting queries, you may reply directly to this email or reach out to your agency coordinator at <strong>${agencyEmail || 'your agency'}</strong>${agencyPhone ? ` / <strong>${agencyPhone}</strong>` : ''}.
+              </div>
+
+              <p>Our operations team and HR administration are currently preparing your onboarding documentation. You will receive a subsequent email with your detailed compensation structure (CTC) and secure login credentials to access your employee portal.</p>
+
+              <p>Once again, congratulations on joining ${effectiveAgencyName}!</p>
+
+              <p style="margin-bottom: 0; margin-top: 25px;">
+                Warm regards,<br>
+                <strong>${agencyContactPerson}</strong><br>
+                <strong>${effectiveAgencyName}</strong><br>
+                <span style="color:#64748b;font-size:12px">Authorized Partner of DS Projects Private Limited</span>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 15px 30px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
+              ${effectiveAgencyName} &bull; ${agencyAddress ? `${agencyAddress} &bull; ` : ''}Partner Support: ${agencyEmail || 'projectsds11@gmail.com'} &bull; Official Partner of DS Projects Private Limited &bull; Andhra Pradesh
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+` : `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -124,18 +272,23 @@ export const sendWelcomeEmail = async (req, res) => {
   try {
     const transporter = getTransporter();
     const info = await transporter.sendMail({
-      from: `"DS Projects HR" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+      from: `"${senderDisplayName}" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+      replyTo: replyToAddress,
       to: email,
-      subject: `🎉 Welcome to DS Projects Private Limited — Registration Confirmed (${empId})`,
+      subject: emailSubject,
       html: htmlContent,
     });
 
-    console.log(`✅ Welcome Email (Email 1) sent to ${email} (ID: ${info.messageId})`);
+    console.log(`✅ Welcome Email (Email 1) sent to ${email} (ID: ${info.messageId}) from "${senderDisplayName}"`);
 
     return res.status(200).json({
       success: true,
       message: `Welcome email sent successfully to ${email}`,
       messageId: info.messageId,
+      sender: senderDisplayName,
+      replyTo: replyToAddress,
+      isAgency: isAgencyEmail,
+      agencyName: effectiveAgencyName,
     });
   } catch (error) {
     console.error('❌ Error sending welcome email:', error);

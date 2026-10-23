@@ -32,8 +32,67 @@ function getTransporter() {
   return nodemailer.createTransport({ service: 'gmail', auth: { user, pass } });
 }
 
-async function sendWelcomeEmail({ employeeId, name, email }) {
-  const plainText = `
+async function sendWelcomeEmail({ employeeId, name, email, agencyId, agencyName }) {
+  // Check if assigned to a specific partner agency or direct DS Projects
+  let agencyData = null;
+  const isDirect = !agencyId || agencyId === 'direct' || (agencyName && agencyName.toLowerCase().includes('direct ds'));
+
+  if (!isDirect) {
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agencyId);
+      let query = supabaseAdmin.from('agencies').select('*');
+      if (isUuid) {
+        query = query.or(`id.eq.${agencyId},agency_code.eq.${agencyId}`);
+      } else if (agencyId) {
+        query = query.eq('agency_code', agencyId);
+      } else if (agencyName) {
+        query = query.ilike('name', agencyName.trim());
+      }
+      const { data, error } = await query.maybeSingle();
+      if (!error && data) {
+        agencyData = data;
+      }
+    } catch (err) {
+      console.warn('[sendWelcomeEmail] Could not fetch agency info:', err.message);
+    }
+  }
+
+  const effectiveAgencyName = agencyData?.name || (isDirect ? null : (agencyName && agencyName.trim() ? agencyName.trim() : null));
+  const agencyEmail = agencyData?.email || null;
+  const agencyPhone = agencyData?.phone || null;
+  const agencyContactPerson = agencyData?.contact_person || 'Partner Administration';
+  const agencyCode = agencyData?.agency_code || (agencyId && agencyId !== 'direct' ? agencyId : null);
+  const agencyDistrict = agencyData?.district_name || '';
+  const agencyAddress = agencyData?.address || '';
+
+  const isAgencyEmail = !isDirect && !!effectiveAgencyName;
+
+  const senderDisplayName = isAgencyEmail ? effectiveAgencyName : 'DS Projects HR';
+  const replyToAddress = (isAgencyEmail && agencyEmail) ? agencyEmail : (process.env.EMAIL_USER || 'projectsds11@gmail.com');
+  const emailSubject = isAgencyEmail
+    ? `Welcome to ${effectiveAgencyName} — Employee Registration Confirmed (${employeeId})`
+    : `Welcome to DS Projects — Employee Registration Confirmed (${employeeId})`;
+
+  const plainText = isAgencyEmail ? `
+Dear ${name},
+
+Congratulations and a warm welcome to ${effectiveAgencyName}!
+
+Your official employee profile has been successfully registered in our corporate system in association with DS Projects Private Limited with the following details:
+
+  Employee Name        : ${name}
+  Official Employee ID : ${employeeId}
+  Registered Email     : ${email}
+  Partner Agency       : ${effectiveAgencyName} ${agencyCode ? `(${agencyCode})` : ''}
+  ${agencyContactPerson ? `Agency Coordinator   : ${agencyContactPerson}\n` : ''}${agencyEmail ? `Agency Official Email: ${agencyEmail}\n` : ''}${agencyPhone ? `Agency Contact Phone : ${agencyPhone}\n` : ''}${agencyDistrict ? `Jurisdiction          : ${agencyDistrict}, Andhra Pradesh\n` : ''}
+Our operations and onboarding team will coordinate with you directly for the next steps and documentation.
+
+Warm regards,
+${agencyContactPerson}
+${effectiveAgencyName}
+Authorized Partner of DS Projects Private Limited
+Andhra Pradesh
+  `.trim() : `
 Dear ${name},
 
 Congratulations and a warm welcome to DS Projects Private Limited!
@@ -52,7 +111,60 @@ DS Projects Private Limited
 Andhra Pradesh
   `.trim();
 
-  const html = `
+  const html = isAgencyEmail ? `
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f8fafc;color:#334155">
+<table width="100%" cellspacing="0" cellpadding="0" style="padding:30px 15px">
+  <tr><td align="center">
+    <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;max-width:600px;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+      <tr>
+        <td style="background:linear-gradient(135deg, #092c4c 0%, #0369a1 100%);padding:25px 30px">
+          <div style="display:inline-block;background:rgba(255,255,255,0.18);color:#e0f2fe;font-size:10px;font-weight:bold;letter-spacing:1px;padding:3px 10px;border-radius:12px;margin-bottom:8px;text-transform:uppercase">
+            Authorized Partner Agency ${agencyCode ? `&bull; ${agencyCode}` : ''}
+          </div>
+          <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:0.5px">${effectiveAgencyName.toUpperCase()}</h1>
+          <p style="color:#bae6fd;font-size:12px;margin:4px 0 0">In Association with DS Projects Private Limited &bull; Employee Registration</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:30px;font-size:14px">
+          <p style="font-size:16px;margin-top:0">Dear <strong>${name}</strong>,</p>
+          <p>Congratulations and a warm welcome to <strong>${effectiveAgencyName}</strong> in collaboration with <strong>DS Projects Private Limited</strong>! We are delighted to confirm that your official employee profile has been successfully registered in our network.</p>
+          <p>Your registration details are summarized below:</p>
+          
+          <table width="100%" cellspacing="0" cellpadding="8" style="background:#f8fafc;border-radius:8px;margin:20px 0;border:1px solid #e2e8f0;font-size:13px">
+            <tr><td width="38%" style="color:#64748b;font-weight:bold">Employee Name:</td><td style="color:#0f172a;font-weight:600">${name}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold">Official Employee ID:</td><td style="color:#0369a1;font-weight:bold;font-family:monospace;font-size:14px">${employeeId}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold">Registered Email:</td><td style="color:#0f172a">${email}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold">Partner Agency:</td><td style="color:#0f172a;font-weight:600">${effectiveAgencyName} ${agencyCode ? `<span style="color:#64748b">(${agencyCode})</span>` : ''}</td></tr>
+            ${agencyContactPerson ? `<tr><td style="color:#64748b;font-weight:bold">Agency Coordinator:</td><td style="color:#0f172a">${agencyContactPerson}</td></tr>` : ''}
+            ${agencyEmail ? `<tr><td style="color:#64748b;font-weight:bold">Agency Official Email:</td><td style="color:#0369a1"><a href="mailto:${agencyEmail}" style="color:#0369a1;text-decoration:none">${agencyEmail}</a></td></tr>` : ''}
+            ${agencyPhone ? `<tr><td style="color:#64748b;font-weight:bold">Agency Phone:</td><td style="color:#0f172a">${agencyPhone}</td></tr>` : ''}
+            ${agencyDistrict ? `<tr><td style="color:#64748b;font-weight:bold">Jurisdiction:</td><td style="color:#0f172a">${agencyDistrict}, Andhra Pradesh</td></tr>` : ''}
+          </table>
+
+          <div style="background:#f0f9ff;border-left:4px solid #0284c7;padding:12px 16px;border-radius:6px;margin:20px 0;font-size:12.5px;color:#0369a1">
+            <strong>Partner Agency Communication:</strong> For any operational questions, regional assignments, or reporting queries, you may reply directly to this email or reach out to your agency coordinator at <strong>${agencyEmail || 'your agency'}</strong>${agencyPhone ? ` / <strong>${agencyPhone}</strong>` : ''}.
+          </div>
+
+          <p>Our operations team and HR administration are currently preparing your onboarding documentation. You will receive further communications shortly.</p>
+          
+          <p style="margin-bottom:0;margin-top:25px">Warm regards,<br>
+            <strong>${agencyContactPerson}</strong><br>
+            <strong>${effectiveAgencyName}</strong><br>
+            <span style="color:#64748b;font-size:12px">Authorized Partner of DS Projects Private Limited</span>
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#f8fafc;padding:15px 30px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center">
+          ${effectiveAgencyName} &bull; ${agencyAddress ? `${agencyAddress} &bull; ` : ''}Support: ${agencyEmail || 'projectsds11@gmail.com'} &bull; Official Partner of DS Projects Private Limited &bull; Andhra Pradesh
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>` : `
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f8fafc;color:#334155">
 <table width="100%" cellspacing="0" cellpadding="0" style="padding:30px 15px">
@@ -89,11 +201,11 @@ Andhra Pradesh
 </body></html>`;
 
   const transporter = getTransporter();
-  const info = await transporter.sendMail({
-    from: `"DS Projects HR" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
-    replyTo: process.env.EMAIL_USER || 'projectsds11@gmail.com',
+  const mailOptions = {
+    from: `"${senderDisplayName}" <${process.env.EMAIL_USER || 'projectsds11@gmail.com'}>`,
+    replyTo: replyToAddress,
     to: email,
-    subject: `Welcome to DS Projects — Employee Registration Confirmed (${employeeId})`,
+    subject: emailSubject,
     text: plainText,
     html,
     headers: {
@@ -102,8 +214,17 @@ Andhra Pradesh
       'Importance': 'high',
       'X-Mailer': 'DS Projects HRMS',
     },
-  });
-  return info.messageId;
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  return {
+    messageId: info.messageId,
+    subject: emailSubject,
+    from: mailOptions.from,
+    replyTo: mailOptions.replyTo,
+    isAgency: isAgencyEmail,
+    agencyName: effectiveAgencyName,
+  };
 }
 
 // ── File upload helpers ─────────────────────────────────────────────────────
@@ -341,15 +462,22 @@ export const createEmployee = async (req, res) => {
   let emailStatus = 'SENT';
   let emailError = null;
   let sentAt = null;
+  let emailRes = null;
 
   try {
     // Race the email against a 10-second timeout so it never hangs forever
-    await Promise.race([
-      sendWelcomeEmail({ employeeId, name: name.trim(), email: email.trim().toLowerCase() }),
+    emailRes = await Promise.race([
+      sendWelcomeEmail({
+        employeeId,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        agencyId: (req.body.agency_id || '').trim(),
+        agencyName: (req.body.agency_name || '').trim(),
+      }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout after 10s')), 10000)),
     ]);
     sentAt = new Date().toISOString();
-    console.log(`[createEmployee] ✅ Welcome email sent to ${email.trim().toLowerCase()}`);
+    console.log(`[createEmployee] ✅ Welcome email sent to ${email.trim().toLowerCase()} from "${emailRes?.from || 'DS Projects'}" (Agency: ${emailRes?.agencyName || 'Direct'})`);
   } catch (mailErr) {
     emailStatus = 'FAILED';
     emailError = mailErr.message;
@@ -361,7 +489,7 @@ export const createEmployee = async (req, res) => {
     employee_id: created.id,
     recipient_email: email.trim().toLowerCase(),
     email_type: 'WELCOME_EMPLOYEE',
-    subject: `Welcome to DS Projects Private Limited — Registration Confirmed (${employeeId})`,
+    subject: emailRes?.subject || `Welcome to DS Projects Private Limited — Registration Confirmed (${employeeId})`,
     status: emailStatus,
     error_message: emailError,
     sent_at: sentAt,

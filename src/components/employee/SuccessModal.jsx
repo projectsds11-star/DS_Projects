@@ -150,11 +150,18 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
                     <p className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
                       {employee?.name || 'Unknown Name'}
                     </p>
-                    {employee?.email && (
-                      <p className="text-sm font-semibold text-indigo-600 mt-0.5 bg-indigo-100/50 inline-block px-2 py-0.5 rounded-md">
-                        {employee.email}
-                      </p>
-                    )}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1">
+                      {employee?.email && (
+                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-100/60 px-2 py-0.5 rounded-md">
+                          {employee.email}
+                        </span>
+                      )}
+                      {employee?.agencyName && (
+                        <span className="text-xs font-semibold text-sky-700 bg-sky-100/70 border border-sky-200/60 px-2 py-0.5 rounded-md">
+                          Agency: {employee.agencyName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -184,7 +191,7 @@ export default function SuccessModal({ open, employee, onViewEmployee, onClose, 
                     </p>
                     <p className={`text-[11px] mt-0.5 ${emailSent ? 'text-emerald-700' : emailFailed ? 'text-amber-600' : 'text-gray-400'}`}>
                       {emailSent
-                        ? `Sent to ${employee?.email}`
+                        ? `Dispatched to ${employee?.email}${employee?.agencyName ? ` from ${employee.agencyName}` : ''}`
                         : emailFailed
                         ? 'Email delivery failed. Employee record is saved.'
                         : employee?.email || ''}
