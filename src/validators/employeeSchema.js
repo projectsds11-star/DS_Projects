@@ -150,6 +150,9 @@ export const employeeSchema = z
     mandalId: z
       .string()
       .min(1, 'Please select a mandal.'),
+
+    agencyId: z.string().optional().default(''),
+    agencyName: z.string().optional().default(''),
   })
   .refine(
     data => {
@@ -192,6 +195,8 @@ export const employeeEditSchema = z
     stateId: z.string().min(1, 'Please select a state.'),
     districtId: z.string().min(1, 'Please select a district.'),
     mandalId: z.string().min(1, 'Please select a mandal.'),
+    agencyId: z.string().optional().default(''),
+    agencyName: z.string().optional().default(''),
   })
   .refine(
     data => {

@@ -143,6 +143,7 @@ export const employeeService = {
       'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
       'reference_mobile', 'reference_person_name', 'reference_relationship',
       'state_id', 'district_id', 'mandal_id',
+      'agency_id', 'agency_name',
     ];
     textFields.forEach(field => {
       if (formData[field] != null) body.append(field, formData[field]);
@@ -178,6 +179,7 @@ export const employeeService = {
       'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
       'reference_mobile', 'reference_person_name', 'reference_relationship',
       'state_id', 'district_id', 'mandal_id',
+      'agency_id', 'agency_name',
     ];
     textFields.forEach(field => {
       if (formData[field] != null) body.append(field, formData[field]);
@@ -286,6 +288,10 @@ function mapRow(e) {
     mandalId: e.mandal_id || '',
     district: e.district_id || '',
     mandal: e.mandal_id || '',
+    agencyId: e.agency_id || '',
+    agencyName: e.agency_name || '',
+    agency_id: e.agency_id || '',
+    agency_name: e.agency_name || '',
     status: e.status || 'active',
     createdAt: e.created_at,
     updatedAt: e.updated_at,

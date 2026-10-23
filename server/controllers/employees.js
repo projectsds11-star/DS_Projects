@@ -318,6 +318,8 @@ export const createEmployee = async (req, res) => {
     state_id: state_id.trim(),
     district_id: district_id.trim(),
     mandal_id: mandal_id.trim(),
+    agency_id: (req.body.agency_id || '').trim(),
+    agency_name: (req.body.agency_name || '').trim(),
     status: 'active',
   };
 
@@ -488,6 +490,8 @@ export const updateEmployee = async (req, res) => {
   if (state_id) updates.state_id = state_id.trim();
   if (district_id) updates.district_id = district_id.trim();
   if (mandal_id) updates.mandal_id = mandal_id.trim();
+  if (req.body.agency_id !== undefined) updates.agency_id = req.body.agency_id ? req.body.agency_id.trim() : '';
+  if (req.body.agency_name !== undefined) updates.agency_name = req.body.agency_name ? req.body.agency_name.trim() : '';
   updates.candidate_photo_path = photoPath;
   updates.bank_passbook_path = passbookPath;
   updates.aadhaar_document_path = aadhaarDocumentPath;

@@ -24,7 +24,8 @@ import {
   ChevronDown,
   Check,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -80,6 +81,7 @@ export default function Employees() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
+  const [agencyFilter, setAgencyFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null); // { type: 'action'|'status', emp: object, top: number, right?: number, left?: number }
@@ -175,19 +177,23 @@ export default function Employees() {
   };
 
   const districts = ['All', ...new Set(employees.map(e => e.districtId).filter(Boolean))];
+  const agenciesList = ['All', ...new Set(employees.map(e => e.agencyName || e.agency_name || 'Direct DS Projects').filter(Boolean))];
 
   const filteredEmployees = employees.filter(emp => {
     const q = searchTerm.toLowerCase();
+    const empAgency = emp.agencyName || emp.agency_name || 'Direct DS Projects';
     const matchesSearch = !q ||
       (emp.name || '').toLowerCase().includes(q) ||
       (emp.employeeId || '').toLowerCase().includes(q) ||
       (emp.email || '').toLowerCase().includes(q) ||
-      (emp.phone || '').toLowerCase().includes(q);
+      (emp.phone || '').toLowerCase().includes(q) ||
+      empAgency.toLowerCase().includes(q);
 
     const matchesStatus = statusFilter === 'All' || emp.displayStatus === statusFilter;
     const matchesDistrict = districtFilter === 'All' || emp.districtId === districtFilter;
+    const matchesAgency = agencyFilter === 'All' || empAgency === agencyFilter;
 
-    return matchesSearch && matchesStatus && matchesDistrict;
+    return matchesSearch && matchesStatus && matchesDistrict && matchesAgency;
   });
 
   const getStatusBadge = (emp) => {
@@ -290,6 +296,19 @@ export default function Employees() {
             ))}
           </div>
 
+          {/* Agency Selector */}
+          {agenciesList.length > 1 && (
+            <select
+              value={agencyFilter}
+              onChange={(e) => setAgencyFilter(e.target.value)}
+              className="text-xs font-bold text-slate-700 border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#E63946]"
+            >
+              {agenciesList.map(a => (
+                <option key={a} value={a}>{a === 'All' ? 'All Agencies' : a}</option>
+              ))}
+            </select>
+          )}
+
           {/* District Selector */}
           {districts.length > 1 && (
             <select
@@ -313,6 +332,7 @@ export default function Employees() {
               <thead className="text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200/80">
                 <tr>
                   <th className="px-6 py-4">Employee</th>
+                  <th className="px-6 py-4">Partner Agency</th>
                   <th className="px-6 py-4">Contact Info</th>
                   <th className="px-6 py-4">Qualification</th>
                   <th className="px-6 py-4">Location</th>
@@ -339,6 +359,15 @@ export default function Employees() {
                           </div>
                           <div className="font-mono text-xs text-[#E63946] font-semibold">{emp.employeeId}</div>
                         </div>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                        <Building2 size={13} className="text-[#E63946] shrink-0" />
+                        <span className="truncate max-w-[150px]">
+                          {emp.agencyName || emp.agency_name || 'Direct DS Projects'}
+                        </span>
                       </div>
                     </td>
 

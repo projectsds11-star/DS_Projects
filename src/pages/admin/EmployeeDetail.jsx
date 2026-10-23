@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Edit2, User, ShieldCheck, Landmark, Users, MapPin,
-  FileText, RefreshCw, AlertCircle, Eye, Download, CheckCircle, XCircle
+  FileText, RefreshCw, AlertCircle, Eye, Download, CheckCircle, XCircle, Building2
 } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { Button } from '../../components/ui/Button';
@@ -341,7 +341,8 @@ export default function EmployeeDetail() {
         <DetailRow label="Relationship" value={employee.relationship} />
       </Section>
 
-      <Section title="Location" icon={MapPin}>
+      <Section title="Deployment & Partner Agency" icon={Building2}>
+        <DetailRow label="Partner Agency" value={employee.agencyName || employee.agency_name || 'Direct DS Projects / Internal'} />
         <DetailRow label="State" value="Andhra Pradesh" />
         <DetailRow label="District" value={employee.districtId} />
         <DetailRow label="Mandal" value={employee.mandalId} />

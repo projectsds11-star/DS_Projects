@@ -20,10 +20,12 @@ import {
   Globe,
   Sparkles,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Users
 } from 'lucide-react';
 import { agencyService } from '../../services/agencyService';
 import { locationService } from '../../services/locationService';
+import { employeeService } from '../../services/employeeService';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export default function Agencies() {
@@ -31,6 +33,7 @@ export default function Agencies() {
 
   const [agencies, setAgencies] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('ALL');
@@ -47,12 +50,14 @@ export default function Agencies() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [agencyList, districtList] = await Promise.all([
+      const [agencyList, districtList, empList] = await Promise.all([
         agencyService.getAgencies(),
-        locationService.getDistrictsSync()
+        locationService.getDistrictsSync(),
+        employeeService.getEmployees()
       ]);
       setAgencies(agencyList || []);
       setDistricts(districtList || []);
+      setEmployees(empList || []);
     } catch (err) {
       console.error('Failed to load agency data:', err);
     } finally {
@@ -443,6 +448,30 @@ export default function Agencies() {
                       {agency.notes}
                     </div>
                   )}
+
+                  {/* Mapped Staff Count Badge */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/70">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold text-slate-800 text-xs">
+                        {employees.filter(e => (
+                          e.agencyId === agency.id ||
+                          e.agency_id === agency.id ||
+                          (e.agencyName && e.agencyName.toLowerCase() === agency.name.toLowerCase()) ||
+                          (e.agency_name && e.agency_name.toLowerCase() === agency.name.toLowerCase())
+                        )).length} Mapped Staff
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/employees')}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      View Staff →
+                    </button>
+                  </div>
                 </div>
 
                 {/* Card Actions Footer */}

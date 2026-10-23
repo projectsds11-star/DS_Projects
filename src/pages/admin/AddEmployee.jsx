@@ -12,12 +12,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Eye, UserPlus, CheckCircle, AlertCircle,
-  RefreshCw, MapPin, User, ShieldCheck, Landmark, Users, X
+  RefreshCw, MapPin, User, ShieldCheck, Landmark, Users, X, Building2
 } from 'lucide-react';
 
 import { employeeSchema, employeeEditSchema } from '../../validators/employeeSchema';
 import { employeeService } from '../../services/employeeService';
 import { locationService } from '../../services/locationService';
+import { agencyService } from '../../services/agencyService';
 
 import FormSection, { FormField, FormGrid } from '../../components/employee/FormSection';
 import PhotoUploader from '../../components/employee/PhotoUploader';
@@ -83,8 +84,10 @@ export default function AddEmployee() {
   const [previewId, setPreviewId] = useState('DS-...');
   const [districts, setDistricts] = useState([]);
   const [mandals, setMandals] = useState([]);
+  const [agencies, setAgencies] = useState([]);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingMandals, setLoadingMandals] = useState(false);
+  const [loadingAgencies, setLoadingAgencies] = useState(false);
   const [createdEmployee, setCreatedEmployee] = useState(null);
   const [serverError, setServerError] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
@@ -119,6 +122,7 @@ export default function AddEmployee() {
       passbook: null, accountHolderName: '', bankName: '', accountNumber: '', reEnterAccountNumber: '', ifsc: '', branchName: '',
       referenceMobile: '', referenceName: '', relationship: '',
       stateId: 'AP-STATE-01', districtId: '', mandalId: '',
+      agencyId: '', agencyName: '',
     },
   });
 
@@ -134,12 +138,18 @@ export default function AddEmployee() {
     watchAccountNumber && watchReEnter &&
     watchAccountNumber.trim() !== watchReEnter.trim();
 
-  // ── Load districts on mount ────────────────────────────────────────────────
+  // ── Load districts & agencies on mount ──────────────────────────────────────
   useEffect(() => {
     setLoadingDistricts(true);
     locationService.getDistricts().then(list => {
       setDistricts(list);
       setLoadingDistricts(false);
+    });
+
+    setLoadingAgencies(true);
+    agencyService.getAgencies().then(list => {
+      setAgencies(list || []);
+      setLoadingAgencies(false);
     });
   }, []);
 
@@ -203,6 +213,8 @@ export default function AddEmployee() {
         stateId: emp.stateId,
         districtId: emp.districtId,
         mandalId: emp.mandalId,
+        agencyId: emp.agencyId || emp.agency_id || '',
+        agencyName: emp.agencyName || emp.agency_name || '',
       });
 
       // Existing files shown as "already uploaded" — fetch previews
@@ -387,6 +399,8 @@ export default function AddEmployee() {
       state_id: values.stateId,
       district_id: values.districtId,
       mandal_id: values.mandalId,
+      agency_id: values.agencyId || '',
+      agency_name: values.agencyName || '',
     };
 
     // Attach files
@@ -542,7 +556,8 @@ export default function AddEmployee() {
             <PreviewRow label="Relationship" value={values.relationship} />
           </PreviewSection>
 
-          <PreviewSection title="Location" icon={MapPin}>
+          <PreviewSection title="Deployment & Agency" icon={Building2}>
+            <PreviewRow label="Partner Agency" value={values.agencyName || 'Direct DS Projects / Internal'} />
             <PreviewRow label="State" value="Andhra Pradesh" />
             <PreviewRow label="District" value={values.districtId} />
             <PreviewRow label="Mandal" value={values.mandalId} />
@@ -938,9 +953,41 @@ export default function AddEmployee() {
         </FormGrid>
       </FormSection>
 
-      {/* ── SECTION 5: Location ─────────────────────────────────────────────── */}
-      <FormSection number={5} title="Location" description="Deployment location in Andhra Pradesh.">
+      {/* ── SECTION 5: Location & Agency ────────────────────────────────────────── */}
+      <FormSection number={5} title="Deployment & Agency Assignment" description="Deployment location in Andhra Pradesh and partner agency association.">
         <FormGrid cols={2}>
+          {/* Partner Agency Dropdown */}
+          <FormField
+            label="Assigned Partner Agency"
+            helper="Select the partner agency this employee belongs to"
+            colSpan={2}
+          >
+            <select
+              {...register('agencyId')}
+              className={inputCls(false)}
+              onChange={e => {
+                const selId = e.target.value;
+                const selectedAgency = agencies.find(a => a.id === selId || a.agency_code === selId);
+                setValue('agencyId', selId, { shouldValidate: true });
+                setValue(
+                  'agencyName',
+                  selectedAgency
+                    ? selectedAgency.name
+                    : (selId === 'direct' ? 'Direct DS Projects / Internal' : ''),
+                  { shouldValidate: true }
+                );
+              }}
+            >
+              <option value="">-- Select Partner Agency --</option>
+              <option value="direct">Direct DS Projects / Internal</option>
+              {agencies.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.agency_code ? `${a.agency_code} • ` : ''}{a.name} {a.district_name ? `(${a.district_name})` : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
           {/* State — fixed */}
           <FormField label="State" required>
             <input
