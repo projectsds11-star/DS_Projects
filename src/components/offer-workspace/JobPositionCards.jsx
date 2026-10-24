@@ -31,7 +31,7 @@ export default function JobPositionCards({
     : 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 sm:p-6 shadow-xs space-y-4 min-w-0 max-w-full overflow-hidden" ref={dropdownRef}>
+    <div className={cn('bg-white rounded-2xl border border-[var(--color-border)] p-4 sm:p-6 shadow-xs space-y-4 min-w-0 max-w-full relative overflow-visible', isOpen ? 'z-30' : 'z-10')} ref={dropdownRef}>
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
         <div>

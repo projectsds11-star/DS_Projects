@@ -52,7 +52,7 @@ export default function DistrictSelect({
   const selectedObj = districts.find(d => d.name === value || d.id === value);
 
   return (
-    <div className={cn('space-y-1.5 text-left', className)} ref={containerRef}>
+    <div className={cn('space-y-1.5 text-left relative', isOpen ? 'z-50' : 'z-20', className)} ref={containerRef}>
       {label && (
         <label className="block text-xs font-bold text-slate-700 tracking-wide">
           {label}
@@ -111,7 +111,7 @@ export default function DistrictSelect({
 
         {/* Dropdown Menu Popup */}
         {isOpen && !disabled && (
-          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
             {/* Search Input Bar */}
             <div className="p-2.5 border-b border-slate-100 bg-slate-50/80">
               <div className="relative">
@@ -137,7 +137,7 @@ export default function DistrictSelect({
             </div>
 
             {/* District List */}
-            <div className="max-h-60 overflow-y-auto p-1.5 divide-y divide-slate-50">
+            <div className="max-h-72 overflow-y-auto p-1.5 divide-y divide-slate-50 overscroll-contain">
               {filteredDistricts.map((d) => {
                 const isSelected = d.name === value || d.id === value;
                 const mCount = d.mandalCount || (d.mandals ? d.mandals.length : 0);
