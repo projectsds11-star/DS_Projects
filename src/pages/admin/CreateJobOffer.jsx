@@ -42,6 +42,7 @@ import SendingStateModal from '../../components/onboarding/SendingStateModal';
 import SuccessOfferModal from '../../components/onboarding/SuccessOfferModal';
 
 // Services & Validators
+import { COMPANY_INFO } from '../../data/companyInfo';
 import { offerSchema } from '../../validators/offerSchema';
 import { onboardingService, offerService } from '../../services/onboardingService';
 import { employeeService } from '../../services/employeeService';
@@ -275,7 +276,7 @@ export default function CreateJobOffer() {
 
   // 4. Refresh Email Body
   const refreshEmailBody = (empName, pos, dist, mnd, jDate) => {
-    const body = `Dear ${empName || 'Candidate'},\n\nCongratulations!\n\nWe are delighted to extend a formal offer of employment for the position of ${pos || 'Mandal Co-ordinator'} with DS PROJECTS PRIVATE LIMITED.\n\nAssigned Work Jurisdiction: ${mnd || 'Kavali'}, ${dist || 'Nellore'}, Andhra Pradesh\nProposed Joining Date: ${jDate || 'To be communicated'}\n\nPlease review the attached official Offer Letter, compensation breakdown schedule, and terms of employment.\n\nTo activate your secure Employee Portal account, follow the activation link provided in this email.\n\nWarm Regards,\nHuman Resources & Operations Team\nDS PROJECTS PRIVATE LIMITED\nwww.dsprojects.in`;
+    const body = `Dear ${empName || 'Candidate'},\n\nCongratulations!\n\nWe are delighted to extend a formal offer of employment for the position of ${pos || 'Mandal Co-ordinator'} with ${COMPANY_INFO.legalName}.\n\nAssigned Work Jurisdiction: ${mnd || 'Kavali'}, ${dist || 'Nellore'}, Andhra Pradesh\nProposed Joining Date: ${jDate || 'To be communicated'}\n\nPlease review the attached official Offer Letter, compensation breakdown schedule, and terms of employment.\n\nTo activate your secure Employee Portal account, follow the activation link provided in this email.\n\nWarm Regards,\nHuman Resources & Operations Team\n${COMPANY_INFO.legalName}\n${COMPANY_INFO.addressLine1} ${COMPANY_INFO.addressLine2}\n${COMPANY_INFO.website}`;
     setValue('emailBody', body);
   };
 

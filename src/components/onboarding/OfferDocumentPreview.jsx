@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { formatINR } from '../../services/templateService';
+import { COMPANY_INFO } from '../../data/companyInfo';
 
 export default function OfferDocumentPreview({ offerData = {} }) {
   const [zoom, setZoom] = useState(100);
@@ -163,10 +164,11 @@ export default function OfferDocumentPreview({ offerData = {} }) {
                 </div>
               </div>
               <div className="text-center sm:text-right font-sans text-xs text-gray-500 space-y-0.5">
-                <p className="font-semibold text-gray-700">Corporate & Operational Head Office</p>
-                <p>12-4, Nellore, Andhra Pradesh - 524001</p>
-                <p>Email: hr@dsprojects.in | Web: www.dsprojects.in</p>
-                <p className="text-[10px] text-gray-400">CIN: U74999AP2024PTC123456</p>
+                <p className="font-semibold text-gray-700">{COMPANY_INFO.headOfficeTitle}</p>
+                <p>{COMPANY_INFO.addressLine1}</p>
+                <p>{COMPANY_INFO.addressLine2}</p>
+                <p>Ph: {COMPANY_INFO.phone} | Email: {COMPANY_INFO.email}</p>
+                <p className="text-[10px] text-gray-500">Web: {COMPANY_INFO.website} | UDYAM: {COMPANY_INFO.udyamNumber}</p>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@
  * Clean, structured A4 layout — no overlapping elements.
  */
 import PDFDocument from 'pdfkit';
+import { COMPANY_INFO } from '../../src/data/companyInfo.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -93,14 +94,23 @@ export function generateOfferLetterPDF(offerData) {
       }
 
       // ── 1. HEADER BANNER ─────────────────────────────────────────────────
-      doc.rect(MARGIN, y, CONTENT_W, 56).fill(NAVY);
-      doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(17)
-         .text('DS PROJECTS PRIVATE LIMITED', MARGIN + 12, y + 10, { width: CONTENT_W - 12 });
-      doc.font('Helvetica').fontSize(8.5)
-         .text('Corporate Workforce Management & Operations Unit  •  Andhra Pradesh', MARGIN + 12, y + 32);
-      doc.fontSize(8)
-         .text('Email: hr@dsprojects.in  |  Web: www.dsprojects.in', MARGIN + 12, y + 44, { width: CONTENT_W - 24, align: 'right' });
-      y += 70;
+      doc.rect(MARGIN, y, CONTENT_W, 64).fill(NAVY);
+      doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(12.5)
+         .text(COMPANY_INFO.legalName, MARGIN + 12, y + 11, { width: 225 });
+      doc.font('Helvetica').fontSize(7.5)
+         .text('Corporate Workforce Management & Operations Unit', MARGIN + 12, y + 29, { width: 225 })
+         .text(`UDYAM: ${COMPANY_INFO.udyamNumber}`, MARGIN + 12, y + 41, { width: 225 });
+
+      const hdrRightX = MARGIN + 235;
+      const hdrRightW = CONTENT_W - 247;
+      doc.font('Helvetica-Bold').fontSize(8)
+         .text(COMPANY_INFO.headOfficeTitle, hdrRightX, y + 9, { width: hdrRightW, align: 'right' });
+      doc.font('Helvetica').fontSize(7.5)
+         .text(COMPANY_INFO.addressLine1, hdrRightX, y + 20, { width: hdrRightW, align: 'right' })
+         .text(COMPANY_INFO.addressLine2, hdrRightX, y + 30, { width: hdrRightW, align: 'right' })
+         .text(`Ph: ${COMPANY_INFO.phone}  |  Web: ${COMPANY_INFO.website}`, hdrRightX, y + 41, { width: hdrRightW, align: 'right' })
+         .text(`Email: ${COMPANY_INFO.email}`, hdrRightX, y + 51, { width: hdrRightW, align: 'right' });
+      y += 74;
 
       // ── 2. REF / DATE LINE ───────────────────────────────────────────────
       doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(8.5)

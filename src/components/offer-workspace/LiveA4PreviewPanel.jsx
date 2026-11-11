@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { formatINR } from '../../services/templateService';
+import { COMPANY_INFO } from '../../data/companyInfo';
 
 export default function LiveA4PreviewPanel({
   offerData = {},
@@ -217,11 +218,12 @@ export default function LiveA4PreviewPanel({
                 )) || <p>Implementation & Monitoring Unit</p>}
               </div>
             </div>
-            <div className="text-right text-[9px] text-white/90 leading-snug max-w-[240px]">
-              <p className="font-bold text-white mb-0.5">Corporate Office</p>
-              <p>DS Projects Head Office</p>
-              <p>Industrial Development Zone</p>
-              <p>Email: hr@dsprojects.com | Web: www.dsprojects.com</p>
+            <div className="text-right text-[9px] text-white/90 leading-snug max-w-[300px]">
+              <p className="font-bold text-white mb-0.5">{COMPANY_INFO.shortOfficeTitle}</p>
+              <p>{COMPANY_INFO.addressLine1}</p>
+              <p>{COMPANY_INFO.addressLine2}</p>
+              <p>Ph: {COMPANY_INFO.phone} | Email: {COMPANY_INFO.email}</p>
+              <p>Web: {COMPANY_INFO.website}</p>
             </div>
           </div>
 
