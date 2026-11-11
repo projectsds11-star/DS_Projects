@@ -757,12 +757,11 @@ export default function AddEmployee() {
             helper="Formatted automatically: 1234-5678-9012"
           >
             <input
-              {...register('aadhaar')}
+              {...register('aadhaar', { onChange: handleAadhaarChange })}
               className={inputCls(!!errors.aadhaar)}
               placeholder="1234-5678-9012"
               maxLength={14}
               inputMode="numeric"
-              onChange={handleAadhaarChange}
               data-error={!!errors.aadhaar}
             />
           </FormField>
@@ -775,7 +774,7 @@ export default function AddEmployee() {
               onChange={setAadhaarDocument}
               error={aadhaarDocumentError}
               accepted={['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
-              acceptedLabel="PDF, JPG, PNG"
+              acceptedLabel="PDF, JPG, PNG, WEBP"
             />
           </div>
 
@@ -786,11 +785,14 @@ export default function AddEmployee() {
             helper="10-character PAN e.g. ABCDE1234F"
           >
             <input
-              {...register('pan')}
+              {...register('pan', {
+                onChange: (e) => {
+                  e.target.value = e.target.value.toUpperCase();
+                },
+              })}
               className={inputCls(!!errors.pan)}
               placeholder="ABCDE1234F"
               maxLength={10}
-              onChange={e => { e.target.value = e.target.value.toUpperCase(); register('pan').onChange(e); }}
               data-error={!!errors.pan}
             />
           </FormField>
@@ -803,7 +805,7 @@ export default function AddEmployee() {
               onChange={setPanDocument}
               error={panDocumentError}
               accepted={['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
-              acceptedLabel="PDF, JPG, PNG"
+              acceptedLabel="PDF, JPG, PNG, WEBP"
             />
           </div>
         </FormGrid>
@@ -894,11 +896,14 @@ export default function AddEmployee() {
             helper="e.g. SBIN0001234"
           >
             <input
-              {...register('ifsc')}
+              {...register('ifsc', {
+                onChange: (e) => {
+                  e.target.value = e.target.value.toUpperCase();
+                },
+              })}
               className={inputCls(!!errors.ifsc)}
               placeholder="SBIN0001234"
               maxLength={11}
-              onChange={e => { e.target.value = e.target.value.toUpperCase(); register('ifsc').onChange(e); }}
               data-error={!!errors.ifsc}
             />
           </FormField>

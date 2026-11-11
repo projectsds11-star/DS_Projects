@@ -23,6 +23,30 @@ function authHeaders() {
 
 // ── READ OPERATIONS (Supabase client — RLS protected) ────────────────────────
 
+const EMPLOYEE_TEXT_FIELDS = [
+  'name', 'address', 'phone', 'email', 'qualification',
+  'course', 'university', 'year_of_passing',
+  'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
+  'reference_mobile', 'reference_person_name', 'reference_relationship',
+  'state_id', 'district_id', 'mandal_id',
+  'agency_id', 'agency_name',
+];
+const EMPLOYEE_FILE_FIELDS = ['photo', 'passbook', 'aadhaarDocument', 'panDocument'];
+const SERVERLESS_FALLBACK_MAX_BYTES = 3.8 * 1024 * 1024;
+
+function getFileExtension(file) {
+  const namePart = (file?.name || '').split('.').pop()?.toLowerCase();
+  if (namePart && namePart !== (file?.name || '').toLowerCase()) return namePart;
+  const mimeMap = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'application/pdf': 'pdf',
+  };
+  return mimeMap[file?.type] || 'bin';
+}
+
 export const employeeService = {
   /** Fetch all non-deleted employees */
   async getEmployees() {
@@ -115,7 +139,10 @@ export const employeeService = {
       // Body was HTML / plain-text (e.g. "Request Entity Too Large")
       const status = res.status;
       if (status === 413) {
-        return { success: false, message: 'File too large. Please upload photos under 5 MB and documents under 10 MB.' };
+        return {
+          success: false,
+          message: 'Upload payload exceeded server limit (4.5 MB). Please re-select your files and try again.',
+        };
       }
       if (status === 401) {
         return { success: false, message: 'Session expired. Please log in again.' };
@@ -128,76 +155,141 @@ export const employeeService = {
   },
 
   /**
-   * Create a new employee.
-   * Sends multipart/form-data with files to backend.
-   * Backend handles: atomic ID, file upload, DB insert, welcome email.
+   * Upload files directly to Supabase Storage via backend-issued signed upload URLs.
+   * Bypasses Vercel's 4.5 MB serverless request body limit cleanly.
    */
-  async createEmployee(formData) {
-    // formData: plain JS object with files as File instances
-    const body = new FormData();
+  async _uploadFilesDirectly(formData, employeeId = null) {
+    const fileEntries = EMPLOYEE_FILE_FIELDS
+      .filter((field) => formData[field] instanceof File)
+      .map((field) => [field, formData[field]]);
 
-    // Text fields
-    const textFields = [
-      'name', 'address', 'phone', 'email', 'qualification',
-      'course', 'university', 'year_of_passing',
-      'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
-      'reference_mobile', 'reference_person_name', 'reference_relationship',
-      'state_id', 'district_id', 'mandal_id',
-      'agency_id', 'agency_name',
-    ];
-    textFields.forEach(field => {
-      if (formData[field] != null) body.append(field, formData[field]);
-    });
+    if (fileEntries.length === 0) {
+      return { uploadedPaths: {} };
+    }
 
-    // Files
-    if (formData.photo instanceof File) body.append('photo', formData.photo);
-    if (formData.passbook instanceof File) body.append('passbook', formData.passbook);
-    if (formData.aadhaarDocument instanceof File) body.append('aadhaarDocument', formData.aadhaarDocument);
-    if (formData.panDocument instanceof File) body.append('panDocument', formData.panDocument);
+    const totalBytes = fileEntries.reduce((sum, [, file]) => sum + (file.size || 0), 0);
+    const filesMeta = Object.fromEntries(
+      fileEntries.map(([field, file]) => [
+        field,
+        {
+          ext: getFileExtension(file),
+          contentType: file.type || 'application/octet-stream',
+        },
+      ])
+    );
 
-    const res = await fetch(API_BASE, {
+    const prepRes = await fetch(`${API_BASE}/upload-urls`, {
       method: 'POST',
-      headers: authHeaders(),
-      body,
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeId: employeeId || undefined,
+        files: filesMeta,
+      }),
     });
+
+    if (prepRes.status === 404 && totalBytes <= SERVERLESS_FALLBACK_MAX_BYTES) {
+      return { useMultipartFallback: true };
+    }
+
+    const prepJson = await this._safeJson(prepRes);
+    if (!prepRes.ok) {
+      throw new Error(prepJson.message || 'Failed to prepare file uploads.');
+    }
+
+    const uploadedPaths = {};
+    await Promise.all(
+      fileEntries.map(async ([field, file]) => {
+        const target = prepJson.uploads?.[field];
+        if (!target?.path || !target?.bucket) {
+          throw new Error(`Missing upload target for ${field}.`);
+        }
+
+        const storageBucket = supabase?.storage?.from(target.bucket);
+        if (storageBucket && typeof storageBucket.uploadToSignedUrl === 'function' && target.token) {
+          const { error } = await storageBucket.uploadToSignedUrl(target.path, target.token, file, {
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: '3600',
+          });
+          if (error) {
+            throw new Error(`Failed to upload ${field}: ${error.message}`);
+          }
+        } else if (target.signedUrl) {
+          const putRes = await fetch(target.signedUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'x-upsert': 'true',
+            },
+            body: file,
+          });
+          if (!putRes.ok) {
+            throw new Error(`Failed to upload ${field} (HTTP ${putRes.status}).`);
+          }
+        } else {
+          throw new Error(`Storage client unavailable for ${field}.`);
+        }
+
+        uploadedPaths[field] = target.path;
+      })
+    );
+
+    return { uploadedPaths };
+  },
+
+  async _submitEmployee(url, method, formData, employeeId, defaultError) {
+    const uploadResult = await this._uploadFilesDirectly(formData, employeeId);
+
+    let res;
+    if (uploadResult.useMultipartFallback) {
+      const body = new FormData();
+      EMPLOYEE_TEXT_FIELDS.forEach((field) => {
+        if (formData[field] != null) body.append(field, formData[field]);
+      });
+      EMPLOYEE_FILE_FIELDS.forEach((field) => {
+        if (formData[field] instanceof File) body.append(field, formData[field]);
+      });
+      res = await fetch(url, { method, headers: authHeaders(), body });
+    } else {
+      const jsonPayload = {};
+      EMPLOYEE_TEXT_FIELDS.forEach((field) => {
+        if (formData[field] != null) jsonPayload[field] = formData[field];
+      });
+      if (uploadResult.uploadedPaths && Object.keys(uploadResult.uploadedPaths).length > 0) {
+        jsonPayload.uploadedPaths = uploadResult.uploadedPaths;
+      }
+      res = await fetch(url, {
+        method,
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsonPayload),
+      });
+    }
 
     const json = await this._safeJson(res);
     if (!res.ok) {
-      throw new Error(json.message || 'Failed to create employee.');
+      throw new Error(json.message || defaultError);
     }
     return json;
+  },
+
+  /**
+   * Create a new employee.
+   * Uploads files directly to Supabase Storage, then sends lightweight JSON to backend.
+   */
+  async createEmployee(formData) {
+    return this._submitEmployee(API_BASE, 'POST', formData, null, 'Failed to create employee.');
   },
 
   /**
    * Update an existing employee.
    */
   async updateEmployee(employeeId, formData) {
-    const body = new FormData();
-    const textFields = [
-      'name', 'address', 'phone', 'email', 'qualification',
-      'course', 'university', 'year_of_passing',
-      'aadhaar_number', 'pan_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch_name',
-      'reference_mobile', 'reference_person_name', 'reference_relationship',
-      'state_id', 'district_id', 'mandal_id',
-      'agency_id', 'agency_name',
-    ];
-    textFields.forEach(field => {
-      if (formData[field] != null) body.append(field, formData[field]);
-    });
-    if (formData.photo instanceof File) body.append('photo', formData.photo);
-    if (formData.passbook instanceof File) body.append('passbook', formData.passbook);
-    if (formData.aadhaarDocument instanceof File) body.append('aadhaarDocument', formData.aadhaarDocument);
-    if (formData.panDocument instanceof File) body.append('panDocument', formData.panDocument);
-
-    const res = await fetch(`${API_BASE}/${employeeId}`, {
-      method: 'PUT',
-      headers: authHeaders(),
-      body,
-    });
-
-    const json = await this._safeJson(res);
-    if (!res.ok) throw new Error(json.message || 'Failed to update employee.');
-    return json;
+    return this._submitEmployee(
+      `${API_BASE}/${employeeId}`,
+      'PUT',
+      formData,
+      employeeId,
+      'Failed to update employee.'
+    );
   },
 
   /**

@@ -2,57 +2,12 @@ import React, { useRef, useState } from 'react';
 import { UploadCloud, X, Loader2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { compressImageFile } from '../../utils/imageCompression';
 
 const ACCEPTED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-// ── Auto-compress using Canvas API ───────────────────────────────────────────
-// Resizes image to max 800×800 px and compresses to JPEG at quality 0.82.
-// Output is always under ~400 KB — safe for Vercel's 4.5 MB serverless limit.
-function compressImage(file, { maxWidth = 800, maxHeight = 800, quality = 0.82 } = {}) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-
-      // Calculate new dimensions while keeping aspect ratio
-      let { width, height } = img;
-      if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error('Compression failed'));
-          // Return a File so FormData / multer treat it correctly
-          const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(compressed);
-        },
-        'image/jpeg',
-        quality,
-      );
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error('Could not load image'));
-    };
-
-    img.src = objectUrl;
-  });
+function compressPhoto(file) {
+  return compressImageFile(file, { maxWidth: 800, maxHeight: 800, quality: 0.82 });
 }
 
 export default function PhotoUploader({ value, onChange, error }) {
@@ -79,7 +34,7 @@ export default function PhotoUploader({ value, onChange, error }) {
     setCompressing(true);
 
     try {
-      const compressed = await compressImage(file);
+      const compressed = await compressPhoto(file);
       const preview = URL.createObjectURL(compressed);
       onChange({ file: compressed, preview });
     } catch (e) {
@@ -204,7 +159,10 @@ export default function PhotoUploader({ value, onChange, error }) {
         type="file"
         accept={ACCEPTED.join(',')}
         className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])}
+        onChange={(e) => {
+          handleFile(e.target.files?.[0]);
+          e.target.value = '';
+        }}
         aria-label="Upload candidate photo"
       />
     </div>

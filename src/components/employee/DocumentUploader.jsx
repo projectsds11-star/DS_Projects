@@ -1,17 +1,19 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, X, FileText, Eye, Check } from 'lucide-react';
+import { UploadCloud, X, Eye, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { compressImageFile } from '../../utils/imageCompression';
 
-const DEFAULT_ACCEPTED = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-const DEFAULT_ACCEPTED_LABEL = 'PDF, JPG, PNG';
-const MAX_SIZE_MB = 5;
+const DEFAULT_ACCEPTED = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const DEFAULT_ACCEPTED_LABEL = 'PDF, JPG, PNG, WEBP';
+const MAX_SIZE_MB = 15;
 
 const FILE_ICONS = {
   'application/pdf': { label: 'PDF', color: 'bg-red-100 text-red-600' },
   'image/jpeg': { label: 'IMG', color: 'bg-blue-100 text-blue-600' },
   'image/jpg': { label: 'IMG', color: 'bg-blue-100 text-blue-600' },
   'image/png': { label: 'IMG', color: 'bg-blue-100 text-blue-600' },
+  'image/webp': { label: 'IMG', color: 'bg-blue-100 text-blue-600' },
 };
 
 function formatBytes(bytes) {
@@ -32,24 +34,56 @@ export default function DocumentUploader({
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const validate = (file) => {
     if (!accepted.includes(file.type)) {
       return `Unsupported file type. Please upload ${acceptedLabel}.`;
     }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      return `File must be less than ${MAX_SIZE_MB}MB.`;
+    if (file.type === 'application/pdf' && file.size > MAX_SIZE_MB * 1024 * 1024) {
+      return `PDF file must be less than ${MAX_SIZE_MB}MB.`;
     }
     return null;
   };
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
     const err = validate(file);
     if (err) { setLocalError(err); return; }
     setLocalError('');
-    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
-    onChange({ file, preview, name: file.name, size: file.size, type: file.type });
+
+    let finalFile = file;
+    if (file.type.startsWith('image/')) {
+      setProcessing(true);
+      try {
+        const compressed = await compressImageFile(file, {
+          maxWidth: 1600,
+          maxHeight: 1600,
+          quality: 0.85,
+        });
+        if (compressed.size <= file.size || file.size > MAX_SIZE_MB * 1024 * 1024) {
+          finalFile = compressed;
+        }
+      } catch {
+        // Keep original file if under max limit when browser canvas cannot process
+      } finally {
+        setProcessing(false);
+      }
+
+      if (finalFile.size > MAX_SIZE_MB * 1024 * 1024) {
+        setLocalError(`Image document must be less than ${MAX_SIZE_MB}MB.`);
+        return;
+      }
+    }
+
+    const preview = finalFile.type.startsWith('image/') ? URL.createObjectURL(finalFile) : null;
+    onChange({
+      file: finalFile,
+      preview,
+      name: finalFile.name,
+      size: finalFile.size,
+      type: finalFile.type,
+    });
   };
 
   const handleDrop = (e) => {
@@ -78,7 +112,18 @@ export default function DocumentUploader({
       )}
 
       <AnimatePresence mode="wait">
-        {value ? (
+        {processing ? (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center gap-2.5 p-6 border-2 border-dashed border-indigo-300 bg-indigo-50/60 rounded-xl"
+          >
+            <Loader2 className="h-5 w-5 text-indigo-500 animate-spin" />
+            <span className="text-xs font-bold text-indigo-600">Optimizing document…</span>
+          </motion.div>
+        ) : value ? (
           <motion.div
             key="file-preview"
             initial={{ opacity: 0, y: 4 }}
@@ -151,8 +196,17 @@ export default function DocumentUploader({
         </p>
       )}
 
-      <input ref={inputRef} type="file" accept={accepted.join(',')} className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])} aria-label={`Upload ${label || 'document'}`} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accepted.join(',')}
+        className="hidden"
+        onChange={(e) => {
+          handleFile(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+        aria-label={`Upload ${label || 'document'}`}
+      />
     </div>
   );
 }

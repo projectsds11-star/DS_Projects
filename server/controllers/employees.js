@@ -4,6 +4,7 @@
  * All sensitive operations (create/update/delete/status) run here with service-role access.
  */
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { supabaseAdmin } from '../services/supabaseAdmin.js';
 import nodemailer from 'nodemailer';
@@ -301,6 +302,126 @@ async function deleteFile(bucket, storagePath) {
   await supabaseAdmin.storage.from(bucket).remove([storagePath]);
 }
 
+const UPLOAD_FIELD_CONFIG = {
+  photo: { bucket: 'employee-photos', slug: 'photo', label: 'Candidate photo', allowedExts: ['jpg', 'jpeg', 'png', 'webp'] },
+  passbook: { bucket: 'employee-documents', slug: 'bank-passbook', label: 'Bank passbook', allowedExts: ['pdf', 'jpg', 'jpeg', 'png', 'webp'] },
+  aadhaarDocument: { bucket: 'employee-documents', slug: 'aadhaar-document', label: 'Aadhaar document', allowedExts: ['pdf', 'jpg', 'jpeg', 'png', 'webp'] },
+  panDocument: { bucket: 'employee-documents', slug: 'pan-document', label: 'PAN document', allowedExts: ['pdf', 'jpg', 'jpeg', 'png', 'webp'] },
+};
+
+function resolveUploadExt(meta, cfg) {
+  const mimeToExt = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'application/pdf': 'pdf',
+  };
+  const rawExt = String(meta?.ext || '').toLowerCase().replace(/^\./, '');
+  const fromMime = mimeToExt[String(meta?.contentType || '').toLowerCase()];
+  const ext = cfg.allowedExts.includes(rawExt) ? rawExt : fromMime;
+  return ext && cfg.allowedExts.includes(ext) ? ext : null;
+}
+
+function validateSubmittedStoragePath(rawPath, cfg) {
+  if (typeof rawPath !== 'string') return null;
+  const cleaned = rawPath.trim().replace(/^\/+/, '');
+  if (!cleaned || cleaned.includes('..') || !cleaned.startsWith('employees/')) return null;
+  const ext = cleaned.split('.').pop()?.toLowerCase();
+  if (!ext || !cfg.allowedExts.includes(ext)) return null;
+  const filename = cleaned.split('/').pop() || '';
+  if (!filename.startsWith(cfg.slug)) return null;
+  return cleaned;
+}
+
+function parseSubmittedUploadedPaths(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof raw === 'object' ? raw : null;
+}
+
+async function cleanupUploadedPaths(pathsByField) {
+  const ops = Object.entries(UPLOAD_FIELD_CONFIG).map(([field, cfg]) => {
+    const filePath = pathsByField?.[field];
+    if (!filePath) return Promise.resolve();
+    return deleteFile(cfg.bucket, filePath);
+  });
+  await Promise.allSettled(ops);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PREPARE SIGNED STORAGE UPLOAD URLS
+// POST /api/admin/employees/upload-urls
+// Allows the browser to upload documents directly to Supabase Storage,
+// bypassing serverless 4.5 MB request body limits.
+// ─────────────────────────────────────────────────────────────────────────────
+export const prepareUploadUrls = async (req, res) => {
+  const { employeeId, files } = req.body || {};
+  if (!files || typeof files !== 'object') {
+    return res.status(400).json({ success: false, message: 'files metadata object is required.' });
+  }
+
+  const normalizedEmpId = typeof employeeId === 'string' && /^DS-\d+$/i.test(employeeId.trim())
+    ? employeeId.trim().toUpperCase()
+    : null;
+  const batchId = normalizedEmpId ? null : crypto.randomUUID();
+  const ts = Date.now();
+
+  const entries = Object.entries(files).filter(([field]) => UPLOAD_FIELD_CONFIG[field]);
+  if (entries.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid upload fields specified.' });
+  }
+
+  try {
+    const uploads = {};
+    await Promise.all(entries.map(async ([field, meta]) => {
+      const cfg = UPLOAD_FIELD_CONFIG[field];
+      const ext = resolveUploadExt(meta, cfg);
+      if (!ext) {
+        throw Object.assign(new Error(`Invalid file type for ${cfg.label}. Allowed: ${cfg.allowedExts.join(', ').toUpperCase()}.`), { status: 422 });
+      }
+      const targetPath = normalizedEmpId
+        ? `employees/${normalizedEmpId}/${cfg.slug}_${ts}.${ext}`
+        : `employees/uploads/${batchId}/${cfg.slug}.${ext}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(cfg.bucket)
+        .createSignedUploadUrl(targetPath, { upsert: true });
+
+      if (error || !data?.token) {
+        if (error && isSupabaseConnectivityError(error)) {
+          throw Object.assign(new Error(SUPABASE_UNREACHABLE_MSG), { status: 503 });
+        }
+        throw new Error(error?.message || `Could not create upload URL for ${cfg.label}.`);
+      }
+
+      uploads[field] = {
+        bucket: cfg.bucket,
+        path: data.path || targetPath,
+        token: data.token,
+        signedUrl: data.signedUrl,
+      };
+    }));
+
+    return res.status(200).json({ success: true, uploads });
+  } catch (err) {
+    if (err.status === 422 || err.status === 503) {
+      return res.status(err.status).json({ success: false, message: err.message });
+    }
+    if (isSupabaseConnectivityError(err)) {
+      return res.status(503).json({ success: false, message: SUPABASE_UNREACHABLE_MSG });
+    }
+    return res.status(500).json({ success: false, message: err.message || 'Failed to prepare file uploads.' });
+  }
+};
+
 // ── Validation helpers ──────────────────────────────────────────────────────
 function validatePhone(v) {
   return /^[6-9]\d{9}$/.test(v.replace(/\s/g, ''));
@@ -352,12 +473,25 @@ export const createEmployee = async (req, res) => {
   if (!district_id?.trim()) errors.district_id = 'Please select a district.';
   if (!mandal_id?.trim()) errors.mandal_id = 'Please select a mandal.';
 
+  const submittedPaths = parseSubmittedUploadedPaths(req.body?.uploadedPaths);
+  const cleanupStagedOnly = async () => {
+    if (!submittedPaths) return;
+    const staged = {};
+    for (const field of Object.keys(UPLOAD_FIELD_CONFIG)) {
+      const p = validateSubmittedStoragePath(submittedPaths[field], UPLOAD_FIELD_CONFIG[field]);
+      if (p && p.startsWith('employees/uploads/')) staged[field] = p;
+    }
+    if (Object.keys(staged).length > 0) await cleanupUploadedPaths(staged);
+  };
+
   if (Object.keys(errors).length > 0) {
+    await cleanupStagedOnly();
     return res.status(422).json({ success: false, message: 'Validation failed.', errors });
   }
 
   // ── 2. Location hierarchy validation ─────────────────────────────────────
   if (AP_DISTRICTS_DATA.length > 0 && !isValidLocation(state_id, district_id, mandal_id)) {
+    await cleanupStagedOnly();
     return res.status(422).json({ success: false, message: 'Invalid location: The selected State → District → Mandal combination is not valid.' });
   }
 
@@ -370,6 +504,7 @@ export const createEmployee = async (req, res) => {
     .limit(1);
 
   if (existingError) {
+    await cleanupStagedOnly();
     if (isSupabaseConnectivityError(existingError)) {
       return res.status(503).json({ success: false, message: SUPABASE_UNREACHABLE_MSG });
     }
@@ -377,6 +512,7 @@ export const createEmployee = async (req, res) => {
   }
 
   if (existing && existing.length > 0) {
+    await cleanupStagedOnly();
     return res.status(409).json({ success: false, message: 'An employee with this email already exists.' });
   }
 
@@ -406,63 +542,61 @@ export const createEmployee = async (req, res) => {
   if (!employeeId) {
     const { data: idData, error: idError } = await supabaseAdmin.rpc('generate_employee_id');
     if (idError || !idData) {
+      await cleanupStagedOnly();
       console.error('[createEmployee] ID generation error:', idError);
       return res.status(500).json({ success: false, message: 'Failed to generate Employee ID. Please try again.' });
     }
     employeeId = idData;
   }
 
-  // ── 5. File uploads ───────────────────────────────────────────────────────
-  let photoPath = null;
-  let passbookPath = null;
-  let aadhaarDocumentPath = null;
-  let panDocumentPath = null;
+  // ── 5. File uploads (accept direct pre-uploaded paths OR multipart req.files) ─
+  const resolvedPaths = {
+    photo: null,
+    passbook: null,
+    aadhaarDocument: null,
+    panDocument: null,
+  };
+  const filesToUpload = [];
+
+  for (const [field, cfg] of Object.entries(UPLOAD_FIELD_CONFIG)) {
+    const preUploaded = submittedPaths?.[field]
+      ? validateSubmittedStoragePath(submittedPaths[field], cfg)
+      : null;
+
+    if (submittedPaths?.[field] && !preUploaded) {
+      await cleanupStagedOnly();
+      return res.status(422).json({ success: false, message: `Invalid upload path for ${cfg.label}.` });
+    }
+
+    if (preUploaded) {
+      resolvedPaths[field] = preUploaded;
+      continue;
+    }
+
+    const fileObj = req.files?.[field]?.[0];
+    if (!fileObj) {
+      await cleanupStagedOnly();
+      return res.status(422).json({ success: false, message: `${cfg.label} is required.` });
+    }
+    const ext = fileObj.originalname.split('.').pop().toLowerCase();
+    const targetPath = `employees/${employeeId}/${cfg.slug}.${ext}`;
+    resolvedPaths[field] = targetPath;
+    filesToUpload.push({ bucket: cfg.bucket, path: targetPath, buffer: fileObj.buffer, mimetype: fileObj.mimetype });
+  }
 
   try {
-    const photoFile = req.files?.photo?.[0];
-    const passbookFile = req.files?.passbook?.[0];
-    const aadhaarDocumentFile = req.files?.aadhaarDocument?.[0];
-    const panDocumentFile = req.files?.panDocument?.[0];
-
-    if (!photoFile) {
-      return res.status(422).json({ success: false, message: 'Candidate photo is required.' });
+    if (filesToUpload.length > 0) {
+      await Promise.all(filesToUpload.map(f => uploadFile(f.bucket, f.path, f.buffer, f.mimetype)));
     }
-    if (!passbookFile) {
-      return res.status(422).json({ success: false, message: 'Bank passbook is required.' });
-    }
-    if (!aadhaarDocumentFile) {
-      return res.status(422).json({ success: false, message: 'Aadhaar document is required.' });
-    }
-    if (!panDocumentFile) {
-      return res.status(422).json({ success: false, message: 'PAN document is required.' });
-    }
-
-    const photoExt = photoFile.originalname.split('.').pop().toLowerCase();
-    const passbookExt = passbookFile.originalname.split('.').pop().toLowerCase();
-    const aadhaarDocumentExt = aadhaarDocumentFile.originalname.split('.').pop().toLowerCase();
-    const panDocumentExt = panDocumentFile.originalname.split('.').pop().toLowerCase();
-
-    photoPath = `employees/${employeeId}/photo.${photoExt}`;
-    passbookPath = `employees/${employeeId}/bank-passbook.${passbookExt}`;
-    aadhaarDocumentPath = `employees/${employeeId}/aadhaar-document.${aadhaarDocumentExt}`;
-    panDocumentPath = `employees/${employeeId}/pan-document.${panDocumentExt}`;
-
-    // Upload all 4 files in parallel — much faster than sequential awaits
-    await Promise.all([
-      uploadFile('employee-photos',    photoPath,            photoFile.buffer,            photoFile.mimetype),
-      uploadFile('employee-documents', passbookPath,         passbookFile.buffer,         passbookFile.mimetype),
-      uploadFile('employee-documents', aadhaarDocumentPath,  aadhaarDocumentFile.buffer,  aadhaarDocumentFile.mimetype),
-      uploadFile('employee-documents', panDocumentPath,      panDocumentFile.buffer,      panDocumentFile.mimetype),
-    ]);
-
   } catch (uploadErr) {
-    // Cleanup partial uploads
-    await deleteFile('employee-photos', photoPath);
-    await deleteFile('employee-documents', passbookPath);
-    await deleteFile('employee-documents', aadhaarDocumentPath);
-    await deleteFile('employee-documents', panDocumentPath);
+    await cleanupUploadedPaths(resolvedPaths);
     return res.status(500).json({ success: false, message: uploadErr.message });
   }
+
+  const photoPath = resolvedPaths.photo;
+  const passbookPath = resolvedPaths.passbook;
+  const aadhaarDocumentPath = resolvedPaths.aadhaarDocument;
+  const panDocumentPath = resolvedPaths.panDocument;
 
   // ── 6. Database insert ────────────────────────────────────────────────────
   const employeeRecord = {
@@ -500,13 +634,8 @@ export const createEmployee = async (req, res) => {
   const { data: created, error: insertError } = await mutateEmployeeWithSchemaFallback('insert', employeeRecord);
 
   if (insertError) {
-    // Rollback all uploaded files
-    await Promise.allSettled([
-      deleteFile('employee-photos', photoPath),
-      deleteFile('employee-documents', passbookPath),
-      deleteFile('employee-documents', aadhaarDocumentPath),
-      deleteFile('employee-documents', panDocumentPath),
-    ]);
+    // Rollback all uploaded files (both multipart and pre-uploaded signed paths)
+    await cleanupUploadedPaths(resolvedPaths);
     console.error('[createEmployee] DB insert error:', insertError.message, insertError.details);
     return res.status(500).json({ success: false, message: `DB Error: ${insertError.message}` });
   }
@@ -606,46 +735,41 @@ export const updateEmployee = async (req, res) => {
     }
   }
 
-  // Handle file updates
+  // Handle file updates (direct signed upload paths OR multipart req.files)
   let photoPath = existing.candidate_photo_path;
   let passbookPath = existing.bank_passbook_path;
   let aadhaarDocumentPath = existing.aadhaar_document_path;
   let panDocumentPath = existing.pan_document_path;
 
+  const submittedPaths = parseSubmittedUploadedPaths(req.body?.uploadedPaths);
+  const newlyUploaded = {};
+
   try {
-    const photoFile = req.files?.photo?.[0];
-    const passbookFile = req.files?.passbook?.[0];
-    const aadhaarDocumentFile = req.files?.aadhaarDocument?.[0];
-    const panDocumentFile = req.files?.panDocument?.[0];
+    for (const [field, cfg] of Object.entries(UPLOAD_FIELD_CONFIG)) {
+      let nextPath = null;
+      if (submittedPaths?.[field]) {
+        nextPath = validateSubmittedStoragePath(submittedPaths[field], cfg);
+        if (!nextPath) {
+          return res.status(422).json({ success: false, message: `Invalid upload path for ${cfg.label}.` });
+        }
+        newlyUploaded[field] = nextPath;
+      } else if (req.files?.[field]?.[0]) {
+        const fileObj = req.files[field][0];
+        const ext = fileObj.originalname.split('.').pop().toLowerCase();
+        nextPath = `employees/${id}/${cfg.slug}.${ext}`;
+        await uploadFile(cfg.bucket, nextPath, fileObj.buffer, fileObj.mimetype);
+        newlyUploaded[field] = nextPath;
+      }
 
-    if (photoFile) {
-      const photoExt = photoFile.originalname.split('.').pop().toLowerCase();
-      const newPhotoPath = `employees/${id}/photo.${photoExt}`;
-      await uploadFile('employee-photos', newPhotoPath, photoFile.buffer, photoFile.mimetype);
-      photoPath = newPhotoPath;
-    }
-
-    if (passbookFile) {
-      const passbookExt = passbookFile.originalname.split('.').pop().toLowerCase();
-      const newPassbookPath = `employees/${id}/bank-passbook.${passbookExt}`;
-      await uploadFile('employee-documents', newPassbookPath, passbookFile.buffer, passbookFile.mimetype);
-      passbookPath = newPassbookPath;
-    }
-
-    if (aadhaarDocumentFile) {
-      const aadhaarDocumentExt = aadhaarDocumentFile.originalname.split('.').pop().toLowerCase();
-      const newAadhaarDocumentPath = `employees/${id}/aadhaar-document.${aadhaarDocumentExt}`;
-      await uploadFile('employee-documents', newAadhaarDocumentPath, aadhaarDocumentFile.buffer, aadhaarDocumentFile.mimetype);
-      aadhaarDocumentPath = newAadhaarDocumentPath;
-    }
-
-    if (panDocumentFile) {
-      const panDocumentExt = panDocumentFile.originalname.split('.').pop().toLowerCase();
-      const newPanDocumentPath = `employees/${id}/pan-document.${panDocumentExt}`;
-      await uploadFile('employee-documents', newPanDocumentPath, panDocumentFile.buffer, panDocumentFile.mimetype);
-      panDocumentPath = newPanDocumentPath;
+      if (nextPath) {
+        if (field === 'photo') photoPath = nextPath;
+        if (field === 'passbook') passbookPath = nextPath;
+        if (field === 'aadhaarDocument') aadhaarDocumentPath = nextPath;
+        if (field === 'panDocument') panDocumentPath = nextPath;
+      }
     }
   } catch (uploadErr) {
+    await cleanupUploadedPaths(newlyUploaded);
     return res.status(500).json({ success: false, message: uploadErr.message });
   }
 
@@ -681,6 +805,7 @@ export const updateEmployee = async (req, res) => {
   const { data: updated, error: updateErr } = await mutateEmployeeWithSchemaFallback('update', updates, id);
 
   if (updateErr) {
+    await cleanupUploadedPaths(newlyUploaded);
     return res.status(500).json({ success: false, message: updateErr.message || 'Failed to update employee record.' });
   }
 

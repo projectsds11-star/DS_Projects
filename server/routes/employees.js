@@ -6,6 +6,7 @@ import express from 'express';
 import multer from 'multer';
 import { requireAdmin } from '../middleware/auth.js';
 import {
+  prepareUploadUrls,
   createEmployee,
   updateEmployee,
   updateStatus,
@@ -15,7 +16,7 @@ import {
 
 const router = express.Router();
 
-// Multer: memory storage (files as Buffers, uploaded to Supabase from server)
+// Multer: memory storage (fallback when multipart/form-data is sent directly)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
@@ -42,8 +43,11 @@ const uploadFields = upload.fields([
   { name: 'panDocument', maxCount: 1 },
 ]);
 
-// Wrap multer errors into JSON responses (including 413 file-too-large)
+// Wrap multer errors into JSON responses; skip cleanly for JSON (direct-upload) payloads
 function handleUpload(req, res, next) {
+  if (!req.is('multipart/form-data')) {
+    return next();
+  }
   uploadFields(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -58,6 +62,12 @@ function handleUpload(req, res, next) {
   });
 }
 
+// POST   /api/admin/employees/upload-urls — Signed upload URLs (bypasses serverless body limit)
+router.post('/upload-urls', requireAdmin, prepareUploadUrls);
+
+// GET    /api/admin/employees/signed-url?bucket=...&filePath=... — Private document URL
+router.get('/signed-url', requireAdmin, getSignedUrl);
+
 // POST   /api/admin/employees          — Create employee
 router.post('/', requireAdmin, handleUpload, createEmployee);
 
@@ -69,8 +79,5 @@ router.patch('/:id/status', requireAdmin, updateStatus);
 
 // DELETE /api/admin/employees/:id      — Soft delete
 router.delete('/:id', requireAdmin, deleteEmployee);
-
-// GET    /api/admin/employees/signed-url?bucket=...&filePath=... — Private document URL
-router.get('/signed-url', requireAdmin, getSignedUrl);
 
 export default router;
