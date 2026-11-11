@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { liveDataService } from '../services/liveDataService';
+import { getEmployeePhotoUrl } from '../services/employeeService';
 
 export default function EmployeeLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -255,7 +256,7 @@ export default function EmployeeLayout() {
               <div className="relative shrink-0">
                 {employee?.photo_url || employee?.photoUrl || employee?.candidate_photo_path ? (
                   <img 
-                    src={employee?.photo_url || employee?.photoUrl || `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${employee.candidate_photo_path}`} 
+                    src={employee?.photo_url || employee?.photoUrl || getEmployeePhotoUrl(employee.candidate_photo_path) || ''} 
                     alt={empFullName}
                     className="w-10 h-10 rounded-xl object-cover ring-2 ring-white/30"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}

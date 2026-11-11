@@ -331,9 +331,9 @@ export default function WorkManagement() {
                       setNewTask({
                         ...newTask,
                         assigned_employee_id: e.target.value,
-                        district: emp?.district || '',
-                        mandal: emp?.mandal || '',
-                        location_name: `${emp?.mandal || 'Field'} Mandal HQ`
+                        district: emp?.district || emp?.district_id || '',
+                        mandal: emp?.mandal || emp?.mandal_id || '',
+                        location_name: `${emp?.mandal || emp?.mandal_id || emp?.district || emp?.district_id || 'Field'} HQ`
                       });
                     }}
                     className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
@@ -342,7 +342,7 @@ export default function WorkManagement() {
                       const id = emp.employee_id || emp.employeeId || emp.id;
                       const name = emp.full_name || emp.name || 'Staff Member';
                       const role = emp.designation || 'Field Staff';
-                      const loc = emp.mandal || emp.district || 'AP';
+                      const loc = emp.mandal || emp.mandal_id || emp.district || emp.district_id || 'AP';
                       return (
                         <option key={id} value={id}>
                           {name} ({id}) — {role} [{loc}]

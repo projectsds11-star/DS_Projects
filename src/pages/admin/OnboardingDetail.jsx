@@ -27,6 +27,7 @@ import EmployeeAvatar from '../../components/common/EmployeeAvatar';
 import OnboardingTimeline from '../../components/onboarding/OnboardingTimeline';
 import OfferDocumentPreview from '../../components/onboarding/OfferDocumentPreview';
 import { onboardingService, offerService } from '../../services/onboardingService';
+import { employeeService } from '../../services/employeeService';
 import { formatINR } from '../../services/templateService';
 
 export default function OnboardingDetail() {
@@ -41,7 +42,16 @@ export default function OnboardingDetail() {
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [openingDocName, setOpeningDocName] = useState('');
   const [toast, setToast] = useState('');
+
+  const matchesEmployeeLog = (l, empObj, empCode, offObj = offer) => {
+    const logEmpId = (l.employeeId || l.employee_id || '').toLowerCase();
+    const targetCode = (empCode || '').toLowerCase();
+    const logEmail = (l.recipientEmail || l.recipient_email || '').toLowerCase();
+    const targetEmail = (empObj?.email || offObj?.email || '').toLowerCase();
+    return (targetCode && logEmpId === targetCode) || (targetEmail && logEmail === targetEmail);
+  };
 
   useEffect(() => {
     async function load() {
@@ -68,13 +78,33 @@ export default function OnboardingDetail() {
         ]);
 
         setTimeline(tl);
-        setEmailLogs(logs.filter(l => l.employeeId === targetEmpId || l.recipientEmail === emp?.email));
+        setEmailLogs(logs.filter(l => matchesEmployeeLog(l, emp, targetEmpId, off)));
       } finally {
         setLoading(false);
       }
     }
     load();
   }, [id]);
+
+  const getActivationUrl = () => {
+    const token = offer?.activationToken || offer?.offerNumber || offer?.offer_number || employee?.employeeId || offer?.employeeId || id;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/activate-account?token=${encodeURIComponent(token)}`;
+  };
+
+  const handleViewDocument = async (doc) => {
+    if (!doc?.path || !doc?.bucket) return;
+    setOpeningDocName(doc.name);
+    try {
+      const url = await employeeService.getSignedUrl(doc.bucket, doc.path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setToast(`Failed to open document: ${err.message}`);
+      setTimeout(() => setToast(''), 3500);
+    } finally {
+      setOpeningDocName('');
+    }
+  };
 
   const handleResend = async () => {
     if (!offer?.id) return;
@@ -84,15 +114,18 @@ export default function OnboardingDetail() {
       setToast('Offer letter email resent successfully.');
       setTimeout(() => setToast(''), 3000);
       const logs = await onboardingService.getEmailLogs();
-      setEmailLogs(logs.filter(l => l.employeeId === employee?.employeeId));
+      const targetEmpId = employee?.employeeId || offer?.employeeId || id;
+      setEmailLogs(logs.filter(l => matchesEmployeeLog(l, employee, targetEmpId)));
+    } catch (err) {
+      setToast(`Resend failed: ${err.message}`);
+      setTimeout(() => setToast(''), 3500);
     } finally {
       setIsResending(false);
     }
   };
 
   const handleCopyActivationLink = () => {
-    const link = `http://localhost:5175/activate-account?token=${offer?.activationToken || 'demo_token'}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(getActivationUrl());
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -250,7 +283,7 @@ export default function OnboardingDetail() {
                   size="sm"
                   className="w-full justify-start text-xs"
                   icon={ExternalLink}
-                  onClick={() => window.open(`http://localhost:5175/activate-account?token=${offer?.activationToken || 'demo_token'}`, '_blank')}
+                  onClick={() => window.open(getActivationUrl(), '_blank', 'noopener,noreferrer')}
                 >
                   Open Candidate Activation Page
                 </Button>
@@ -349,30 +382,44 @@ export default function OnboardingDetail() {
           </CardHeader>
           <CardContent className="p-6 space-y-3">
             {[
-              { name: 'Aadhaar Card Proof', status: 'Verified', date: '2026-08-28', type: 'PDF' },
-              { name: 'PAN Card Proof', status: 'Verified', date: '2026-08-28', type: 'PDF' },
-              { name: 'Bank Account Passbook / Cancelled Cheque', status: 'Verified', date: '2026-08-28', type: 'PDF' },
-              { name: 'Highest Degree Certificate', status: 'Verified', date: '2026-08-28', type: 'PDF' },
-              { name: 'Signed Appointment Offer Acceptance Copy', status: offer?.status === 'Offer Accepted' ? 'Verified' : 'Pending Upload', date: 'Pending', type: 'PDF' },
-            ].map(doc => (
-              <div key={doc.name} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100 text-xs">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-bold text-gray-900">{doc.name}</p>
-                    <p className="text-gray-400 text-[11px]">{doc.type} · Submitted: {doc.date}</p>
+              { name: 'Aadhaar Card Proof', bucket: 'employee-documents', path: employee?.aadhaarDocumentPath, status: employee?.aadhaarDocumentPath ? 'Uploaded' : 'Pending Upload', type: 'Document' },
+              { name: 'PAN Card Proof', bucket: 'employee-documents', path: employee?.panDocumentPath, status: employee?.panDocumentPath ? 'Uploaded' : 'Pending Upload', type: 'Document' },
+              { name: 'Bank Account Passbook / Statement', bucket: 'employee-documents', path: employee?.passbookPath, status: employee?.passbookPath ? 'Uploaded' : 'Pending Upload', type: 'Document' },
+              { name: 'Signed Appointment Offer Acceptance Copy', bucket: null, path: null, status: offer?.status === 'Offer Accepted' ? 'Verified' : 'Pending Acceptance', type: 'Portal Action' },
+            ].map(doc => {
+              const isReady = doc.status === 'Uploaded' || doc.status === 'Verified';
+              return (
+                <div key={doc.name} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100 text-xs">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-bold text-gray-900">{doc.name}</p>
+                      <p className="text-gray-400 text-[11px]">
+                        {doc.type} · {doc.path ? `Registered: ${employee?.createdDate || 'On file'}` : (doc.status === 'Verified' ? 'Accepted via Portal' : 'Not yet submitted')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
+                      isReady ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {doc.status}
+                    </span>
+                    {doc.path && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={openingDocName === doc.name}
+                        onClick={() => handleViewDocument(doc)}
+                      >
+                        {openingDocName === doc.name ? 'Loading...' : 'View'}
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
-                    doc.status === 'Verified' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {doc.status}
-                  </span>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}
@@ -389,16 +436,24 @@ export default function OnboardingDetail() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900 text-sm">{log.subject}</span>
-                    <span className="bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA] px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                    <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                      ['delivered', 'sent'].includes((log.status || '').toLowerCase())
+                        ? 'bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA]'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
                       {log.status}
                     </span>
                   </div>
-                  <p className="text-gray-500">Delivered to: <strong className="text-gray-800">{log.recipientEmail}</strong> at {log.sentAt}</p>
-                  <p className="text-gray-400 text-[11px]">Attachments: {log.attachments?.join(', ')}</p>
+                  <p className="text-gray-500">Delivered to: <strong className="text-gray-800">{log.recipientEmail || log.recipient_email}</strong> at {log.sentAt || log.sent_at || 'Pending'}</p>
+                  {log.attachments?.length > 0 && (
+                    <p className="text-gray-400 text-[11px]">Attachments: {log.attachments.join(', ')}</p>
+                  )}
                 </div>
-                <Button variant="outline" size="sm" icon={RotateCw} onClick={handleResend}>
-                  Resend
-                </Button>
+                {offer?.id && (
+                  <Button variant="outline" size="sm" icon={RotateCw} isLoading={isResending} onClick={handleResend}>
+                    Resend
+                  </Button>
+                )}
               </div>
             ))}
 
@@ -429,7 +484,7 @@ export default function OnboardingDetail() {
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
                 <span className="text-gray-400 uppercase tracking-wider font-semibold">Account Status</span>
                 <p className="font-bold text-sm text-green-700">
-                  {employee?.status === 'Active' ? 'Activated & Live' : 'Pending Password Setup'}
+                  {(employee?.status || '').toLowerCase() === 'active' || offer?.status === 'Offer Accepted' ? 'Activated & Live' : 'Pending Password Setup'}
                 </p>
               </div>
             </div>
@@ -446,7 +501,7 @@ export default function OnboardingDetail() {
                 <input
                   type="text"
                   readOnly
-                  value={`http://localhost:5175/activate-account?token=${offer?.activationToken || 'demo_token'}`}
+                  value={getActivationUrl()}
                   className="h-8 flex-1 px-3 bg-white border border-[#D8F5FA] rounded-lg font-mono text-[11px] text-gray-700"
                 />
                 <Button size="sm" className="h-8" icon={copiedLink ? Check : Copy} onClick={handleCopyActivationLink}>

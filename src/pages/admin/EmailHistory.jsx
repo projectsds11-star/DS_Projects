@@ -10,7 +10,12 @@ export default function EmailHistory() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
   const [resendingId, setResendingId] = useState(null);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, error = false) => {
+    setToast({ msg, error });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const loadLogs = async () => {
     const list = await onboardingService.getEmailLogs();
@@ -24,14 +29,23 @@ export default function EmailHistory() {
   const handleResend = async (log) => {
     setResendingId(log.id);
     try {
-      // Find offer by employeeId or mock resend
-      const offers = await offerService.getOffers({ search: log.employeeId });
-      if (offers.length > 0) {
-        await offerService.resendOffer(offers[0].id);
+      const offers = await offerService.getOffers();
+      const targetEmpId = (log.employeeId || '').toLowerCase();
+      const targetEmail = (log.recipientEmail || '').toLowerCase();
+      const matched = offers.find(
+        o =>
+          (targetEmpId && (o.employeeId || o.employee_id || '').toLowerCase() === targetEmpId) ||
+          (targetEmail && (o.email || '').toLowerCase() === targetEmail)
+      );
+      if (!matched) {
+        showToast('No matching job offer found to resend for this log.', true);
+        return;
       }
-      setToast('Email re-dispatched to SMTP server.');
-      setTimeout(() => setToast(''), 3000);
+      await offerService.resendOffer(matched.id);
+      showToast('Email re-dispatched to SMTP server.');
       loadLogs();
+    } catch (err) {
+      showToast(`Resend failed: ${err.message}`, true);
     } finally {
       setResendingId(null);
     }
@@ -49,9 +63,11 @@ export default function EmailHistory() {
     <div className="space-y-6">
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-green-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2">
-          <Check className="h-4 w-4" />
-          <span>{toast}</span>
+        <div className={`fixed bottom-6 right-6 z-50 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 ${
+          toast.error ? 'bg-red-700' : 'bg-green-700'
+        }`}>
+          {toast.error ? <AlertCircle className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+          <span>{toast.msg}</span>
         </div>
       )}
 
@@ -114,7 +130,7 @@ export default function EmailHistory() {
                   <tr key={log.id} className="hover:bg-[#D8F5FA]/20 transition-colors">
                     <td className="px-4 py-3.5">
                       <p className="font-bold text-gray-900">{log.recipientName}</p>
-                      <p className="text-[11px] font-mono text-[var(--color-primary)]">{log.employeeId}</p>
+                      <p className="text-[11px] font-mono text-[var(--color-primary)]">{log.employeeId || '—'}</p>
                       <p className="text-[11px] text-gray-500">{log.recipientEmail}</p>
                     </td>
 
@@ -127,9 +143,11 @@ export default function EmailHistory() {
 
                     <td className="px-4 py-3.5 text-gray-600">
                       <div className="flex flex-col gap-0.5 text-[11px]">
-                        {log.attachments?.map((att, i) => (
+                        {log.attachments?.length > 0 ? log.attachments.map((att, i) => (
                           <span key={i} className="truncate max-w-[160px] text-gray-700">📎 {att}</span>
-                        ))}
+                        )) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </div>
                     </td>
 
@@ -138,12 +156,18 @@ export default function EmailHistory() {
                     </td>
 
                     <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
-                        log.status === 'Delivered' ? 'bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA]' : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}>
-                        <CheckCircle2 className="h-3 w-3 text-[#E63946]" />
-                        {log.status}
-                      </span>
+                      {(() => {
+                        const s = (log.status || '').toLowerCase();
+                        const ok = s === 'delivered' || s === 'sent';
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
+                            ok ? 'bg-[#D8F5FA] text-[#E63946] border border-[#D8F5FA]' : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                            {ok ? <CheckCircle2 className="h-3 w-3 text-[#E63946]" /> : <AlertCircle className="h-3 w-3 text-red-600" />}
+                            {log.status}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     <td className="px-4 py-3.5 text-right">

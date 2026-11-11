@@ -7,6 +7,31 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEY = 'ds_agencies_cache';
+const API_BASE = '/api/admin/agencies';
+
+function authHeaders(extra = {}) {
+  const token = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('ds_admin_token') || '') : '';
+  return token ? { Authorization: `Bearer ${token}`, ...extra } : { ...extra };
+}
+
+function buildAgencyPatch(formData = {}) {
+  const patch = { updated_at: new Date().toISOString() };
+  if (formData.name !== undefined) patch.name = String(formData.name || '').trim();
+  if (formData.contact_person !== undefined) patch.contact_person = String(formData.contact_person || '').trim();
+  if (formData.phone !== undefined) patch.phone = String(formData.phone || '').trim();
+  if (formData.email !== undefined) patch.email = String(formData.email || '').trim().toLowerCase();
+  if (formData.state_id !== undefined) patch.state_id = formData.state_id || 'AP-STATE-01';
+  if (formData.state_name !== undefined) patch.state_name = formData.state_name || 'Andhra Pradesh';
+  if (formData.district_id !== undefined) patch.district_id = formData.district_id || '';
+  if (formData.district_name !== undefined) patch.district_name = formData.district_name || '';
+  if (formData.mandal_id !== undefined) patch.mandal_id = formData.mandal_id || '';
+  if (formData.mandal_name !== undefined) patch.mandal_name = formData.mandal_name || '';
+  if (formData.address !== undefined) patch.address = String(formData.address || '').trim();
+  if (formData.pincode !== undefined) patch.pincode = String(formData.pincode || '').trim();
+  if (formData.status !== undefined) patch.status = formData.status || 'active';
+  if (formData.notes !== undefined) patch.notes = String(formData.notes || '').trim();
+  return patch;
+}
 
 const INITIAL_AGENCIES = [
   {
@@ -95,6 +120,22 @@ export const agencyService = {
    * Fetch all non-deleted agencies
    */
   async getAgencies() {
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ds_admin_token') : '';
+    if (token) {
+      try {
+        const res = await fetch(API_BASE, { headers: authHeaders() });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.agencies) && json.agencies.length > 0) {
+            setLocalCache(json.agencies);
+            return json.agencies;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend getAgencies unavailable, trying Supabase client:', err);
+      }
+    }
+
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
@@ -165,6 +206,27 @@ export const agencyService = {
       deleted_at: null
     };
 
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ds_admin_token') : '';
+    if (token) {
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(newRecord),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.agency) {
+            const cached = getLocalCache();
+            setLocalCache([json.agency, ...cached.filter(a => a.id !== json.agency.id)]);
+            return { success: true, data: json.agency };
+          }
+        }
+      } catch (err) {
+        console.warn('Backend createAgency unavailable, trying Supabase client:', err);
+      }
+    }
+
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
@@ -191,26 +253,31 @@ export const agencyService = {
   },
 
   /**
-   * Update an existing agency
+   * Update an existing agency (partial patch — never wipes omitted fields)
    */
   async updateAgency(id, formData) {
-    const updateData = {
-      name: (formData.name || '').trim(),
-      contact_person: (formData.contact_person || '').trim(),
-      phone: (formData.phone || '').trim(),
-      email: (formData.email || '').trim().toLowerCase(),
-      state_id: formData.state_id || 'AP-STATE-01',
-      state_name: formData.state_name || 'Andhra Pradesh',
-      district_id: formData.district_id || '',
-      district_name: formData.district_name || '',
-      mandal_id: formData.mandal_id || '',
-      mandal_name: formData.mandal_name || '',
-      address: (formData.address || '').trim(),
-      pincode: (formData.pincode || '').trim(),
-      status: formData.status || 'active',
-      notes: (formData.notes || '').trim(),
-      updated_at: new Date().toISOString()
-    };
+    const updateData = buildAgencyPatch(formData);
+
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ds_admin_token') : '';
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(updateData),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.agency) {
+            const cached = getLocalCache();
+            setLocalCache(cached.map(a => a.id === id ? json.agency : a));
+            return { success: true, data: json.agency };
+          }
+        }
+      } catch (err) {
+        console.warn('Backend updateAgency unavailable, trying Supabase client:', err);
+      }
+    }
 
     if (isSupabaseConfigured) {
       try {
@@ -232,7 +299,17 @@ export const agencyService = {
     }
 
     const cached = getLocalCache();
-    const updated = cached.map(a => (a.id === id ? { ...a, ...updateData } : a));
+    let found = false;
+    const updated = cached.map(a => {
+      if (a.id === id) {
+        found = true;
+        return { ...a, ...updateData };
+      }
+      return a;
+    });
+    if (!found) {
+      return { success: false, message: 'Agency not found.' };
+    }
     setLocalCache(updated);
     const updatedAgency = updated.find(a => a.id === id);
     return { success: true, data: updatedAgency };
@@ -242,7 +319,7 @@ export const agencyService = {
    * Toggle agency status between active and inactive
    */
   async toggleStatus(id, currentStatus) {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const newStatus = (currentStatus || 'active').toLowerCase() === 'active' ? 'inactive' : 'active';
     return this.updateAgency(id, { status: newStatus });
   },
 
@@ -250,6 +327,26 @@ export const agencyService = {
    * Soft delete agency
    */
   async deleteAgency(id) {
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ds_admin_token') : '';
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            const cached = getLocalCache();
+            setLocalCache(cached.filter(a => a.id !== id));
+            return { success: true };
+          }
+        }
+      } catch (err) {
+        console.warn('Backend deleteAgency unavailable, trying Supabase client:', err);
+      }
+    }
+
     if (isSupabaseConfigured) {
       try {
         const { error } = await supabase

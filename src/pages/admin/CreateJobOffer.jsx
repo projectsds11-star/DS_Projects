@@ -846,10 +846,15 @@ export default function CreateJobOffer() {
 
       {/* ── MODALS ─────────────────────────────────────────────── */}
       <DuplicateOfferModal
-        isOpen={showDuplicateModal}
+        open={showDuplicateModal}
         onClose={() => setShowDuplicateModal(false)}
+        onProceedNew={() => setShowDuplicateModal(false)}
+        onViewExisting={() => {
+          setShowDuplicateModal(false);
+          const target = existingOffer?.id || existingOffer?.employee_id || existingOffer?.employeeId;
+          if (target) navigate(`/admin/onboarding/${target}`);
+        }}
         existingOffer={existingOffer}
-        employeeName={watchedValues.employeeName}
       />
 
       <SendOfferConfirmModal

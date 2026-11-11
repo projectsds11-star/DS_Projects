@@ -39,8 +39,15 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleHeaderSearch = (e) => {
+    e.preventDefault();
+    const q = headerSearch.trim();
+    navigate(q ? `/admin/employees?search=${encodeURIComponent(q)}` : '/admin/employees');
+  };
   
   const adminEmail = (() => {
     try {
@@ -237,12 +244,18 @@ export default function AdminLayout() {
             <div className="hidden md:flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">{pageTitle}</h2>
             </div>
-            <div className="hidden sm:flex items-center max-w-md w-full ml-auto md:ml-4">
+            <form onSubmit={handleHeaderSearch} className="hidden sm:flex items-center max-w-md w-full ml-auto md:ml-4">
               <div className="relative w-full">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" placeholder="Search employees, work tasks, candidate offers..." className="w-full h-10 pl-10 pr-4 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all placeholder:text-slate-400" />
+                <input
+                  type="text"
+                  value={headerSearch}
+                  onChange={(e) => setHeaderSearch(e.target.value)}
+                  placeholder="Search employees by name, ID, email..."
+                  className="w-full h-10 pl-10 pr-4 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all placeholder:text-slate-400"
+                />
               </div>
-            </div>
+            </form>
           </div>
           <div className="flex items-center gap-3 ml-4">
             <button onClick={() => navigate('/admin/employees/add')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#E63946] hover:bg-[#FF6B6B] text-white rounded-xl text-xs font-bold shadow-md shadow-[#E63946]/20 transition-all cursor-pointer">

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import StatusBadge from '../../components/onboarding/StatusBadge';
 import EmployeeAvatar from '../../components/common/EmployeeAvatar';
 import { onboardingService } from '../../services/onboardingService';
+import { AP_DISTRICTS_DATA } from '../../data/andhraPradeshMasterData';
 
 export default function PendingOnboarding() {
   const navigate = useNavigate();
@@ -81,11 +82,9 @@ export default function PendingOnboarding() {
               className="h-9 px-3 text-xs rounded-lg border border-[var(--color-border)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] w-full sm:w-auto"
             >
               <option value="">All Districts</option>
-              <option value="Nellore">Nellore</option>
-              <option value="Guntur">Guntur</option>
-              <option value="Krishna">Krishna</option>
-              <option value="Prakasam">Prakasam</option>
-              <option value="Chittoor">Chittoor</option>
+              {AP_DISTRICTS_DATA.map(d => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
             </select>
           </div>
         </CardContent>

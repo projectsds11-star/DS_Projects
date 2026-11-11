@@ -24,6 +24,7 @@ import OfferDocumentPreview from '../../components/onboarding/OfferDocumentPrevi
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { offerService } from '../../services/onboardingService';
 import { formatINR, JOB_POSITIONS } from '../../services/templateService';
+import { AP_DISTRICTS_DATA } from '../../data/andhraPradeshMasterData';
 
 export default function OfferLetters() {
   const navigate = useNavigate();
@@ -157,11 +158,9 @@ export default function OfferLetters() {
               className="h-9 px-3 text-xs rounded-lg border border-[var(--color-border)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             >
               <option value="">All Districts</option>
-              <option value="Nellore">Nellore</option>
-              <option value="Guntur">Guntur</option>
-              <option value="Krishna">Krishna</option>
-              <option value="Prakasam">Prakasam</option>
-              <option value="Chittoor">Chittoor</option>
+              {AP_DISTRICTS_DATA.map(d => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
             </select>
 
             <select

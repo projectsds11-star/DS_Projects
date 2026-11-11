@@ -58,13 +58,13 @@ export const liveDataService = {
 
       // Attach matching offer data (district, mandal, position) to the employee object
       if (matchingOffer) {
-        emp.district = emp.district || emp.district_id || matchingOffer.district;
-        emp.mandal = emp.mandal || emp.mandal_id || matchingOffer.mandal;
+        emp.district = emp.district || emp.district_id || matchingOffer.district || '';
+        emp.mandal = emp.mandal || emp.mandal_id || matchingOffer.mandal || '';
         emp.position = emp.position || matchingOffer.position;
         emp.designation = emp.designation || matchingOffer.position;
       } else {
-        emp.district = emp.district || emp.district_id || 'Nellore';
-        emp.mandal = emp.mandal || emp.mandal_id || 'Kavali';
+        emp.district = emp.district || emp.district_id || '';
+        emp.mandal = emp.mandal || emp.mandal_id || '';
         emp.designation = emp.designation || 'Mandal Field Officer';
       }
 

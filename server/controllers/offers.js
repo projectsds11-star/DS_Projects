@@ -1015,21 +1015,72 @@ export const activateAccount = async (req, res) => {
   }
 };
 
+function normalizeEmailLog(row) {
+  const empRel = Array.isArray(row.employees) ? row.employees[0] : row.employees;
+  const rawEmpId = row.employee_id || row.employeeId || '';
+  const empCode =
+    empRel?.employee_id ||
+    row.employeeCode ||
+    (typeof rawEmpId === 'string' && /^DS-/i.test(rawEmpId) ? rawEmpId : '');
+  const recipientName =
+    row.recipient_name ||
+    row.recipientName ||
+    empRel?.name ||
+    row.employee_name ||
+    'Employee';
+  const recipientEmail = row.recipient_email || row.recipientEmail || '';
+  const type = row.email_type || row.type || 'WELCOME_EMPLOYEE';
+  const status = row.status || 'SENT';
+  const sentAt = row.sent_at || row.sentAt || row.created_at || null;
+  const attachments = Array.isArray(row.attachments)
+    ? row.attachments
+    : type === 'offer_letter'
+      ? ['Offer_Letter.pdf']
+      : [];
+
+  return {
+    ...row,
+    employeeId: empCode,
+    employee_id: empCode || rawEmpId,
+    recipientName,
+    recipient_name: recipientName,
+    recipientEmail,
+    recipient_email: recipientEmail,
+    type,
+    email_type: type,
+    status,
+    sentAt,
+    sent_at: sentAt,
+    attachments,
+  };
+}
+
 /**
  * GET /api/admin/email-logs
  * Returns email dispatch history from email_logs table (with fallback to job_offers sent records)
  */
 export const getEmailLogs = async (req, res) => {
   try {
-    // Try email_logs table first
-    const { data: logs, error } = await supabaseAdmin
+    // Try email_logs table first (joining employees for readable DS-XXX & name)
+    let { data: logs, error } = await supabaseAdmin
       .from('email_logs')
-      .select('*')
+      .select('*, employees(employee_id, name)')
       .order('sent_at', { ascending: false })
       .limit(200);
 
+    if (error) {
+      // Retry without FK join in case relation metadata is absent
+      const retry = await supabaseAdmin
+        .from('email_logs')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(200);
+      logs = retry.data;
+      error = retry.error;
+    }
+
     if (!error && logs && logs.length > 0) {
-      return res.status(200).json({ success: true, data: logs });
+      return res.status(200).json({ success: true, data: logs.map(normalizeEmailLog) });
     }
 
     // Fallback: derive from job_offers sent history
@@ -1040,7 +1091,7 @@ export const getEmailLogs = async (req, res) => {
       .order('sent_at', { ascending: false })
       .limit(200);
 
-    const derived = (offerLogs || []).map(o => ({
+    const derived = (offerLogs || []).map(o => normalizeEmailLog({
       id: o.id,
       type: 'offer_letter',
       recipient_name: o.employee_name,
@@ -1051,6 +1102,7 @@ export const getEmailLogs = async (req, res) => {
       sent_at: o.sent_at,
       offer_number: o.offer_number,
       district: o.district,
+      attachments: ['Offer_Letter.pdf'],
     }));
 
     return res.status(200).json({ success: true, data: derived });

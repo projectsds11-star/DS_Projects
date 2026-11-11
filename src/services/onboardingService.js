@@ -18,6 +18,98 @@ function getApiBase() {
   return import.meta.env.VITE_API_URL || '';
 }
 
+function authHeaders(extra = {}) {
+  const token = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('ds_admin_token') || '') : '';
+  return token ? { Authorization: `Bearer ${token}`, ...extra } : { ...extra };
+}
+
+export function matchesDistrictFilter(value, filter) {
+  if (!filter) return true;
+  const distVal = (value || '').toLowerCase();
+  const filterVal = filter.toLowerCase();
+  return (
+    distVal === filterVal ||
+    (distVal.length >= 4 && (filterVal.includes(distVal) || distVal.includes(filterVal)))
+  );
+}
+
+function mapOnboardingEmployee(e, offerMap) {
+  const empId = e.employeeId || e.employee_id;
+  const empOffer = offerMap.get(empId);
+  const hasOffer = !!empOffer && empOffer.status !== 'Offer Rejected';
+  const onboardingStatus = empOffer
+    ? (empOffer.status || 'Offer Sent')
+    : 'Pending Offer';
+
+  return {
+    id: e.id || empId,
+    employeeId: empId,
+    fullName: e.fullName || e.name || 'Candidate',
+    name: e.fullName || e.name || 'Candidate',
+    email: e.email || '',
+    phone: e.phone || '',
+    gender: e.gender || 'Male',
+    district: e.district || e.districtId || '',
+    mandal: e.mandal || e.mandalId || '',
+    qualification: e.qualification || 'Graduate',
+    photoPath: e.photoPath || e.candidate_photo_path || null,
+    photoUrl: e.photoUrl || e.photo_url || null,
+    aadhaarDocumentPath: e.aadhaarDocumentPath || e.aadhaar_document_path || null,
+    panDocumentPath: e.panDocumentPath || e.pan_document_path || null,
+    passbookPath: e.passbookPath || e.bank_passbook_path || null,
+    createdAt: e.createdAt || e.created_at || null,
+    status: e.status || 'active',
+    onboardingStatus,
+    createdDate: e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent',
+    hasOffer,
+    offerId: empOffer?.id || empOffer?.offer_number || null,
+    offerNumber: empOffer?.offer_number || empOffer?.offerNumber || null,
+  };
+}
+
+function normalizeEmailLog(row) {
+  const empRel = Array.isArray(row.employees) ? row.employees[0] : row.employees;
+  const rawEmpId = row.employeeId || row.employee_id || '';
+  const empCode =
+    empRel?.employee_id ||
+    row.employeeCode ||
+    (typeof rawEmpId === 'string' && /^DS-/i.test(rawEmpId) ? rawEmpId : '');
+  const recipientName =
+    row.recipientName ||
+    row.recipient_name ||
+    empRel?.name ||
+    row.employee_name ||
+    'Employee';
+  const recipientEmail = row.recipientEmail || row.recipient_email || '';
+  const type = row.type || row.email_type || 'WELCOME_EMPLOYEE';
+  const rawSentAt = row.sent_at || row.sentAt || row.created_at || null;
+  const formattedSentAt = rawSentAt
+    ? (isNaN(Date.parse(rawSentAt))
+        ? String(rawSentAt)
+        : new Date(rawSentAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
+    : 'Pending';
+
+  return {
+    ...row,
+    employeeId: empCode,
+    employee_id: empCode || rawEmpId,
+    recipientName,
+    recipient_name: recipientName,
+    recipientEmail,
+    recipient_email: recipientEmail,
+    type,
+    email_type: type,
+    status: row.status || 'SENT',
+    sentAt: formattedSentAt,
+    sent_at: rawSentAt,
+    attachments: Array.isArray(row.attachments)
+      ? row.attachments
+      : type === 'offer_letter'
+        ? ['Offer_Letter.pdf']
+        : [],
+  };
+}
+
 export const onboardingService = {
   /** Get overview metrics for Onboarding KPI cards from live data */
   async getKPIs() {
@@ -50,34 +142,7 @@ export const onboardingService = {
     const offerMap = new Map(offers.map(o => [o.employee_id || o.employeeId, o]));
 
     return list
-      .map(e => {
-        const empId = e.employeeId || e.employee_id;
-        const empOffer = offerMap.get(empId);
-        const hasOffer = !!empOffer && empOffer.status !== 'Offer Rejected';
-        const onboardingStatus = empOffer
-          ? (empOffer.status || 'Offer Sent')
-          : 'Pending Offer';
-
-        return {
-          id: e.id || empId,
-          employeeId: empId,
-          fullName: e.fullName || e.name || 'Candidate',
-          name: e.fullName || e.name || 'Candidate',
-          email: e.email || '',
-          phone: e.phone || '',
-          gender: e.gender || 'Male',
-          district: e.district || e.districtId || '',
-          mandal: e.mandal || e.mandalId || '',
-          qualification: e.qualification || 'Graduate',
-          photoPath: e.photoPath || null,
-          status: e.status || 'active',
-          onboardingStatus,
-          createdDate: e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent',
-          hasOffer,
-          offerId: empOffer?.id || empOffer?.offer_number || null,
-          offerNumber: empOffer?.offer_number || empOffer?.offerNumber || null,
-        };
-      })
+      .map(e => mapOnboardingEmployee(e, offerMap))
       .filter(e => {
         const name = e.fullName;
         const empId = e.employeeId;
@@ -87,7 +152,7 @@ export const onboardingService = {
           name.toLowerCase().includes(search.toLowerCase()) ||
           empId.toLowerCase().includes(search.toLowerCase()) ||
           email.toLowerCase().includes(search.toLowerCase());
-        const matchDistrict = !district || e.district === district;
+        const matchDistrict = matchesDistrictFilter(e.district, district);
         const isPending = !e.hasOffer || e.onboardingStatus === 'Pending Offer';
         return matchSearch && matchDistrict && isPending;
       });
@@ -105,34 +170,7 @@ export const onboardingService = {
     const offers = await offerService.getOffers();
     const offerMap = new Map(offers.map(o => [o.employee_id || o.employeeId, o]));
 
-    return list.map(e => {
-      const empId = e.employeeId || e.employee_id;
-      const empOffer = offerMap.get(empId);
-      const hasOffer = !!empOffer && empOffer.status !== 'Offer Rejected';
-      const onboardingStatus = empOffer
-        ? (empOffer.status || 'Offer Sent')
-        : 'Pending Offer';
-
-      return {
-        id: e.id || empId,
-        employeeId: empId,
-        fullName: e.fullName || e.name || 'Candidate',
-        name: e.fullName || e.name || 'Candidate',
-        email: e.email || '',
-        phone: e.phone || '',
-        gender: e.gender || 'Male',
-        district: e.district || e.districtId || '',
-        mandal: e.mandal || e.mandalId || '',
-        qualification: e.qualification || 'Graduate',
-        photoPath: e.photoPath || null,
-        status: e.status || 'active',
-        onboardingStatus,
-        createdDate: e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent',
-        hasOffer,
-        offerId: empOffer?.id || empOffer?.offer_number || null,
-        offerNumber: empOffer?.offer_number || empOffer?.offerNumber || null,
-      };
-    });
+    return list.map(e => mapOnboardingEmployee(e, offerMap));
   },
 
   /** Check if employee already has an active offer */
@@ -147,12 +185,12 @@ export const onboardingService = {
     // 1. Try Backend API
     try {
       const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/admin/email-logs`);
+      const res = await fetch(`${apiBase}/api/admin/email-logs`, { headers: authHeaders() });
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          _emailLogs = json.data;
-          return json.data;
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          _emailLogs = json.data.map(normalizeEmailLog);
+          return _emailLogs;
         }
       }
     } catch (e) {
@@ -162,14 +200,23 @@ export const onboardingService = {
     // 2. Fallback: fetch directly from Supabase email_logs table
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('email_logs')
-          .select('*')
+          .select('*, employees(employee_id, name)')
           .order('sent_at', { ascending: false })
           .limit(200);
-        if (!error && data) {
-          _emailLogs = data;
-          return data;
+        if (error) {
+          const retry = await supabase
+            .from('email_logs')
+            .select('*')
+            .order('sent_at', { ascending: false })
+            .limit(200);
+          data = retry.data;
+          error = retry.error;
+        }
+        if (!error && data && data.length > 0) {
+          _emailLogs = data.map(normalizeEmailLog);
+          return _emailLogs;
         }
       } catch (err) {
         console.warn('Supabase email_logs query error:', err);
@@ -186,7 +233,7 @@ export const onboardingService = {
           .order('sent_at', { ascending: false })
           .limit(200);
         if (data) {
-          return data.map(o => ({
+          return data.map(o => normalizeEmailLog({
             id: o.id,
             type: 'offer_letter',
             recipient_name: o.employee_name,
@@ -197,6 +244,7 @@ export const onboardingService = {
             sent_at: o.sent_at,
             offer_number: o.offer_number,
             district: o.district,
+            attachments: ['Offer_Letter.pdf'],
           }));
         }
       } catch (err) {
@@ -322,7 +370,7 @@ export const offerService = {
     // 1. Try Backend API
     try {
       const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/admin/offers`);
+      const res = await fetch(`${apiBase}/api/admin/offers`, { headers: authHeaders() });
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
@@ -367,7 +415,7 @@ export const offerService = {
         email.toLowerCase().includes(search.toLowerCase());
 
       const matchPosition = !position || o.position === position;
-      const matchDistrict = !district || o.district === district;
+      const matchDistrict = matchesDistrictFilter(o.district, district);
       const matchStatus = !status || o.status === status;
 
       return matchSearch && matchPosition && matchDistrict && matchStatus;
@@ -389,7 +437,7 @@ export const offerService = {
     try {
       const res = await fetch(`${apiBase}/api/admin/offers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -520,7 +568,7 @@ export const offerService = {
       const apiBase = getApiBase();
       const res = await fetch(`${apiBase}/api/admin/send-onboarding-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           employeeId: payload.employeeId,
           fullName: payload.employeeName || payload.fullName,
@@ -551,7 +599,7 @@ export const offerService = {
     try {
       const res = await fetch(`${apiBase}/api/admin/offers/resend`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ offerId }),
       });
       const json = await res.json();

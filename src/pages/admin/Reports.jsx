@@ -42,17 +42,22 @@ export default function Reports() {
   const completedRate = tasks.length > 0 ? Math.round((approvedTasks / tasks.length) * 100) : 100;
 
   // Aggregate by district
+  const getEmpDistrict = (emp) => emp?.district_id || emp?.district || 'Unassigned';
   const districtCounts = {};
   employees.forEach(emp => {
-    const d = emp.district || 'Unassigned';
+    const d = getEmpDistrict(emp);
     districtCounts[d] = (districtCounts[d] || 0) + 1;
   });
 
   const districtList = Object.entries(districtCounts).map(([district, count]) => ({
     district,
     count,
-    present: attendance.filter(a => a.employee_id && employees.find(e => e.employee_id === a.employee_id)?.district === district).length || count,
-    tasks: tasks.filter(t => t.district === district).length || 0,
+    present: attendance.filter(a => {
+      if (!a.employee_id) return false;
+      const emp = employees.find(e => e.employee_id === a.employee_id);
+      return emp && getEmpDistrict(emp) === district;
+    }).length || count,
+    tasks: tasks.filter(t => (t.district || 'Unassigned') === district).length || 0,
     pct: 95
   }));
 

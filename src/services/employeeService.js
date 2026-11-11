@@ -246,26 +246,32 @@ export const employeeService = {
   },
 };
 
+export function getEmployeePhotoUrl(path) {
+  if (!path || typeof path !== 'string') return null;
+  if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  const publicUrl = supabase?.storage?.from('employee-photos')?.getPublicUrl(path)?.data?.publicUrl;
+  if (publicUrl) return publicUrl;
+  const baseUrl = (import.meta?.env?.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  return baseUrl ? `${baseUrl}/storage/v1/object/public/employee-photos/${path}` : null;
+}
+
 // ── Row mapper (DB → camelCase) ───────────────────────────────────────────────
 function mapRow(e) {
+  const photoUrl = getEmployeePhotoUrl(e.candidate_photo_path);
   return {
     id: e.id,
     employeeId: e.employee_id,
     name: e.name || e.full_name || '',
-    fullName: e.full_name || e.name || '',
+    fullName: e.name || e.full_name || '',
     address: e.address || '',
     phone: e.phone || '',
     email: e.email || '',
     photoPath: e.candidate_photo_path || null,
     candidate_photo_path: e.candidate_photo_path || null,
-    photoUrl: e.candidate_photo_path
-      ? (supabase?.storage?.from('employee-photos')?.getPublicUrl(e.candidate_photo_path)?.data?.publicUrl ||
-         `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${e.candidate_photo_path}`)
-      : null,
-    photo_url: e.candidate_photo_path
-      ? (supabase?.storage?.from('employee-photos')?.getPublicUrl(e.candidate_photo_path)?.data?.publicUrl ||
-         `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${e.candidate_photo_path}`)
-      : null,
+    photoUrl,
+    photo_url: photoUrl,
     qualification: e.qualification || '',
     course: e.course || '',
     university: e.university || '',

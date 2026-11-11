@@ -1,10 +1,10 @@
 name: Supabase Direct Keep-Alive
 
-# Backup: Pings Supabase REST API directly every 4 days
+# Backup: Pings Supabase REST API directly every 3 days (staggered from Keep Supabase Alive)
 # Works even if the Vercel deployment is down
 on:
   schedule:
-    - cron: '0 4 */4 * *'    # Every 4 days at 04:00 UTC = 09:30 IST
+    - cron: '0 4 2,5,8,11,14,17,20,23,26,29 * *'   # Staggered days at 04:00 UTC = 09:30 IST
   workflow_dispatch:
 
 jobs:
@@ -16,35 +16,47 @@ jobs:
     steps:
       - name: Wake up Supabase project
         env:
-          SUPABASE_URL: https://wprxkmxbuwipmymswmgq.supabase.co
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wprxkmxbuwipmymswmgq.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: |
-          echo "🚀 Waking up Supabase project..."
-          
-          # Try to do a simple count query — this resets Supabase inactivity timer
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          if [ -z "$SUPABASE_KEY" ]; then
+            echo "❌ Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_ANON_KEY GitHub Secret is set."
+            echo "   An unauthenticated request returns 401 and does NOT reset Supabase's inactivity timer."
+            echo "   Add SUPABASE_SERVICE_ROLE_KEY in GitHub Repo → Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          echo "🚀 Pinging Supabase PostgreSQL via PostgREST GET..."
+
+          # Execute a genuine SELECT GET query — gateway rejections (401/403) do NOT keep Postgres alive
+          STATUS=$(curl -s -o ping_response.json -w "%{http_code}" \
             --max-time 20 \
-            -H "apikey: $SUPABASE_SERVICE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
             -H "Prefer: count=exact" \
-            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1")
+            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1" || true)
 
           echo "Response status: $STATUS"
+          cat ping_response.json || true
+          echo ""
 
-          case $STATUS in
+          case "$STATUS" in
             200|206)
-              echo "✅ Supabase is alive! Project active."
+              echo "✅ Supabase is alive! Real PostgreSQL query succeeded."
               ;;
             401|403)
-              echo "✅ Supabase is reachable (auth error expected without anon key)."
+              echo "❌ Authentication failed (HTTP $STATUS). Gateway rejected request before hitting Postgres."
+              echo "   Verify SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY in GitHub Actions Secrets."
+              exit 1
               ;;
-            0)
-              echo "❌ Supabase is unreachable. Project may be paused."
+            000|0)
+              echo "❌ Supabase is unreachable (DNS/network failure). Project may be paused."
               echo "   → Go to https://supabase.com/dashboard to restore."
               exit 1
               ;;
             *)
-              echo "⚠️ Unexpected status: $STATUS"
+              echo "❌ Unexpected Supabase status: $STATUS"
+              exit 1
               ;;
           esac
 
@@ -52,6 +64,5 @@ jobs:
         if: always()
         run: |
           echo "📊 Keep-alive run complete at $(date -u)"
-          echo "   Next scheduled run: in ~4 days"
+          echo "   Schedule: staggered every ~3 days (days 2,5,8,11,14,17,20,23,26,29)"
           echo "   Supabase auto-pauses after: 7 days"
-          echo "   Safety margin: ✅ 3+ days buffer"

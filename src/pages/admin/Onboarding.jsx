@@ -20,7 +20,8 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import StatusBadge from '../../components/onboarding/StatusBadge';
 import EmployeeAvatar from '../../components/common/EmployeeAvatar';
-import { onboardingService, offerService } from '../../services/onboardingService';
+import { onboardingService, offerService, matchesDistrictFilter } from '../../services/onboardingService';
+import { AP_DISTRICTS_DATA } from '../../data/andhraPradeshMasterData';
 import { cn } from '../../utils/cn';
 
 export default function Onboarding() {
@@ -67,7 +68,7 @@ export default function Onboarding() {
       emp.fullName.toLowerCase().includes(search.toLowerCase()) ||
       emp.employeeId.toLowerCase().includes(search.toLowerCase()) ||
       emp.email.toLowerCase().includes(search.toLowerCase());
-    const matchDistrict = !districtFilter || emp.district === districtFilter;
+    const matchDistrict = matchesDistrictFilter(emp.district, districtFilter);
     const matchTab =
       activeTab === 'all' ||
       (activeTab === 'pending' && (!emp.hasOffer || emp.onboardingStatus === 'Pending Offer')) ||
@@ -185,11 +186,9 @@ export default function Onboarding() {
                 className="h-8 px-2 text-xs rounded-lg border border-[var(--color-border)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               >
                 <option value="">All Districts</option>
-                <option value="Nellore">Nellore</option>
-                <option value="Guntur">Guntur</option>
-                <option value="Krishna">Krishna</option>
-                <option value="Prakasam">Prakasam</option>
-                <option value="Chittoor">Chittoor</option>
+                {AP_DISTRICTS_DATA.map(d => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
               </select>
 
               <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto whitespace-nowrap">

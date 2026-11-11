@@ -227,6 +227,59 @@ Andhra Pradesh
   };
 }
 
+function isSupabaseConnectivityError(err) {
+  const msg = String(err?.message || err || '');
+  return (
+    msg.includes('fetch failed') ||
+    msg.includes('ENOTFOUND') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('network') ||
+    msg.includes('getaddrinfo')
+  );
+}
+
+const SUPABASE_UNREACHABLE_MSG =
+  'Cannot connect to Supabase. Your Supabase project is likely PAUSED or unreachable. ' +
+  'Please restore it in the Supabase dashboard or verify VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY, then restart the server.';
+
+async function mutateEmployeeWithSchemaFallback(mode, payload, matchEmployeeId = null) {
+  let candidate = { ...payload };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const query = mode === 'insert'
+      ? supabaseAdmin.from('employees').insert([candidate]).select().single()
+      : supabaseAdmin.from('employees').update(candidate).eq('employee_id', matchEmployeeId).select().single();
+
+    const { data, error } = await query;
+    if (!error) return { data, error: null };
+
+    const msg = error.message || '';
+    let changed = false;
+
+    // Legacy DB with NOT NULL `full_name` column (pre-migration 001)
+    if (msg.includes('full_name') && msg.toLowerCase().includes('not-null') && candidate.name && !candidate.full_name) {
+      candidate.full_name = candidate.name;
+      changed = true;
+    }
+    // Schema missing optional agency columns (migration 006 not yet applied)
+    if (msg.includes('agency_id') && Object.prototype.hasOwnProperty.call(candidate, 'agency_id')) {
+      delete candidate.agency_id;
+      changed = true;
+    }
+    if (msg.includes('agency_name') && Object.prototype.hasOwnProperty.call(candidate, 'agency_name')) {
+      delete candidate.agency_name;
+      changed = true;
+    }
+    // Schema without legacy `full_name` column
+    if (msg.includes('full_name') && !msg.toLowerCase().includes('not-null') && Object.prototype.hasOwnProperty.call(candidate, 'full_name')) {
+      delete candidate.full_name;
+      changed = true;
+    }
+
+    if (!changed) return { data, error };
+  }
+  return { data: null, error: { message: 'Failed to save employee record due to schema mismatch.' } };
+}
+
 // ── File upload helpers ─────────────────────────────────────────────────────
 async function uploadFile(bucket, storagePath, buffer, mimetype) {
   const { error } = await supabaseAdmin.storage
@@ -234,20 +287,8 @@ async function uploadFile(bucket, storagePath, buffer, mimetype) {
     .upload(storagePath, buffer, { contentType: mimetype, upsert: true });
 
   if (error) {
-    const msg = error.message || '';
-    // Detect DNS / network / Supabase project-paused errors
-    if (
-      msg.includes('fetch failed') ||
-      msg.includes('ENOTFOUND') ||
-      msg.includes('ECONNREFUSED') ||
-      msg.includes('network') ||
-      msg.includes('getaddrinfo')
-    ) {
-      throw new Error(
-        '⚠️ Cannot connect to Supabase Storage. Your Supabase project is likely PAUSED (free tier pauses after 7 days of inactivity). ' +
-        'Please go to https://supabase.com/dashboard, find your project, and click "Restore project". ' +
-        'Then restart the server and try again.'
-      );
+    if (isSupabaseConnectivityError(error)) {
+      throw new Error(`⚠️ ${SUPABASE_UNREACHABLE_MSG}`);
     }
     throw new Error(`Storage upload failed [${bucket}/${storagePath}]: ${error.message}`);
   }
@@ -294,10 +335,16 @@ export const createEmployee = async (req, res) => {
   if (!phone?.trim() || !validatePhone(phone.trim())) errors.phone = 'Enter a valid 10-digit phone number.';
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = 'Enter a valid email address.';
   if (!qualification?.trim()) errors.qualification = 'Qualification is required.';
+  if (!course?.trim()) errors.course = 'Course is required.';
+  if (!university?.trim()) errors.university = 'University / Board is required.';
+  if (!year_of_passing?.trim()) errors.year_of_passing = 'Year of passing is required.';
   if (!aadhaar_number || !validateAadhaar(aadhaar_number.replace(/-/g, ''))) errors.aadhaar_number = 'Enter a valid 12-digit Aadhaar number.';
   if (!pan_number || !validatePAN(pan_number.toUpperCase())) errors.pan_number = 'Enter a valid PAN (e.g. ABCDE1234F).';
+  if (!account_holder_name?.trim()) errors.account_holder_name = 'Account holder name is required.';
+  if (!bank_name?.trim()) errors.bank_name = 'Bank name is required.';
   if (!account_number?.trim() || account_number.trim().length < 9) errors.account_number = 'Enter a valid account number.';
   if (!ifsc_code || !validateIFSC(ifsc_code.toUpperCase())) errors.ifsc_code = 'Enter a valid IFSC code (e.g. SBIN0001234).';
+  if (!branch_name?.trim()) errors.branch_name = 'Branch name is required.';
   if (!reference_mobile?.trim() || !validatePhone(reference_mobile.trim())) errors.reference_mobile = 'Enter a valid reference mobile number.';
   if (!reference_person_name?.trim()) errors.reference_person_name = 'Reference person name is required.';
   if (!reference_relationship?.trim()) errors.reference_relationship = 'Relationship is required.';
@@ -315,12 +362,19 @@ export const createEmployee = async (req, res) => {
   }
 
   // ── 3. Duplicate email check ──────────────────────────────────────────────
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: existingError } = await supabaseAdmin
     .from('employees')
     .select('id')
     .eq('email', email.trim().toLowerCase())
     .is('deleted_at', null)
     .limit(1);
+
+  if (existingError) {
+    if (isSupabaseConnectivityError(existingError)) {
+      return res.status(503).json({ success: false, message: SUPABASE_UNREACHABLE_MSG });
+    }
+    return res.status(500).json({ success: false, message: `DB Error: ${existingError.message}` });
+  }
 
   if (existing && existing.length > 0) {
     return res.status(409).json({ success: false, message: 'An employee with this email already exists.' });
@@ -414,25 +468,24 @@ export const createEmployee = async (req, res) => {
   const employeeRecord = {
     employee_id: employeeId,
     name: name.trim(),
-    full_name: name.trim(),
     address: address.trim(),
     phone: phone.trim().replace(/\s/g, ''),
     email: email.trim().toLowerCase(),
     candidate_photo_path: photoPath,
     qualification: qualification.trim(),
-    course: course.trim(),
-    university: university.trim(),
-    year_of_passing: year_of_passing.trim(),
+    course: (course || '').trim(),
+    university: (university || '').trim(),
+    year_of_passing: (year_of_passing || '').trim(),
     aadhaar_number: aadhaar_number.replace(/-/g, ''),
     aadhaar_document_path: aadhaarDocumentPath,
     pan_number: pan_number.toUpperCase(),
     pan_document_path: panDocumentPath,
     bank_passbook_path: passbookPath,
-    account_holder_name: account_holder_name.trim(),
-    bank_name: bank_name.trim(),
+    account_holder_name: (account_holder_name || '').trim(),
+    bank_name: (bank_name || '').trim(),
     account_number: account_number.trim(),
     ifsc_code: ifsc_code.toUpperCase(),
-    branch_name: branch_name.trim(),
+    branch_name: (branch_name || '').trim(),
     reference_mobile: reference_mobile.trim(),
     reference_person_name: reference_person_name.trim(),
     reference_relationship: reference_relationship.trim(),
@@ -444,16 +497,16 @@ export const createEmployee = async (req, res) => {
     status: 'active',
   };
 
-  const { data: created, error: insertError } = await supabaseAdmin
-    .from('employees')
-    .insert([employeeRecord])
-    .select()
-    .single();
+  const { data: created, error: insertError } = await mutateEmployeeWithSchemaFallback('insert', employeeRecord);
 
   if (insertError) {
-    // Rollback file uploads
-    await deleteFile('employee-photos', photoPath);
-    await deleteFile('employee-documents', passbookPath);
+    // Rollback all uploaded files
+    await Promise.allSettled([
+      deleteFile('employee-photos', photoPath),
+      deleteFile('employee-documents', passbookPath),
+      deleteFile('employee-documents', aadhaarDocumentPath),
+      deleteFile('employee-documents', panDocumentPath),
+    ]);
     console.error('[createEmployee] DB insert error:', insertError.message, insertError.details);
     return res.status(500).json({ success: false, message: `DB Error: ${insertError.message}` });
   }
@@ -597,7 +650,7 @@ export const updateEmployee = async (req, res) => {
   }
 
   const updates = {};
-  if (name) { updates.full_name = name.trim(); updates.name = name.trim(); }
+  if (name) { updates.name = name.trim(); }
   if (address) updates.address = address.trim();
   if (phone) updates.phone = phone.trim();
   if (email) updates.email = email.trim().toLowerCase();
@@ -625,15 +678,10 @@ export const updateEmployee = async (req, res) => {
   updates.aadhaar_document_path = aadhaarDocumentPath;
   updates.pan_document_path = panDocumentPath;
 
-  const { data: updated, error: updateErr } = await supabaseAdmin
-    .from('employees')
-    .update(updates)
-    .eq('employee_id', id)
-    .select()
-    .single();
+  const { data: updated, error: updateErr } = await mutateEmployeeWithSchemaFallback('update', updates, id);
 
   if (updateErr) {
-    return res.status(500).json({ success: false, message: 'Failed to update employee record.' });
+    return res.status(500).json({ success: false, message: updateErr.message || 'Failed to update employee record.' });
   }
 
   return res.status(200).json({ success: true, message: 'Employee updated successfully.', data: { employee_id: updated.employee_id } });

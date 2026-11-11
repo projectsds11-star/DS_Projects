@@ -10,7 +10,7 @@ import {
   ArrowLeft, Edit2, User, ShieldCheck, Landmark, Users, MapPin,
   FileText, RefreshCw, AlertCircle, Eye, Download, CheckCircle, XCircle, Building2
 } from 'lucide-react';
-import { employeeService } from '../../services/employeeService';
+import { employeeService, getEmployeePhotoUrl } from '../../services/employeeService';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
@@ -77,8 +77,8 @@ export default function EmployeeDetail() {
 
       // Preload photo URL
       if (emp.photoUrl || emp.photoPath) {
-        const directUrl = emp.photoUrl || `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${emp.photoPath}`;
-        setPhotoUrl(directUrl);
+        const directUrl = emp.photoUrl || getEmployeePhotoUrl(emp.photoPath);
+        if (directUrl) setPhotoUrl(directUrl);
       }
     })();
   }, [id]);

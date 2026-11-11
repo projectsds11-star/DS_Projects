@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -31,28 +31,20 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { employeeService } from '../../services/employeeService';
+import { employeeService, getEmployeePhotoUrl } from '../../services/employeeService';
 
 function EmployeeAvatar({ emp }) {
   const [imgUrl, setImgUrl] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
     const url = emp.photoUrl || emp.photo_url;
     const path = emp.photoPath || emp.candidate_photo_path || emp.photo_path || emp.photo;
 
     if (url && typeof url === 'string') {
       setImgUrl(url);
     } else if (path && typeof path === 'string') {
-      if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
-        setImgUrl(path);
-      } else {
-        // Direct public URL from public bucket
-        const publicUrl = `https://wprxkmxbuwipmymswmgq.supabase.co/storage/v1/object/public/employee-photos/${path}`;
-        setImgUrl(publicUrl);
-      }
+      setImgUrl(getEmployeePhotoUrl(path));
     }
-    return () => { isMounted = false; };
   }, [emp.photoUrl, emp.photo_url, emp.photoPath, emp.candidate_photo_path, emp.photo_path, emp.photo]);
 
   if (imgUrl) {
@@ -77,8 +69,14 @@ function EmployeeAvatar({ emp }) {
 
 export default function Employees() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [employees, setEmployees] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+
+  useEffect(() => {
+    const q = searchParams.get('search') || '';
+    setSearchTerm(q);
+  }, [searchParams]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
   const [agencyFilter, setAgencyFilter] = useState('All');

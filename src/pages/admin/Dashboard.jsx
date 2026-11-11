@@ -26,26 +26,30 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useNavigate } from 'react-router-dom';
 import { liveDataService } from '../../services/liveDataService';
+import { offerService } from '../../services/onboardingService';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const [empData, taskData, attData] = await Promise.all([
+        const [empData, taskData, attData, offerData] = await Promise.all([
           liveDataService.getEmployees(),
           liveDataService.getWorkTasks(),
-          liveDataService.getAttendance()
+          liveDataService.getAttendance(),
+          offerService.getOffers().catch(() => [])
         ]);
         if (empData) setEmployees(empData);
         if (taskData) setTasks(taskData);
         if (attData) setAttendance(attData);
+        if (offerData) setOffers(offerData);
       } catch (err) {
         console.error('Error fetching admin dashboard data:', err);
       } finally {
@@ -55,9 +59,19 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
+  const offerStatusByEmpId = new Map(
+    offers.map(o => [o.employee_id || o.employeeId, o.status])
+  );
+
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(e => (e.status || '').toLowerCase() === 'active').length;
-  const onboardingCount = employees.filter(e => (e.status || '').toLowerCase() === 'onboarding' || e.onboarding_status !== 'Completed').length;
+  const onboardingCount = employees.filter(e => {
+    const empStatus = (e.status || '').toLowerCase();
+    if (empStatus === 'inactive' || empStatus === 'deactivated') return false;
+    if (empStatus === 'onboarding') return true;
+    const offerStatus = offerStatusByEmpId.get(e.employee_id || e.employeeId);
+    return !['Offer Accepted', 'Onboarding Completed', 'Completed'].includes(offerStatus);
+  }).length;
   const totalTasks = tasks.length;
   const pendingTasks = tasks.filter(t => t.status === 'Assigned' || t.status === 'In Progress').length;
   const completedTasks = tasks.filter(t => t.status === 'Approved' || t.status === 'Submitted').length;
@@ -248,28 +262,35 @@ export default function AdminDashboard() {
 
             <CardContent className="p-0 divide-y divide-slate-100">
               {employees.length > 0 ? (
-                employees.slice(0, 5).map((emp) => (
-                  <div key={emp.id || emp.employee_id} className="p-5 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#E63946] to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
-                        {emp.full_name?.charAt(0) || 'E'}
+                employees.slice(0, 5).map((emp) => {
+                  const displayName = emp.name || emp.full_name || 'Employee';
+                  const locationLabel = emp.mandal_id || emp.mandal || emp.district_id || emp.district || 'Andhra Pradesh';
+                  const roleOrAgency = emp.agency_name || emp.designation;
+                  const subtitle = [roleOrAgency, locationLabel].filter(Boolean).join(' • ');
+                  const isActive = (emp.status || '').toLowerCase() === 'active';
+                  return (
+                    <div key={emp.id || emp.employee_id} className="p-5 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#E63946] to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                          {displayName.charAt(0).toUpperCase() || 'E'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-slate-900 truncate">{displayName}</p>
+                          <p className="text-xs text-slate-500 truncate">{subtitle}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm text-slate-900 truncate">{emp.full_name}</p>
-                        <p className="text-xs text-slate-500 truncate">{emp.designation} • {emp.mandal || emp.district}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        {emp.employee_id}
-                      </span>
-                      <Badge variant={emp.status === 'Active' ? 'success' : 'warning'} className="text-[10px]">
-                        {emp.status}
-                      </Badge>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          {emp.employee_id}
+                        </span>
+                        <Badge variant={isActive ? 'success' : 'warning'} className="text-[10px] capitalize">
+                          {emp.status || 'active'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-12 text-center space-y-2">
                   <Users className="h-10 w-10 text-slate-300 mx-auto" />

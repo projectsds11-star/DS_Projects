@@ -19,39 +19,59 @@ jobs:
           echo "🔔 Pinging app to keep Supabase alive..."
           RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
             --max-time 30 \
-            https://ds-projects-eta.vercel.app/api/health)
+            "https://ds-projects-eta.vercel.app/api/health" || true)
 
           echo "HTTP Status: $RESPONSE"
           echo "Response body:"
           cat response.json || true
+          echo ""
 
-          if [ "$RESPONSE" = "200" ]; then
-            echo "✅ Supabase is alive and healthy!"
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Health check failed with HTTP status $RESPONSE"
+            exit 1
+          fi
+
+          # Verify the JSON payload itself reports Supabase is ok (prevents false greens)
+          SB_STATUS=$(node -e "
+            const fs = require('fs');
+            try {
+              const data = JSON.parse(fs.readFileSync('response.json', 'utf8'));
+              process.stdout.write(String(data.supabase || ''));
+            } catch (_) {}
+          ")
+
+          echo "Supabase check field: $SB_STATUS"
+          if echo "$SB_STATUS" | grep -q '^ok ('; then
+            echo "✅ Supabase is alive and responded to a real DB query!"
           else
-            echo "⚠️ Health check returned status $RESPONSE"
+            echo "❌ Health endpoint returned 200, but Supabase check failed: $SB_STATUS"
             exit 1
           fi
 
       - name: Also ping Supabase REST API directly (backup)
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://wprxkmxbuwipmymswmgq.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "ℹ️ SUPABASE_URL secret not set — skipping direct ping"
+          if [ -z "$SUPABASE_KEY" ]; then
+            echo "⚠️ SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY secret not set in GitHub — skipping direct backup ping"
             exit 0
           fi
 
-          echo "🔔 Direct Supabase REST ping..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 15 \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1")
+          echo "🔔 Direct Supabase REST GET ping..."
+          RESPONSE=$(curl -s -o direct_response.json -w "%{http_code}" \
+            --max-time 20 \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/employees?select=id&limit=1" || true)
 
           echo "Supabase REST status: $RESPONSE"
-          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "406" ]; then
-            echo "✅ Supabase responding!"
+          cat direct_response.json || true
+          echo ""
+
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "206" ]; then
+            echo "✅ Direct Supabase REST GET ping succeeded!"
           else
-            echo "⚠️ Supabase returned $RESPONSE"
+            echo "❌ Direct Supabase REST ping failed with status $RESPONSE"
+            exit 1
           fi

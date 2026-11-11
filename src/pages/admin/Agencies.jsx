@@ -524,7 +524,7 @@ export default function Agencies() {
           message={`Are you sure you want to remove "${deleteTarget.name}" (${deleteTarget.agency_code}) from the active agency network? This action will archive this partner agency.`}
           confirmText="Yes, Delete Agency"
           cancelText="Keep Agency"
-          variant="danger"
+          confirmVariant="danger"
           isLoading={deleting}
           onConfirm={handleDeleteConfirm}
           onClose={() => setDeleteTarget(null)}

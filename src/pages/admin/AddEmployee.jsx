@@ -210,7 +210,7 @@ export default function AddEmployee() {
         referenceMobile: emp.referenceMobile,
         referenceName: emp.referenceName,
         relationship: emp.relationship,
-        stateId: emp.stateId,
+        stateId: emp.stateId || 'AP-STATE-01',
         districtId: emp.districtId,
         mandalId: emp.mandalId,
         agencyId: emp.agencyId || emp.agency_id || '',
@@ -396,7 +396,7 @@ export default function AddEmployee() {
       reference_mobile: values.referenceMobile.trim(),
       reference_person_name: values.referenceName.trim(),
       reference_relationship: values.relationship.trim(),
-      state_id: values.stateId,
+      state_id: values.stateId || 'AP-STATE-01',
       district_id: values.districtId,
       mandal_id: values.mandalId,
       agency_id: values.agencyId || '',
@@ -914,8 +914,8 @@ export default function AddEmployee() {
         </FormGrid>
       </FormSection>
 
-      {/* ── SECTION 4: Reference Information ───────────────────────────────── */}
-      <FormSection number={4} title="Reference Information" description="Emergency contact and guarantor details.">
+      {/* ── SECTION 5: Reference Information ───────────────────────────────── */}
+      <FormSection number={5} title="Reference Information" description="Emergency contact and guarantor details.">
         <FormGrid cols={2}>
           <FormField label="Reference Person Name" required error={errors.referenceName?.message}>
             <input
@@ -954,8 +954,8 @@ export default function AddEmployee() {
         </FormGrid>
       </FormSection>
 
-      {/* ── SECTION 5: Location & Agency ────────────────────────────────────────── */}
-      <FormSection number={5} title="Deployment & Agency Assignment" description="Deployment location in Andhra Pradesh and partner agency association.">
+      {/* ── SECTION 6: Location & Agency ────────────────────────────────────────── */}
+      <FormSection number={6} title="Deployment & Agency Assignment" description="Deployment location in Andhra Pradesh and partner agency association.">
         <FormGrid cols={2}>
           {/* Partner Agency Dropdown */}
           <FormField
@@ -964,20 +964,20 @@ export default function AddEmployee() {
             colSpan={2}
           >
             <select
-              {...register('agencyId')}
+              {...register('agencyId', {
+                onChange: (e) => {
+                  const selId = e.target.value;
+                  const selectedAgency = agencies.find(a => a.id === selId || a.agency_code === selId);
+                  setValue(
+                    'agencyName',
+                    selectedAgency
+                      ? selectedAgency.name
+                      : (selId === 'direct' ? 'Direct DS Projects / Internal' : ''),
+                    { shouldValidate: true }
+                  );
+                },
+              })}
               className={inputCls(false)}
-              onChange={e => {
-                const selId = e.target.value;
-                const selectedAgency = agencies.find(a => a.id === selId || a.agency_code === selId);
-                setValue('agencyId', selId, { shouldValidate: true });
-                setValue(
-                  'agencyName',
-                  selectedAgency
-                    ? selectedAgency.name
-                    : (selId === 'direct' ? 'Direct DS Projects / Internal' : ''),
-                  { shouldValidate: true }
-                );
-              }}
             >
               <option value="">-- Select Partner Agency --</option>
               <option value="direct">Direct DS Projects / Internal</option>
@@ -996,19 +996,19 @@ export default function AddEmployee() {
               readOnly
               className={cn(inputCls(false), 'bg-gray-50 cursor-not-allowed text-gray-600')}
             />
-            <input type="hidden" {...register('stateId')} value="AP-STATE-01" />
+            <input type="hidden" {...register('stateId')} />
           </FormField>
 
           {/* District */}
           <FormField label="District" required error={errors.districtId?.message}>
             <select
-              {...register('districtId')}
+              {...register('districtId', {
+                onChange: () => {
+                  setValue('mandalId', '', { shouldValidate: false });
+                  setMandals([]);
+                },
+              })}
               className={inputCls(!!errors.districtId)}
-              onChange={e => {
-                setValue('districtId', e.target.value, { shouldValidate: true });
-                setValue('mandalId', '', { shouldValidate: false });
-                setMandals([]);
-              }}
               data-error={!!errors.districtId}
               disabled={loadingDistricts}
             >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { employeeService } from '../../services/employeeService';
+import { employeeService, getEmployeePhotoUrl } from '../../services/employeeService';
 
 /**
  * Enterprise Employee Avatar Component
@@ -32,13 +32,10 @@ export default function EmployeeAvatar({
       if (typeof rawPhoto === 'string' && (rawPhoto.startsWith('http') || rawPhoto.startsWith('blob:') || rawPhoto.startsWith('data:'))) {
         setImgUrl(rawPhoto);
       } else if (typeof rawPhoto === 'string') {
-        // Try public storage URL first
-        try {
-          const { data } = supabase.storage.from('employee-photos').getPublicUrl(rawPhoto);
-          if (data?.publicUrl) {
-            setImgUrl(data.publicUrl);
-          }
-        } catch {
+        const resolvedUrl = getEmployeePhotoUrl(rawPhoto) || supabase?.storage?.from('employee-photos')?.getPublicUrl(rawPhoto)?.data?.publicUrl;
+        if (resolvedUrl) {
+          setImgUrl(resolvedUrl);
+        } else {
           // Fetch signed URL fallback
           employeeService.getSignedUrl('employee-photos', rawPhoto)
             .then(url => {

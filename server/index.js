@@ -6,6 +6,7 @@ import employeeRoutes from './routes/employees.js';
 import offerRoutes from './routes/offers.js';
 import agencyRoutes from './routes/agencies.js';
 import { getEmailLogs } from './controllers/offers.js';
+import { requireAdmin } from './middleware/auth.js';
 import { supabaseAdmin } from './services/supabaseAdmin.js';
 
 dotenv.config();
@@ -28,7 +29,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Health Check — pings Supabase to keep it alive (used by GitHub Actions cron)
+// Health Check — executes an actual SELECT query to keep Supabase active (used by GitHub Actions cron)
 app.get(['/api/health', '/health'], async (req, res) => {
   const result = {
     status: 'ok',
@@ -37,18 +38,29 @@ app.get(['/api/health', '/health'], async (req, res) => {
     supabase: 'unknown',
   };
 
+  let dbHealthy = false;
+
   try {
-    // This query keeps Supabase from pausing — any DB call resets the inactivity timer
+    // Use an actual GET/SELECT read (not head: true) so Postgres engine activity always resets Supabase's inactivity timer
     const { count, error } = await supabaseAdmin
       .from('employees')
-      .select('*', { count: 'exact', head: true });
+      .select('id', { count: 'exact' })
+      .limit(1);
 
-    result.supabase = error ? `error: ${error.message}` : `ok (${count ?? 0} employees)`;
+    if (error) {
+      result.status = 'degraded';
+      result.supabase = `error: ${error.message}`;
+    } else {
+      dbHealthy = true;
+      result.supabase = `ok (${count ?? 0} employees)`;
+    }
   } catch (err) {
+    result.status = 'degraded';
     result.supabase = `unreachable: ${err.message}`;
   }
 
-  res.status(200).json(result);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.status(dbHealthy ? 200 : 503).json(result);
 });
 
 // Routes — Support both /api/admin and /admin for seamless Vercel / serverless routing
@@ -57,7 +69,7 @@ app.use(['/api/admin/employees', '/admin/employees'], employeeRoutes);
 app.use(['/api/admin/offers', '/admin/offers'], offerRoutes);
 app.use(['/api/admin/agencies', '/admin/agencies'], agencyRoutes);
 // Email logs audit trail
-app.get(['/api/admin/email-logs', '/admin/email-logs'], getEmailLogs);
+app.get(['/api/admin/email-logs', '/admin/email-logs'], requireAdmin, getEmailLogs);
 
 // 404 Handler for undefined API routes (always return JSON)
 app.use((req, res) => {

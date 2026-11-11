@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
+import { AP_DISTRICTS_DATA } from '../../data/andhraPradeshMasterData';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -54,30 +55,31 @@ export default function Notifications() {
     e.preventDefault();
     if (!broadcastTitle || !broadcastMsg) return;
 
-    // Send to all employees or target
-    const targetEmployees = targetType === 'All' ? employees : employees.filter(e => e.district === targetType);
-    
+    // Send to all employees or selected district
+    const targetLower = targetType.toLowerCase();
+    const targetEmployees = targetType === 'All'
+      ? employees
+      : employees.filter(e => {
+          const d = (e.district || e.district_id || '').toLowerCase();
+          return d && (d === targetLower || d.includes(targetLower) || targetLower.includes(d));
+        });
+
     if (targetEmployees.length === 0) {
+      showToast(`No active employees found in ${targetType === 'All' ? 'the directory' : `${targetType} district`}.`);
+      return;
+    }
+
+    for (const emp of targetEmployees) {
       await liveDataService.createNotification({
-        employee_id: 'DS-127',
+        employee_id: emp.employee_id || emp.employeeId,
         title: broadcastTitle,
         message: broadcastMsg,
         type: 'announcement',
         is_read: false
       });
-    } else {
-      for (const emp of targetEmployees) {
-        await liveDataService.createNotification({
-          employee_id: emp.employee_id,
-          title: broadcastTitle,
-          message: broadcastMsg,
-          type: 'announcement',
-          is_read: false
-        });
-      }
     }
 
-    showToast('Broadcast notification dispatched to all field staff!');
+    showToast(`Broadcast notification dispatched to ${targetEmployees.length} staff member${targetEmployees.length === 1 ? '' : 's'}!`);
     setBroadcastTitle('');
     setBroadcastMsg('');
     setActiveTab('inbox');
@@ -154,8 +156,9 @@ export default function Notifications() {
                 className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
               >
                 <option value="All">All Registered Staff (Statewide)</option>
-                <option value="Nellore">Nellore District Only</option>
-                <option value="Guntur">Guntur District Only</option>
+                {AP_DISTRICTS_DATA.map(d => (
+                  <option key={d.id} value={d.name}>{d.name} District Only</option>
+                ))}
               </select>
             </div>
 
