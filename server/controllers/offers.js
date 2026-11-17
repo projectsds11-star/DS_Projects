@@ -387,7 +387,8 @@ export const createOffer = async (req, res) => {
               <p style="margin-top: 25px; margin-bottom: 0;">
                 Warm regards,<br>
                 <strong>Management & Administration</strong><br>
-                <strong>DS PROJECTS PRIVATE LIMITED</strong>
+                <strong>DS PROJECTS PRIVATE LIMITED</strong><br>
+                <span style="font-size: 11px; color: #64748b;">Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001</span>
               </p>
             </td>
           </tr>
@@ -395,7 +396,7 @@ export const createOffer = async (req, res) => {
           <!-- Footer -->
           <tr>
             <td style="background-color: #f8fafc; padding: 15px 30px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
-              DS Projects Private Limited &bull; Andhra Pradesh &bull; Official Employee Notice
+              DS Projects Private Limited &bull; Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001 &bull; Official Employee Notice
             </td>
           </tr>
 
@@ -448,6 +449,8 @@ Your signed Letter of Appointment PDF is attached to this email.
 Warm regards,
 Management & Administration
 DS PROJECTS PRIVATE LIMITED
+Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001
+Web: www.dsprojectss.com | Ph: +91 9701529191
 `;
 
         let finalSubject = emailSubject
@@ -809,7 +812,7 @@ export const resendOffer = async (req, res) => {
                 </p>
               </div>
 
-              <p style="margin-top: 25px; margin-bottom: 0;">Warm regards,<br><strong>Management & Administration</strong><br><strong>DS PROJECTS PRIVATE LIMITED</strong></p>
+              <p style="margin-top: 25px; margin-bottom: 0;">Warm regards,<br><strong>Management & Administration</strong><br><strong>DS PROJECTS PRIVATE LIMITED</strong><br><span style="font-size: 11px; color: #64748b;">Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001</span></p>
             </td>
           </tr>
         </table>
@@ -861,6 +864,8 @@ Your signed Letter of Appointment PDF is attached to this email.
 Warm regards,
 Management & Administration
 DS PROJECTS PRIVATE LIMITED
+Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001
+Web: www.dsprojectss.com | Ph: +91 9701529191
 `;
 
     const mailOptions = {

@@ -288,7 +288,7 @@ export function generateOfferLetterPDF(offerData) {
       doc.rect(MARGIN, footerY - 6, CONTENT_W, 0.5).fill('#e2e8f0');
       doc.fillColor('#94a3b8').font('Helvetica').fontSize(7.5)
          .text(
-           'DS Projects Private Limited  •  Official Employment Appointment Letter  •  Confidential  •  Andhra Pradesh',
+           `DS Projects Private Limited  •  Corporate Office: ${COMPANY_INFO.fullAddress}  •  Official Appointment Letter`,
            MARGIN, footerY, { width: CONTENT_W, align: 'center' }
          );
 
