@@ -138,6 +138,24 @@ export default function AddEmployee() {
     watchAccountNumber && watchReEnter &&
     watchAccountNumber.trim() !== watchReEnter.trim();
 
+  // ── Prefill from Job Application fast-track ──────────────────────────────────
+  useEffect(() => {
+    if (!isEdit) {
+      try {
+        const raw = sessionStorage.getItem('ds_prefill_employee');
+        if (raw) {
+          const prefill = JSON.parse(raw);
+          sessionStorage.removeItem('ds_prefill_employee');
+          if (prefill.name) setValue('name', prefill.name);
+          if (prefill.email) setValue('email', prefill.email);
+          if (prefill.phone) setValue('phone', prefill.phone);
+          if (prefill.address) setValue('address', prefill.address);
+          if (prefill.aadhaar_number) setValue('aadhaar', formatAadhaar(prefill.aadhaar_number));
+        }
+      } catch (e) {}
+    }
+  }, [isEdit, setValue]);
+
   // ── Load districts & agencies on mount ──────────────────────────────────────
   useEffect(() => {
     setLoadingDistricts(true);

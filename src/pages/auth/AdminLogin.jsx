@@ -334,6 +334,17 @@ export default function AdminLogin() {
                         </>
                       )}
                     </button>
+
+                    <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                      <span>Visiting Candidate?</span>
+                      <a
+                        href="/apply"
+                        className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>Job Application Form</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </form>
                 </motion.div>
               ) : (

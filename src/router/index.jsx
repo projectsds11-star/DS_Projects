@@ -3,6 +3,7 @@ import AdminLogin from '../pages/auth/AdminLogin';
 import EmployeeLogin from '../pages/auth/EmployeeLogin';
 import EmployeeForgotPassword from '../pages/auth/EmployeeForgotPassword';
 import AccountActivation from '../pages/auth/AccountActivation';
+import JobApplication from '../pages/public/JobApplication';
 import AdminLayout from '../layouts/AdminLayout';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import AdminProtectedRoute from '../components/auth/AdminProtectedRoute';
@@ -15,6 +16,7 @@ import AddEmployee from '../pages/admin/AddEmployee';
 import EmployeeDetail from '../pages/admin/EmployeeDetail';
 import Agencies from '../pages/admin/Agencies';
 import AddAgency from '../pages/admin/AddAgency';
+import JobApplications from '../pages/admin/JobApplications';
 
 // Onboarding Module Pages
 import Onboarding from '../pages/admin/Onboarding';
@@ -67,6 +69,18 @@ const router = createBrowserRouter([
     path: '/activate-account',
     element: <AccountActivation />,
   },
+  {
+    path: '/apply',
+    element: <JobApplication />,
+  },
+  {
+    path: '/job-application',
+    element: <JobApplication />,
+  },
+  {
+    path: '/careers',
+    element: <JobApplication />,
+  },
 
 
   // ── Admin Portal (ALL routes protected) ──────────────────────
@@ -102,6 +116,9 @@ const router = createBrowserRouter([
       { path: 'offers', element: <OfferLetters /> },
       { path: 'offers/create', element: <CreateJobOffer /> },
       { path: 'offers/:id', element: <OnboardingDetail /> },
+
+      // Job Applications route
+      { path: 'applications', element: <JobApplications /> },
 
       { path: 'work', element: <WorkManagement /> },
       { path: 'attendance', element: <Attendance /> },

@@ -283,7 +283,20 @@ export default function EmployeeLogin() {
             </div>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-500 space-y-1">
+          <div className="mt-5 p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200/80 text-xs text-blue-900 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="space-y-0.5">
+              <p className="font-bold text-slate-900">Looking for Job Openings?</p>
+              <p className="text-[11px] text-slate-600">Apply for MSME ZED Certification Field Work</p>
+            </div>
+            <Link
+              to="/apply"
+              className="px-3 py-1.5 bg-[#1e3a8a] hover:bg-[#1e293b] text-white text-[11px] font-bold rounded-lg shrink-0 shadow-xs transition"
+            >
+              Apply Online &rarr;
+            </Link>
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-slate-100 text-center text-xs text-slate-500 space-y-1">
             <p>Credentials are dispatched to your registered email upon onboarding.</p>
             <p className="text-slate-400">DS Projects Private Limited &bull; Andhra Pradesh</p>
           </div>
