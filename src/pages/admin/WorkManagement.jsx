@@ -3,32 +3,25 @@ import {
   ClipboardList, 
   Plus, 
   Search, 
-  Filter, 
   Check, 
   X, 
-  MessageSquare, 
   CheckCircle2, 
   Clock, 
   MapPin, 
   Send, 
-  User, 
   AlertCircle, 
   Inbox, 
   Paperclip, 
   UploadCloud, 
   FileText, 
-  File, 
   Eye, 
-  Trash2, 
   Download, 
   Loader2,
   FileSpreadsheet,
-  Calendar,
-  Building2,
-  FileCheck2
+  Calendar
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
 import { storageService } from '../../services/supabaseClient';

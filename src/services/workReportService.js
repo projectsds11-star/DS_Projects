@@ -4,7 +4,6 @@
  */
 import { supabase, isSupabaseConfigured, STORAGE_BUCKETS } from './supabaseClient';
 import { downloadWorkSheetTemplate, parseWorkSheetFile } from '../utils/workSheetExcel';
-import { liveDataService } from './liveDataService';
 
 function getApiBase() {
   if (typeof window !== 'undefined') {

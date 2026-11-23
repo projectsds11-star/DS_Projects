@@ -22,7 +22,6 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   Calendar,
-  Building2,
   FileCheck2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
