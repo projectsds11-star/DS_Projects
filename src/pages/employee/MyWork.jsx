@@ -12,20 +12,25 @@ import {
   MapPin, 
   FileText, 
   Check, 
-  Inbox,
-  UploadCloud,
-  Download,
-  Eye,
-  Trash2,
-  Loader2,
-  AlertCircle,
-  ShieldAlert
+  Inbox, 
+  UploadCloud, 
+  Download, 
+  Eye, 
+  Trash2, 
+  Loader2, 
+  AlertCircle, 
+  ShieldAlert,
+  FileSpreadsheet,
+  Calendar,
+  Building2,
+  FileCheck2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
 import { storageService, supabase, isSupabaseConfigured } from '../../services/supabaseClient';
+import { workReportService } from '../../services/workReportService';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -54,6 +59,7 @@ function getFileCategory(fileName = '', fileType = '') {
 
 export default function MyWork() {
   const navigate = useNavigate();
+  const [activeWorkTab, setActiveWorkTab] = useState('excel_report'); // 'excel_report' (Daily Excel Sheet) or 'tasks'
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,32 +73,46 @@ export default function MyWork() {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(true);
   const fileInputRef = useRef(null);
 
+  // Daily Work Excel Sheet State
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelFileStats, setExcelFileStats] = useState(null);
+  const [reportNotes, setReportNotes] = useState('');
+  const [isSubmittingSheet, setIsSubmittingSheet] = useState(false);
+  const [isDraggingExcel, setIsDraggingExcel] = useState(false);
+  const [submittedWorkReports, setSubmittedWorkReports] = useState([]);
+  const excelInputRef = useRef(null);
+
   const currentEmpId = localStorage.getItem('ds_current_employee_id') || 'DS-127';
 
   useEffect(() => {
     async function fetchTasks() {
       setLoading(true);
       try {
-        const [liveTasks, emp] = await Promise.all([
+        const [liveTasks, emp, dailyReports] = await Promise.all([
           liveDataService.getWorkTasks(currentEmpId),
-          liveDataService.getEmployeeById(currentEmpId)
+          liveDataService.getEmployeeById(currentEmpId),
+          workReportService.getDailyWorkReports(currentEmpId)
         ]);
 
-        // Check if onboarding is completed
-        let isCompleted = true;
         if (emp) {
+          setCurrentEmployee(emp);
           if (emp.status === 'Onboarding' || emp.status === 'Draft' || emp.status === 'Inactive') {
-            isCompleted = false;
+            setIsOnboardingCompleted(false);
+          } else {
+            setIsOnboardingCompleted(true);
           }
         }
-        setIsOnboardingCompleted(isCompleted);
 
         setTasks(liveTasks || []);
         if (liveTasks && liveTasks.length > 0) {
           setSelectedTask(liveTasks[0]);
         }
+
+        setSubmittedWorkReports(dailyReports || []);
       } catch (err) {
-        console.error('Error fetching tasks:', err);
+        console.error('Error fetching tasks and daily reports:', err);
       } finally {
         setLoading(false);
       }
@@ -102,7 +122,91 @@ export default function MyWork() {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleDownloadExcelTemplate = () => {
+    try {
+      workReportService.downloadExcelTemplate();
+      showToast('Daily Work Excel Template downloaded!');
+    } catch (e) {
+      console.error('Error downloading template:', e);
+      showToast('Error downloading template. Please try again.');
+    }
+  };
+
+  const handleExcelFileSelect = async (files) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      showToast('Please upload an Excel (.xlsx, .xls) or CSV file.');
+      return;
+    }
+
+    setExcelFile(file);
+    try {
+      const parsed = await workReportService.parseExcelFile(file);
+      setExcelFileStats(parsed);
+      showToast(`Excel sheet loaded: ${parsed.totalRows} Enterprise Units detected!`);
+    } catch (err) {
+      console.warn('Note on parsing:', err.message);
+      setExcelFileStats({
+        fileName: file.name,
+        fileSize: file.size,
+        totalRows: 0,
+        rows: []
+      });
+      showToast(`Excel file attached: ${file.name}`);
+    }
+  };
+
+  const handleSubmitDailyWorkSheet = async (e) => {
+    e.preventDefault();
+    if (!excelFile) {
+      showToast('Please upload your completed Excel sheet first.');
+      return;
+    }
+
+    setIsSubmittingSheet(true);
+    try {
+      // 1. Upload file to Supabase storage
+      const fileUrl = await workReportService.uploadExcelFile(excelFile, currentEmpId, reportDate);
+
+      // 2. Submit report & notify Admin via Email
+      const payload = {
+        employeeId: currentEmpId,
+        employeeName: currentEmployee?.full_name || currentEmployee?.name || 'Field Officer',
+        employeeEmail: currentEmployee?.email || '',
+        workDate: reportDate,
+        district: currentEmployee?.district || '',
+        mandal: currentEmployee?.mandal || '',
+        fileName: excelFile.name,
+        fileSize: formatBytes(excelFile.size),
+        fileUrl: fileUrl,
+        totalEnterprises: excelFileStats?.totalRows || 0,
+        records: excelFileStats?.rows || [],
+        summaryNotes: reportNotes || 'Daily field work report completed and submitted for review.',
+      };
+
+      await workReportService.submitDailyWorkReport(payload);
+      showToast('Daily work sheet submitted! Admin has been notified via email.');
+
+      // Reset form
+      setExcelFile(null);
+      setExcelFileStats(null);
+      setReportNotes('');
+      if (excelInputRef.current) excelInputRef.current.value = '';
+
+      // Reload submitted list
+      const freshReports = await workReportService.getDailyWorkReports(currentEmpId);
+      setSubmittedWorkReports(freshReports || []);
+    } catch (err) {
+      console.error('Error submitting daily work sheet:', err);
+      showToast('Error submitting sheet. Please try again.');
+    } finally {
+      setIsSubmittingSheet(false);
+    }
   };
 
   const FILTERS = ['All', 'Assigned', 'In Progress', 'Submitted', 'Approved'];
@@ -257,45 +361,413 @@ export default function MyWork() {
       {/* Header title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">My Daily Work & Field Tasks</h1>
-          <p className="text-sm text-slate-500">Track assigned field tasks, review survey guidelines, and submit verification reports.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">My Daily Work & Field Reports</h1>
+          <p className="text-sm text-slate-500">Download daily field work Excel sheet, upload completed visit reports, and track admin verification.</p>
         </div>
-        <div>
-          <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
-            {tasks.filter(t => t.status !== 'Approved').length} Pending Tasks
-          </span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            onClick={handleDownloadExcelTemplate}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs cursor-pointer flex items-center gap-2"
+          >
+            <Download size={15} />
+            <FileSpreadsheet size={15} />
+            <span>Download Excel Template</span>
+          </Button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="relative w-full md:w-80">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search task by code, title, location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
-          />
-        </div>
+      {/* Primary Tab Navigation */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveWorkTab('excel_report')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeWorkTab === 'excel_report'
+              ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <FileSpreadsheet size={16} />
+          <span>Daily Field Work Sheet (Excel Upload)</span>
+          {submittedWorkReports.length > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeWorkTab === 'excel_report' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {submittedWorkReports.length}
+            </span>
+          )}
+        </button>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                statusFilter === f
-                  ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveWorkTab('tasks')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeWorkTab === 'tasks'
+              ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <FileText size={16} />
+          <span>Assigned Tasks ({tasks.length})</span>
+        </button>
       </div>
+
+      {/* VIEW 1: DAILY EXCEL FIELD WORK SHEET UPLOAD (PRIMARY) */}
+      {activeWorkTab === 'excel_report' && (
+        <div className="space-y-6">
+          {/* Instructions and Download Template Card */}
+          <div className="bg-gradient-to-r from-slate-900 to-[#0A192F] text-white p-6 rounded-3xl border border-slate-800 shadow-lg relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  <FileCheck2 size={13} />
+                  <span>Mandatory Daily Field Report</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+                  Daily Field Work Excel Submission
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Every day after completing field visits, record all visited MSME units in the official Excel sheet (11 standard columns) and submit it here. Admin will verify and accept your sheet, and you will receive an acceptance confirmation email.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
+                <Button
+                  type="button"
+                  onClick={handleDownloadExcelTemplate}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Download size={16} />
+                  <span>Download Excel Sheet</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Form Card */}
+          <Card className="border border-slate-200/80 shadow-md rounded-3xl bg-white overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b border-slate-200/80 p-6">
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <UploadCloud className="h-5 w-5 text-[#E63946]" />
+                <span>Upload Completed Daily Work Sheet</span>
+              </CardTitle>
+              <p className="text-xs text-slate-500 mt-1">
+                Select work date, attach your completed Excel (.xlsx, .xls) file, and click submit.
+              </p>
+            </CardHeader>
+
+            <form onSubmit={handleSubmitDailyWorkSheet} className="p-6 space-y-6">
+              {/* Row 1: Date & Officer Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Calendar size={13} className="text-[#E63946]" />
+                    <span>Work Date *</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={reportDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setReportDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Field Officer / Candidate</label>
+                  <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs sm:text-sm text-slate-700 font-semibold truncate">
+                    {currentEmployee?.full_name || 'Candidate'} ({currentEmpId})
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-rose-500" />
+                    <span>Assigned Area</span>
+                  </label>
+                  <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs sm:text-sm text-slate-700 font-semibold truncate">
+                    {currentEmployee?.mandal || 'Field'}, {currentEmployee?.district || 'Andhra Pradesh'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Drag & Drop Excel File Upload Zone */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileSpreadsheet size={14} className="text-emerald-600" />
+                    <span>Upload Completed Excel Sheet (.xlsx, .xls, .csv) *</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    Exact 11 Columns Required
+                  </span>
+                </div>
+
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingExcel(true); }}
+                  onDragLeave={() => setIsDraggingExcel(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingExcel(false);
+                    if (e.dataTransfer.files) handleExcelFileSelect(e.dataTransfer.files);
+                  }}
+                  onClick={() => excelInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
+                    isDraggingExcel
+                      ? 'border-[#E63946] bg-[#D8F5FA]/50 scale-[0.99]'
+                      : 'border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/20 bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    ref={excelInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    onChange={(e) => handleExcelFileSelect(e.target.files)}
+                    className="hidden"
+                  />
+
+                  {excelFile ? (
+                    <div className="space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs border border-emerald-200">
+                        <FileSpreadsheet size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{excelFile.name}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Size: {formatBytes(excelFile.size)} &bull; Ready for submission
+                        </p>
+                      </div>
+
+                      {excelFileStats && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold border border-emerald-200">
+                          <CheckCircle2 size={13} className="text-emerald-600" />
+                          <span>{excelFileStats.totalRows} Enterprise Units Detected in Sheet</span>
+                        </div>
+                      )}
+
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExcelFile(null);
+                            setExcelFileStats(null);
+                            if (excelInputRef.current) excelInputRef.current.value = '';
+                          }}
+                          className="text-xs text-rose-600 hover:text-rose-700 font-bold underline"
+                        >
+                          Change / Upload Different File
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs border border-emerald-200">
+                        <UploadCloud size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          <span className="text-[#E63946] underline">Click to choose</span> or drag and drop your completed Excel sheet
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Supports .xlsx, .xls, and .csv files (up to 25 MB)
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 3: Observations / Remarks */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Field Observations / Summary Remarks (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={reportNotes}
+                  onChange={(e) => setReportNotes(e.target.value)}
+                  placeholder="e.g. Visited 12 units in industrial growth center. All owner contacts verified and documents gathered."
+                  className="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  <span>* After submission, Admin will be automatically notified via email.</span>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={!excelFile || isSubmittingSheet}
+                  className="w-full sm:w-auto bg-[#E63946] hover:bg-[#FF6B6B] text-white font-extrabold px-8 py-3 rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isSubmittingSheet ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Submitting & Notifying Admin...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      <span>Submit Daily Work Sheet to Admin</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {/* Submitted Work Sheets History */}
+          <Card className="border border-slate-200/80 shadow-sm rounded-3xl bg-white overflow-hidden">
+            <CardHeader className="bg-white border-b border-slate-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-indigo-600" />
+                  <span>My Submitted Daily Work Sheets History</span>
+                </CardTitle>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Real-time status of your daily submitted field reports and admin verification
+                </p>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                {submittedWorkReports.length} Submissions
+              </span>
+            </CardHeader>
+
+            <div className="overflow-x-auto">
+              {submittedWorkReports.length > 0 ? (
+                <table className="w-full text-xs sm:text-sm text-left">
+                  <thead className="text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200/80">
+                    <tr>
+                      <th className="px-6 py-4">Work Date</th>
+                      <th className="px-6 py-4">Submitted File</th>
+                      <th className="px-6 py-4">Units Audited</th>
+                      <th className="px-6 py-4">Verification Status</th>
+                      <th className="px-6 py-4">Admin Remarks</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {submittedWorkReports.map((report) => {
+                      const isAccepted = report.status === 'Accepted' || report.status === 'Approved' || report.status === 'Verified';
+                      return (
+                        <tr key={report.id || report.report_code} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-extrabold text-slate-900">{report.work_date}</div>
+                            <div className="text-[11px] font-mono text-slate-400 mt-0.5">{report.report_code || 'REPORT'}</div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <FileSpreadsheet size={14} />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-800 truncate max-w-xs">{report.file_name || 'DAILY_WORK_SHEET.xlsx'}</p>
+                                {report.file_size && <p className="text-[10px] text-slate-400">{report.file_size}</p>}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className="font-extrabold text-slate-900 text-sm">
+                              {report.total_enterprises || (Array.isArray(report.records) ? report.records.length : 0)}
+                            </span>
+                            <span className="text-xs text-slate-500 ml-1">Units</span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            {isAccepted ? (
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-emerald-200">
+                                <CheckCircle2 size={13} className="text-emerald-600" />
+                                <span>Accepted & Verified</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-amber-200">
+                                <Clock size={13} className="text-amber-600" />
+                                <span>Under Admin Review</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-xs text-slate-600 max-w-xs">
+                            {report.admin_remarks ? (
+                              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-100 text-xs font-medium">
+                                {report.admin_remarks}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">Pending review</span>
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-right">
+                            {report.file_url ? (
+                              <a
+                                href={report.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                              >
+                                <Download size={13} />
+                                <span>Download</span>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-slate-400">Attached</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <FileSpreadsheet className="h-12 w-12 text-slate-300 mx-auto" />
+                  <p className="font-bold text-sm text-slate-700">No daily work sheets submitted yet</p>
+                  <p className="text-xs text-slate-400">Download the template above, fill your daily field data, and upload it.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* VIEW 2: ASSIGNED TASKS (SECONDARY TAB) */}
+      {activeWorkTab === 'tasks' && (
+        <div className="space-y-6">
+          {/* Filter and Search Bar */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="relative w-full md:w-80">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search task by code, title, location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
+              {FILTERS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    statusFilter === f
+                      ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
 
       {/* If Employee is pending onboarding, show informational gate */}
       {!isOnboardingCompleted ? (
@@ -634,6 +1106,8 @@ export default function MyWork() {
           )}
         </div>
       </div>
+      )}
+        </div>
       )}
     </div>
   );

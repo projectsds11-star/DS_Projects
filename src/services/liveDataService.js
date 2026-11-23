@@ -10,6 +10,23 @@ let _attendance = [];
 let _documents = [];
 let _notifications = [];
 let _offers = [];
+let _dailyWorkReports = (() => {
+  try {
+    const saved = localStorage.getItem('ds_daily_work_reports');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    // ignore
+  }
+  return [];
+})();
+
+function saveDailyWorkReportsLocally(list) {
+  try {
+    localStorage.setItem('ds_daily_work_reports', JSON.stringify(list));
+  } catch (e) {
+    // ignore
+  }
+}
 
 export const liveDataService = {
   // =========================================================================

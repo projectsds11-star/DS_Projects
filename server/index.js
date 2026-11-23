@@ -6,6 +6,7 @@ import employeeRoutes from './routes/employees.js';
 import offerRoutes from './routes/offers.js';
 import agencyRoutes from './routes/agencies.js';
 import { publicApplicationRouter, adminApplicationRouter } from './routes/applications.js';
+import workReportRoutes from './routes/workReports.js';
 import { getEmailLogs } from './controllers/offers.js';
 import { requireAdmin } from './middleware/auth.js';
 import { supabaseAdmin } from './services/supabaseAdmin.js';
@@ -71,6 +72,7 @@ app.use(['/api/admin/offers', '/admin/offers'], offerRoutes);
 app.use(['/api/admin/agencies', '/admin/agencies'], agencyRoutes);
 app.use(['/api/applications', '/applications'], publicApplicationRouter);
 app.use(['/api/admin/applications', '/admin/applications'], adminApplicationRouter);
+app.use(['/api/work-reports', '/work-reports'], workReportRoutes);
 // Email logs audit trail
 app.get(['/api/admin/email-logs', '/admin/email-logs'], requireAdmin, getEmailLogs);
 

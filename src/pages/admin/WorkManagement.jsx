@@ -12,22 +12,27 @@ import {
   MapPin, 
   Send, 
   User, 
-  AlertCircle,
-  Inbox,
-  Paperclip,
-  UploadCloud,
-  FileText,
-  File,
-  Eye,
-  Trash2,
-  Download,
-  Loader2
+  AlertCircle, 
+  Inbox, 
+  Paperclip, 
+  UploadCloud, 
+  FileText, 
+  File, 
+  Eye, 
+  Trash2, 
+  Download, 
+  Loader2,
+  FileSpreadsheet,
+  Calendar,
+  Building2,
+  FileCheck2
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { liveDataService } from '../../services/liveDataService';
 import { storageService } from '../../services/supabaseClient';
+import { workReportService } from '../../services/workReportService';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -57,13 +62,21 @@ function getFileCategory(fileName = '', fileType = '') {
 export default function WorkManagement() {
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [activeTab, setActiveTab] = useState('list'); // 'list', 'assign', 'review'
+  const [activeTab, setActiveTab] = useState('daily_reports'); // 'daily_reports', 'list', 'assign', 'review'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [reviewTask, setReviewTask] = useState(null);
   const [adminFeedback, setAdminFeedback] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Daily Field Work Excel Reports State
+  const [dailyReports, setDailyReports] = useState([]);
+  const [selectedDailyReport, setSelectedDailyReport] = useState(null);
+  const [acceptingReportId, setAcceptingReportId] = useState(null);
+  const [acceptanceRemarks, setAcceptanceRemarks] = useState('Verified and approved by administration. All visited unit entries accepted.');
+  const [dailySearchTerm, setDailySearchTerm] = useState('');
+  const [dailyStatusFilter, setDailyStatusFilter] = useState('All');
 
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -87,11 +100,13 @@ export default function WorkManagement() {
     async function loadData() {
       setLoading(true);
       try {
-        const [taskList, empList] = await Promise.all([
+        const [taskList, empList, dReports] = await Promise.all([
           liveDataService.getWorkTasks(),
-          liveDataService.getActiveOnboardedEmployees()
+          liveDataService.getActiveOnboardedEmployees(),
+          workReportService.getDailyWorkReports()
         ]);
         if (taskList) setTasks(taskList);
+        if (dReports) setDailyReports(dReports);
         if (empList) {
           setEmployees(empList);
           if (empList.length > 0) {
@@ -115,7 +130,48 @@ export default function WorkManagement() {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleAcceptReport = async (report) => {
+    if (!report) return;
+    const targetId = report.id || report.report_code;
+    setAcceptingReportId(targetId);
+
+    try {
+      const payload = {
+        reportId: report.id,
+        reportCode: report.report_code,
+        employeeId: report.employee_id,
+        employeeName: report.employee_name,
+        employeeEmail: report.employee_email,
+        workDate: report.work_date,
+        adminRemarks: acceptanceRemarks || 'Verified and approved by administration. All visited unit entries accepted.'
+      };
+
+      await workReportService.acceptDailyWorkReport(payload);
+      showToast(`Daily work sheet for ${report.employee_name || report.employee_id} (${report.work_date}) accepted! Confirmation email sent to candidate.`);
+
+      // Update in state
+      setDailyReports(prev => prev.map(r => {
+        if (r.id === report.id || r.report_code === report.report_code) {
+          return {
+            ...r,
+            status: 'Accepted',
+            admin_remarks: payload.adminRemarks,
+            verified_at: new Date().toISOString()
+          };
+        }
+        return r;
+      }));
+
+      setSelectedDailyReport(null);
+    } catch (err) {
+      console.error('Error accepting report:', err);
+      showToast('Error accepting report. Please try again.');
+    } finally {
+      setAcceptingReportId(null);
+    }
   };
 
   const handleFileSelect = (filesList) => {
@@ -263,22 +319,44 @@ export default function WorkManagement() {
               Daily Work Operations
             </h1>
             <span className="inline-flex items-center text-xs font-bold bg-[#D8F5FA] text-blue-800 px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-2xs border border-blue-200/50">
-              {tasks.length} Dispatched
+              {dailyReports.length} Daily Sheets Submitted
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">Dispatch field survey tasks, track live progress, and verify field reports.</p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Review candidate daily Excel field reports, inspect visited enterprise counts, and verify sheets.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
+            onClick={() => setActiveTab('daily_reports')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'daily_reports'
+                ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <FileSpreadsheet size={14} />
+            <span>Daily Excel Sheets</span>
+            {pendingReportsCount > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'daily_reports' ? 'bg-white text-[#E63946]' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {pendingReportsCount} Pending
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('list')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'list' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Work Dossier
+            <ClipboardList size={14} />
+            <span>Work Tasks Dossier</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('assign')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'assign' ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20' : 'bg-[#D8F5FA] text-[#E63946] hover:bg-[#D8F5FA]'
@@ -289,6 +367,325 @@ export default function WorkManagement() {
           </button>
         </div>
       </div>
+
+      {/* VIEW 1: DAILY EXCEL FIELD WORK SHEETS VERIFICATION (PRIMARY FOCUS) */}
+      {activeTab === 'daily_reports' && (
+        <div className="space-y-6">
+          {/* Summary KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Daily Sheets</p>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{dailyReports.length}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <FileSpreadsheet size={20} />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pending Verification</p>
+                  <p className="text-2xl font-black text-amber-600 mt-1">{pendingReportsCount}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                  <Clock size={20} />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Accepted & Verified</p>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">
+                    {dailyReports.length - pendingReportsCount}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <CheckCircle2 size={20} />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="relative w-full sm:w-80">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by candidate, ID, date, district..."
+                value={dailySearchTerm}
+                onChange={(e) => setDailySearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E63946] focus:bg-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
+              {['All', 'Pending', 'Accepted'].map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setDailyStatusFilter(st)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    dailyStatusFilter === st
+                      ? 'bg-[#E63946] text-white shadow-sm shadow-[#E63946]/20'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+                  }`}
+                >
+                  {st === 'Pending' ? `Pending Review (${pendingReportsCount})` : st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Submissions Table */}
+          <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              {filteredDailyReports.length > 0 ? (
+                <table className="w-full text-xs sm:text-sm text-left">
+                  <thead className="text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200/80">
+                    <tr>
+                      <th className="px-6 py-4">Work Date</th>
+                      <th className="px-6 py-4">Candidate / Officer</th>
+                      <th className="px-6 py-4">Jurisdiction</th>
+                      <th className="px-6 py-4">Submitted Excel Sheet</th>
+                      <th className="px-6 py-4">Units Visited</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Verification Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDailyReports.map((report) => {
+                      const isAccepted = report.status === 'Accepted' || report.status === 'Approved' || report.status === 'Verified';
+                      return (
+                        <tr key={report.id || report.report_code} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-extrabold text-slate-900">{report.work_date}</div>
+                            <div className="text-[10px] font-mono text-slate-400 mt-0.5">{report.report_code || 'REPORT'}</div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-slate-900">{report.employee_name || 'Candidate'}</div>
+                            <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                              <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100">
+                                {report.employee_id}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1 text-slate-700 font-medium">
+                              <MapPin size={12} className="text-rose-500 shrink-0" />
+                              <span>{report.mandal || 'Field'}, {report.district || 'Andhra Pradesh'}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                <FileSpreadsheet size={15} />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-800 truncate max-w-xs" title={report.file_name}>
+                                  {report.file_name || 'DAILY_WORK_SHEET.xlsx'}
+                                </p>
+                                {report.file_size && <p className="text-[10px] text-slate-400">{report.file_size}</p>}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className="font-black text-slate-900 text-sm">
+                              {report.total_enterprises || (Array.isArray(report.records) ? report.records.length : 0)}
+                            </span>
+                            <span className="text-xs text-slate-500 ml-1">Units</span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            {isAccepted ? (
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-emerald-200">
+                                <CheckCircle2 size={13} className="text-emerald-600" />
+                                <span>Accepted & Verified</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-amber-200">
+                                <Clock size={13} className="text-amber-600" />
+                                <span>Pending Verification</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {report.file_url && (
+                                <a
+                                  href={report.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                                  title="Download / View Excel File"
+                                >
+                                  <Download size={12} />
+                                  <span>Excel</span>
+                                </a>
+                              )}
+
+                              {isAccepted ? (
+                                <span className="text-xs font-bold text-emerald-700 px-2 py-1">
+                                  ✓ Accepted
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDailyReport(report)}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Check size={13} />
+                                  <span>Verify & Accept</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <FileSpreadsheet className="h-12 w-12 text-slate-300 mx-auto" />
+                  <p className="font-bold text-sm text-slate-700">No daily work sheets found</p>
+                  <p className="text-xs text-slate-400">Candidate submitted daily Excel reports will appear here for verification.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Admin Verification Modal for Daily Work Sheet */}
+      {selectedDailyReport && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+            <div className="p-6 bg-[#0A192F] text-white flex items-start justify-between shrink-0">
+              <div>
+                <span className="text-[10px] font-mono font-bold bg-[#E63946] px-2 py-0.5 rounded text-white">
+                  {selectedDailyReport.report_code || 'VERIFY'}
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1">
+                  Verify Daily Field Work Sheet
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Candidate: {selectedDailyReport.employee_name} ({selectedDailyReport.employee_id})
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setSelectedDailyReport(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs sm:text-sm overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-400 block font-medium">Work Date</span>
+                  <span className="font-bold text-slate-900 mt-0.5 block">{selectedDailyReport.work_date}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-400 block font-medium">Units Visited</span>
+                  <span className="font-bold text-slate-900 mt-0.5 block">
+                    {selectedDailyReport.total_enterprises || (Array.isArray(selectedDailyReport.records) ? selectedDailyReport.records.length : 0)} Enterprises
+                  </span>
+                </div>
+              </div>
+
+              {/* Uploaded File Link */}
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200/80 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <FileSpreadsheet size={20} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">{selectedDailyReport.file_name || 'DAILY_WORK_SHEET.xlsx'}</p>
+                    <p className="text-[11px] text-slate-500">{selectedDailyReport.file_size || 'Excel file'}</p>
+                  </div>
+                </div>
+
+                {selectedDailyReport.file_url && (
+                  <a
+                    href={selectedDailyReport.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Download size={13} />
+                    <span>Download</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Candidate remarks */}
+              {selectedDailyReport.summary_notes && (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-1">
+                  <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Candidate Observations</span>
+                  <p className="text-slate-800 leading-relaxed font-medium">
+                    {selectedDailyReport.summary_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Admin Remarks Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Admin Acceptance Remarks *
+                </label>
+                <textarea
+                  rows={3}
+                  value={acceptanceRemarks}
+                  onChange={(e) => setAcceptanceRemarks(e.target.value)}
+                  placeholder="Enter verification notes..."
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-[#E63946] focus:outline-none"
+                />
+                <p className="text-[11px] text-slate-400">
+                  * This message will be sent in the official Acceptance Confirmation Email to the candidate.
+                </p>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setSelectedDailyReport(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  disabled={acceptingReportId === (selectedDailyReport.id || selectedDailyReport.report_code)}
+                  onClick={() => handleAcceptReport(selectedDailyReport)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold flex items-center gap-2" 
+                >
+                  {acceptingReportId === (selectedDailyReport.id || selectedDailyReport.report_code) ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Accepting & Sending Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={15} />
+                      <span>Confirm & Accept (Send Email)</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Assign Task View */}
       {activeTab === 'assign' && (
