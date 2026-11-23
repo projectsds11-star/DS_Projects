@@ -320,13 +320,20 @@ export default function JobApplication() {
             </div>
 
             <div className="p-6 sm:p-8 space-y-6">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-xs text-slate-600 space-y-3">
-                <p className="font-bold text-slate-800 text-sm">Next Steps & Information:</p>
-                <ul className="list-disc pl-5 space-y-1.5 text-slate-700">
-                  <li>An acknowledgment email has been sent to candidate registered email.</li>
-                  <li>Our field coordination and HR team will review your qualifications and contact you for the interview round.</li>
-                  <li>Please keep your <strong>Application Number ({submissionSuccess.applicationNo})</strong> safe for future correspondence.</li>
-                  <li>Bring your original educational certificates, Aadhaar card, and driving license at the time of interview.</li>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-xs text-emerald-950 space-y-3">
+                <p className="font-extrabold text-emerald-900 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <span>Confirmation Email Sent &bull; Next Steps (4 to 5 Days Window):</span>
+                </p>
+                <ul className="list-disc pl-5 space-y-2 text-emerald-900 leading-relaxed font-medium">
+                  <li>
+                    A formal confirmation email with your <strong>Application Number ({submissionSuccess.applicationNo})</strong> has been dispatched to your registered email address.
+                  </li>
+                  <li>
+                    <strong>Our recruitment and field operations team will connect with you within 4 to 5 working days</strong> via phone call or email regarding the interview schedule, mandal allocation, and field orientation.
+                  </li>
+                  <li>Please keep your Application Number safe for future correspondence.</li>
+                  <li>Bring your original educational certificates, Aadhaar card, and driving license at the time of field verification.</li>
                 </ul>
               </div>
 

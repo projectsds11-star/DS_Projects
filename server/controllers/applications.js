@@ -111,54 +111,94 @@ async function sendApplicationConfirmationEmails(appData) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Job Application Received - DS Projects</title>
+  <title>Job Application Submitted Successfully - DS Projects</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 24px;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-    <div style="background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); padding: 24px 30px; text-align: left; color: #ffffff;">
-      <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">DS PROJECTS</h1>
-      <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001</p>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f1f5f9; margin: 0; padding: 24px;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07);">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #0A192F 0%, #1E3A8A 100%); padding: 28px 32px; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px; color: #ffffff;">DS PROJECTS</h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: #38bdf8; font-weight: 600;">MSME Sustainable (ZED) Certification &amp; Field Operations</p>
+      <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Corporate Office: RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001</p>
     </div>
     
-    <div style="padding: 30px;">
-      <div style="display: inline-block; padding: 4px 12px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 16px;">
-        Application Acknowledged
+    <div style="padding: 32px;">
+      <!-- Success Badge -->
+      <div style="display: inline-block; padding: 6px 16px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px; font-size: 12px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
+        ✓ Application Submitted Successfully
       </div>
 
-      <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #0f172a;">Dear ${full_name},</h2>
-      <p style="margin: 0 0 16px 0; font-size: 14px; color: #475569;">
-        Thank you for submitting your job application to <strong>DS PROJECTS PRIVATE LIMITED</strong>. We have successfully received your credentials for field operations.
+      <h2 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #0f172a;">Dear ${full_name},</h2>
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+        Thank you for applying to <strong>DS PROJECTS PRIVATE LIMITED</strong>. Your application for <strong>${position_applied_for}</strong> has been successfully received and registered in our central recruitment database.
       </p>
 
-      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+      <!-- Application Details Card -->
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="text-align: center; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px dashed #cbd5e1;">
+          <span style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 1px;">Your Official Application Number</span>
+          <div style="font-size: 22px; font-family: monospace; font-weight: 800; color: #E63946; margin-top: 4px;">
+            ${application_no}
+          </div>
+        </div>
+
         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <tr>
-            <td style="padding: 6px 0; color: #64748b; width: 40%;">Application No:</td>
-            <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${application_no}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; color: #64748b;">Position Applied:</td>
+            <td style="padding: 6px 0; color: #64748b; width: 42%;">Position Applied:</td>
             <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${position_applied_for}</td>
           </tr>
           <tr>
-            <td style="padding: 6px 0; color: #64748b;">Preferred Area:</td>
-            <td style="padding: 6px 0; color: #0f172a;">${preferred_area || 'Andhra Pradesh'}</td>
+            <td style="padding: 6px 0; color: #64748b;">Registered Mobile:</td>
+            <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${mobile_number}</td>
           </tr>
           <tr>
-            <td style="padding: 6px 0; color: #64748b;">Contact Mobile:</td>
-            <td style="padding: 6px 0; color: #0f172a;">${mobile_number}</td>
+            <td style="padding: 6px 0; color: #64748b;">Registered Email:</td>
+            <td style="padding: 6px 0; color: #0f172a;">${email}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b;">Preferred Field Area:</td>
+            <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${preferred_area || 'Andhra Pradesh'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b;">Submission Date:</td>
+            <td style="padding: 6px 0; color: #0f172a;">${new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
           </tr>
         </table>
       </div>
 
-      <p style="font-size: 13px; color: #475569; margin: 0 0 20px 0;">
-        Our recruitment and field operations team will review your qualifications and experience. Shortlisted candidates will be contacted via telephone or email regarding interview schedules.
+      <!-- 4 to 5 Days Timeline Notification Callout -->
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-left: 5px solid #10b981; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+        <div style="font-weight: 800; color: #065f46; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center;">
+          📞 What happens next? (4 to 5 Days Review Window)
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.6;">
+          Our recruitment and field operations team is currently reviewing your profile and qualifications. <strong>Our team will connect with you within 4 to 5 working days</strong> via telephone call or email regarding your interview schedule, mandal allocation, and field orientation.
+        </p>
+      </div>
+
+      <!-- Helpful Instructions -->
+      <div style="background-color: #f8fafc; border-radius: 10px; padding: 16px; margin-bottom: 24px; font-size: 12px; color: #64748b;">
+        <strong style="color: #334155; display: block; margin-bottom: 6px;">Important Candidate Notes:</strong>
+        <ul style="margin: 0; padding-left: 18px; line-height: 1.7;">
+          <li>Please keep your <strong>Application Number (${application_no})</strong> safe for future correspondence.</li>
+          <li>Keep your mobile phone reachable during business hours (9:30 AM to 6:30 PM).</li>
+          <li>Keep your original educational documents, Aadhaar card, and driving license ready for verification.</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 13px; color: #475569; margin: 0 0 24px 0;">
+        If you have any urgent queries regarding your application, feel free to contact our recruitment desk at <strong>+91 9701529191</strong> or email us at <strong>projectsds11@gmail.com</strong>.
       </p>
 
-      <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
-        <p style="margin: 0; font-size: 13px; font-weight: bold; color: #1e293b;">Human Resources & Recruitment Team</p>
-        <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">DS Projects Private Limited</p>
-        <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8;">Web: www.dsprojectss.com | Phone: +91 9701529191</p>
+      <!-- Signature Footer -->
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #64748b;">
+        <p style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a;">Recruitment &amp; Field Operations Directorate</p>
+        <p style="margin: 2px 0 0 0; font-weight: 600; color: #475569;">DS Projects Private Limited</p>
+        <p style="margin: 4px 0 0 0; color: #94a3b8;">
+          RRR Complex, Guntur Mini Bypass Road, Opposite Royal Oak, Ongole-523001, Andhra Pradesh<br>
+          Website: <a href="https://www.dsprojectss.com" style="color: #1e3a8a; text-decoration: none;">www.dsprojectss.com</a> | Helpline: +91 9701529191
+        </p>
       </div>
     </div>
   </div>
@@ -169,7 +209,7 @@ async function sendApplicationConfirmationEmails(appData) {
       await transporter.sendMail({
         from: '"DS Projects HR" <projectsds11@gmail.com>',
         to: email,
-        subject: `Job Application Received: ${position_applied_for} (${application_no})`,
+        subject: `🎉 Application Submitted Successfully: ${position_applied_for} (${application_no}) - DS Projects`,
         html: applicantHtml,
       }).catch(e => console.warn('[Applications Email] Applicant notification failed:', e.message));
     }
